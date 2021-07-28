@@ -120,12 +120,21 @@ struct _MetaOnscreenNative
   gulong privacy_screen_changed_handler_id;
   gulong color_space_changed_handler_id;
   gulong hdr_metadata_changed_handler_id;
+
+  struct {
+    int *rectangles;  /* 4 x n_rectangles */
+    int n_rectangles;
+    ClutterFrame *frame;
+  } next_post;
 };
 
 G_DEFINE_TYPE (MetaOnscreenNative, meta_onscreen_native,
                COGL_TYPE_ONSCREEN_EGL)
 
 static GQuark blit_source_quark = 0;
+
+static void
+post_latest_swap (CoglOnscreen *onscreen);
 
 static gboolean
 init_secondary_gpu_state (MetaRendererNative  *renderer_native,
@@ -1038,26 +1047,18 @@ meta_onscreen_native_swap_buffers_with_damage (CoglOnscreen  *onscreen,
   CoglRendererEGL *cogl_renderer_egl = cogl_renderer->winsys;
   MetaRendererNativeGpuData *renderer_gpu_data = cogl_renderer_egl->platform;
   MetaRendererNative *renderer_native = renderer_gpu_data->renderer_native;
-  MetaRenderer *renderer = META_RENDERER (renderer_native);
-  MetaBackend *backend = meta_renderer_get_backend (renderer);
-  MetaMonitorManager *monitor_manager =
-    meta_backend_get_monitor_manager (backend);
   MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
   MetaGpuKms *render_gpu = onscreen_native->render_gpu;
   MetaDeviceFile *render_device_file;
   ClutterFrame *frame = user_data;
-  MetaFrameNative *frame_native = meta_frame_native_from_frame (frame);
-  MetaKmsUpdate *kms_update;
   CoglOnscreenClass *parent_class;
   gboolean egl_context_changed = FALSE;
-  MetaPowerSave power_save_mode;
   g_autoptr (GError) error = NULL;
   MetaDrmBufferFlags buffer_flags;
   MetaDrmBufferGbm *buffer_gbm;
   g_autoptr (MetaDrmBuffer) primary_gpu_fb = NULL;
   g_autoptr (MetaDrmBuffer) secondary_gpu_fb = NULL;
-  MetaKmsCrtc *kms_crtc;
-  MetaKmsDevice *kms_device;
+  size_t rectangles_size;
 
   COGL_TRACE_BEGIN_SCOPED (MetaRendererNativeSwapBuffers,
                            "Onscreen (swap-buffers)");
@@ -1157,12 +1158,47 @@ meta_onscreen_native_swap_buffers_with_damage (CoglOnscreen  *onscreen,
   if (egl_context_changed)
     _cogl_winsys_egl_ensure_current (cogl_display);
 
-  kms_crtc = meta_crtc_kms_get_kms_crtc (META_CRTC_KMS (onscreen_native->crtc));
-  kms_device = meta_kms_crtc_get_device (kms_crtc);
+  rectangles_size = n_rectangles * 4 * sizeof (int);
+  onscreen_native->next_post.rectangles =
+    g_realloc (onscreen_native->next_post.rectangles, rectangles_size);
+  memcpy (onscreen_native->next_post.rectangles, rectangles, rectangles_size);
+  onscreen_native->next_post.n_rectangles = n_rectangles;
+
+  g_clear_pointer (&onscreen_native->next_post.frame, clutter_frame_unref);
+  onscreen_native->next_post.frame = clutter_frame_ref (frame);
+
+  post_latest_swap (onscreen);
+}
+
+static void
+post_latest_swap (CoglOnscreen *onscreen)
+{
+  CoglFramebuffer *framebuffer = COGL_FRAMEBUFFER (onscreen);
+  CoglContext *cogl_context = cogl_framebuffer_get_context (framebuffer);
+  CoglRenderer *cogl_renderer = cogl_context->display->renderer;
+  CoglRendererEGL *cogl_renderer_egl = cogl_renderer->winsys;
+  MetaRendererNativeGpuData *renderer_gpu_data = cogl_renderer_egl->platform;
+  MetaRendererNative *renderer_native = renderer_gpu_data->renderer_native;
+  MetaRenderer *renderer = META_RENDERER (renderer_native);
+  MetaBackend *backend = meta_renderer_get_backend (renderer);
+  MetaMonitorManager *monitor_manager =
+    meta_backend_get_monitor_manager (backend);
+  MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
+  MetaPowerSave power_save_mode;
+  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
+  MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
+  MetaKmsDevice *kms_device = meta_kms_crtc_get_device (kms_crtc);
+  MetaKmsUpdate *kms_update;
+  g_autoptr (MetaKmsFeedback) kms_feedback = NULL;
+  g_autoptr (ClutterFrame) frame =
+    g_steal_pointer (&onscreen_native->next_post.frame);
+  MetaFrameNative *frame_native;
 
   power_save_mode = meta_monitor_manager_get_power_save_mode (monitor_manager);
   if (power_save_mode == META_POWER_SAVE_ON)
     {
+      frame_native = meta_frame_native_from_frame (frame);
+
       kms_update = meta_frame_native_ensure_kms_update (frame_native,
                                                         kms_device);
       meta_kms_update_add_result_listener (kms_update,
@@ -1177,8 +1213,8 @@ meta_onscreen_native_swap_buffers_with_damage (CoglOnscreen  *onscreen,
                                       onscreen_native->crtc,
                                       kms_update,
                                       META_KMS_PAGE_FLIP_LISTENER_FLAG_NONE,
-                                      rectangles,
-                                      n_rectangles);
+                                      onscreen_native->next_post.rectangles,
+                                      onscreen_native->next_post.n_rectangles);
     }
   else
     {
@@ -2449,6 +2485,10 @@ meta_onscreen_native_dispose (GObject *object)
 
   g_clear_object (&onscreen_native->output);
   g_clear_object (&onscreen_native->crtc);
+
+  g_clear_pointer (&onscreen_native->next_post.rectangles, g_free);
+  g_clear_pointer (&onscreen_native->next_post.frame, clutter_frame_unref);
+  onscreen_native->next_post.n_rectangles = 0;
 }
 
 static void
