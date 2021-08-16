@@ -850,6 +850,8 @@ if have_native_backend
     'backends/native/meta-seat-native.h',
     'backends/native/meta-stage-native.c',
     'backends/native/meta-stage-native.h',
+    'backends/native/meta-swap-chain.c',
+    'backends/native/meta-swap-chain.h',
     'backends/native/meta-thread-impl.c',
     'backends/native/meta-thread-impl.h',
     'backends/native/meta-thread-private.h',
