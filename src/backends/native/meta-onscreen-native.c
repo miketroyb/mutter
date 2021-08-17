@@ -229,6 +229,7 @@ notify_view_crtc_presented (MetaRendererView *view,
 
   meta_onscreen_native_notify_frame_complete (onscreen);
   meta_onscreen_native_swap_drm_fb (onscreen);
+  meta_swap_chain_swap_buffers (meta_kms_crtc_get_swap_chain (kms_crtc));
 }
 
 static void
