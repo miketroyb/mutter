@@ -93,7 +93,6 @@ struct _MetaOnscreenNative
 
   struct {
     struct gbm_surface *surface;
-    MetaDrmBuffer *current_fb;
     MetaDrmBuffer *next_fb;
   } gbm;
 
@@ -127,36 +126,6 @@ static gboolean
 init_secondary_gpu_state (MetaRendererNative  *renderer_native,
                           CoglOnscreen        *onscreen,
                           GError             **error);
-
-static void
-free_current_bo (CoglOnscreen *onscreen)
-{
-  MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-
-  g_clear_object (&onscreen_native->gbm.current_fb);
-}
-
-static void
-meta_onscreen_native_swap_drm_fb (CoglOnscreen *onscreen)
-{
-  MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-
-  if (!onscreen_native->gbm.next_fb)
-    return;
-
-  free_current_bo (onscreen);
-
-  g_set_object (&onscreen_native->gbm.current_fb, onscreen_native->gbm.next_fb);
-  g_clear_object (&onscreen_native->gbm.next_fb);
-}
-
-static void
-meta_onscreen_native_clear_next_fb (CoglOnscreen *onscreen)
-{
-  MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-
-  g_clear_object (&onscreen_native->gbm.next_fb);
-}
 
 static void
 maybe_update_frame_info (MetaCrtc         *crtc,
@@ -228,7 +197,6 @@ notify_view_crtc_presented (MetaRendererView *view,
   maybe_update_frame_info (crtc, frame_info, time_us, flags, sequence);
 
   meta_onscreen_native_notify_frame_complete (onscreen);
-  meta_onscreen_native_swap_drm_fb (onscreen);
   meta_swap_chain_swap_buffers (meta_kms_crtc_get_swap_chain (kms_crtc));
 }
 
@@ -337,7 +305,6 @@ page_flip_feedback_discarded (MetaKmsCrtc  *kms_crtc,
   frame_info->flags |= COGL_FRAME_INFO_FLAG_SYMBOLIC;
 
   meta_onscreen_native_notify_frame_complete (onscreen);
-  meta_onscreen_native_clear_next_fb (onscreen);
 }
 
 static const MetaKmsPageFlipListenerVtable page_flip_listener_vtable = {
@@ -402,8 +369,9 @@ void
 meta_onscreen_native_dummy_power_save_page_flip (CoglOnscreen *onscreen)
 {
   CoglFrameInfo *frame_info;
+  MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
 
-  meta_onscreen_native_swap_drm_fb (onscreen);
+  g_clear_object (&onscreen_native->gbm.next_fb);
 
   frame_info = cogl_onscreen_peek_tail_frame_info (onscreen);
   frame_info->flags |= COGL_FRAME_INFO_FLAG_SYMBOLIC;
@@ -426,7 +394,7 @@ meta_onscreen_native_flip_crtc (CoglOnscreen                *onscreen,
   MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
   MetaRendererNativeGpuData *renderer_gpu_data;
   MetaGpuKms *gpu_kms;
-  MetaDrmBuffer *buffer;
+  g_autoptr (MetaDrmBuffer) buffer = NULL;
   MetaKmsPlaneAssignment *plane_assignment;
 
   COGL_TRACE_BEGIN_SCOPED (MetaOnscreenNativeFlipCrtcs,
@@ -441,7 +409,7 @@ meta_onscreen_native_flip_crtc (CoglOnscreen                *onscreen,
   switch (renderer_gpu_data->mode)
     {
     case META_RENDERER_NATIVE_MODE_GBM:
-      buffer = onscreen_native->gbm.next_fb;
+      buffer = g_steal_pointer (&onscreen_native->gbm.next_fb);
 
       plane_assignment = meta_crtc_kms_assign_primary_plane (crtc_kms,
                                                              buffer,
@@ -1045,7 +1013,6 @@ swap_buffer_result_feedback (const MetaKmsFeedback *kms_feedback,
   frame_info->flags |= COGL_FRAME_INFO_FLAG_SYMBOLIC;
 
   meta_onscreen_native_notify_frame_complete (onscreen);
-  meta_onscreen_native_clear_next_fb (onscreen);
 }
 
 static const MetaKmsResultListenerVtable swap_buffer_result_listener_vtable = {
@@ -1333,7 +1300,6 @@ scanout_result_feedback (const MetaKmsFeedback *kms_feedback,
   frame_info->flags |= COGL_FRAME_INFO_FLAG_SYMBOLIC;
 
   meta_onscreen_native_notify_frame_complete (onscreen);
-  meta_onscreen_native_clear_next_fb (onscreen);
 }
 
 static const MetaKmsResultListenerVtable scanout_result_listener_vtable = {
@@ -2435,7 +2401,6 @@ meta_onscreen_native_dispose (GObject *object)
     {
     case META_RENDERER_NATIVE_MODE_GBM:
       g_clear_object (&onscreen_native->gbm.next_fb);
-      free_current_bo (onscreen);
       break;
     case META_RENDERER_NATIVE_MODE_SURFACELESS:
       g_assert_not_reached ();
