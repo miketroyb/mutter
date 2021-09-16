@@ -1145,6 +1145,9 @@ meta_onscreen_native_swap_buffers_with_damage (CoglOnscreen  *onscreen,
 #endif
     }
 
+  clutter_frame_set_result (frame,
+                            CLUTTER_FRAME_RESULT_PENDING_PRESENTED);
+
   /*
    * If we changed EGL context, cogl will have the wrong idea about what is
    * current, making it fail to set it when it needs to. Avoid that by making
@@ -1181,8 +1184,6 @@ meta_onscreen_native_swap_buffers_with_damage (CoglOnscreen  *onscreen,
     {
       meta_renderer_native_queue_power_save_page_flip (renderer_native,
                                                        onscreen);
-      clutter_frame_set_result (frame,
-                                CLUTTER_FRAME_RESULT_PENDING_PRESENTED);
       return;
     }
 
@@ -1202,8 +1203,6 @@ meta_onscreen_native_swap_buffers_with_damage (CoglOnscreen  *onscreen,
           kms_update = meta_frame_native_steal_kms_update (frame_native);
           meta_renderer_native_queue_mode_set_update (renderer_native,
                                                       kms_update);
-          clutter_frame_set_result (frame,
-                                    CLUTTER_FRAME_RESULT_PENDING_PRESENTED);
           return;
         }
       else if (meta_renderer_native_has_pending_mode_set (renderer_native))
@@ -1217,8 +1216,6 @@ meta_onscreen_native_swap_buffers_with_damage (CoglOnscreen  *onscreen,
 
           meta_frame_native_steal_kms_update (frame_native);
           meta_renderer_native_post_mode_set_updates (renderer_native);
-          clutter_frame_set_result (frame,
-                                    CLUTTER_FRAME_RESULT_PENDING_PRESENTED);
           return;
         }
       break;
@@ -1234,8 +1231,6 @@ meta_onscreen_native_swap_buffers_with_damage (CoglOnscreen  *onscreen,
                                                       kms_update);
 
           meta_renderer_native_post_mode_set_updates (renderer_native);
-          clutter_frame_set_result (frame,
-                                    CLUTTER_FRAME_RESULT_PENDING_PRESENTED);
           return;
         }
       break;
@@ -1250,7 +1245,6 @@ meta_onscreen_native_swap_buffers_with_damage (CoglOnscreen  *onscreen,
   kms_update = meta_frame_native_steal_kms_update (frame_native);
   meta_kms_device_post_update (kms_device, kms_update,
                                META_KMS_UPDATE_FLAG_NONE);
-  clutter_frame_set_result (frame, CLUTTER_FRAME_RESULT_PENDING_PRESENTED);
 }
 
 gboolean
