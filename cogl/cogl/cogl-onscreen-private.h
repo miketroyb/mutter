@@ -95,3 +95,6 @@ cogl_onscreen_peek_tail_frame_info (CoglOnscreen *onscreen);
 
 COGL_EXPORT CoglFrameInfo *
 cogl_onscreen_pop_head_frame_info (CoglOnscreen *onscreen);
+
+COGL_EXPORT unsigned int
+cogl_onscreen_count_pending_frames (CoglOnscreen *onscreen);
