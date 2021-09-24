@@ -596,6 +596,16 @@ import_shared_framebuffer (CoglOnscreen                        *onscreen,
   return imported_buffer;
 }
 
+static void
+reference_owning_gbm_surface (CoglOnscreen     *onscreen,
+                              MetaDrmBufferGbm *buffer_gbm)
+{
+  g_object_set_data_full (G_OBJECT (buffer_gbm),
+                          "gbm_surface owner",
+                          g_object_ref (onscreen),
+                          (GDestroyNotify) g_object_unref);
+}
+
 static MetaDrmBuffer *
 copy_shared_framebuffer_gpu (CoglOnscreen                        *onscreen,
                              MetaOnscreenNativeSecondaryGpuState *secondary_gpu_state,
@@ -680,6 +690,8 @@ copy_shared_framebuffer_gpu (CoglOnscreen                        *onscreen,
       g_error_free (error);
       return NULL;
     }
+
+  reference_owning_gbm_surface (onscreen, buffer_gbm);
 
   g_object_set_qdata_full (G_OBJECT (buffer_gbm),
                            blit_source_quark,
@@ -1113,6 +1125,7 @@ meta_onscreen_native_swap_buffers_with_damage (CoglOnscreen  *onscreen,
           return;
         }
 
+      reference_owning_gbm_surface (onscreen, buffer_gbm);
       primary_gpu_fb = META_DRM_BUFFER (g_steal_pointer (&buffer_gbm));
       break;
     case META_RENDERER_NATIVE_MODE_SURFACELESS:
