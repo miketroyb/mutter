@@ -348,10 +348,9 @@ clutter_frame_clock_notify_presented (ClutterFrameClock *frame_clock,
                     swap_to_flip_us);
 
       frame_clock->shortterm_max_update_duration_us =
-        CLAMP (frame_clock->last_dispatch_lateness_us + dispatch_to_swap_us +
-               MAX (swap_to_rendering_done_us, swap_to_flip_us),
-               frame_clock->shortterm_max_update_duration_us,
-               frame_clock->refresh_interval_us);
+        MAX (frame_clock->shortterm_max_update_duration_us,
+             frame_clock->last_dispatch_lateness_us + dispatch_to_swap_us +
+             MAX (swap_to_rendering_done_us, swap_to_flip_us));
 
       maybe_update_longterm_max_duration_us (frame_clock, frame_info);
 
@@ -433,8 +432,6 @@ clutter_frame_clock_compute_max_render_time_us (ClutterFrameClock *frame_clock)
          frame_clock->shortterm_max_update_duration_us) +
     frame_clock->vblank_duration_us +
     clutter_max_render_time_constant_us;
-
-  max_render_time_us = CLAMP (max_render_time_us, 0, refresh_interval_us);
 
   return max_render_time_us;
 }
