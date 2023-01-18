@@ -22,6 +22,7 @@
 #include <xf86drmMode.h>
 
 #include "backends/native/meta-kms-types.h"
+#include "backends/native/meta-swap-chain.h"
 #include "backends/meta-backend-types.h"
 #include "core/util-private.h"
 #include "meta/boxes.h"
@@ -60,3 +61,5 @@ int meta_kms_crtc_get_idx (MetaKmsCrtc *crtc);
 
 META_EXPORT_TEST
 gboolean meta_kms_crtc_is_active (MetaKmsCrtc *crtc);
+
+MetaSwapChain * meta_kms_crtc_get_swap_chain (MetaKmsCrtc *crtc);
