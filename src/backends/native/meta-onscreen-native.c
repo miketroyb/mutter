@@ -94,6 +94,11 @@ struct _MetaOnscreenNative
   struct {
     struct gbm_surface *surface;
     MetaDrmBuffer *next_fb;
+
+    /* Temporary workaround for the scanout-failed signal wanting the buffer
+     * to live longer than it does, and then it doesn't use it anyway...
+     */
+    MetaDrmBuffer *direct_fb;
   } gbm;
 
 #ifdef HAVE_EGL_DEVICE
@@ -1277,6 +1282,7 @@ scanout_result_feedback (const MetaKmsFeedback *kms_feedback,
   CoglOnscreen *onscreen = COGL_ONSCREEN (onscreen_native);
   const GError *error;
   CoglFrameInfo *frame_info;
+  g_autoptr (MetaDrmBuffer) direct_fb = g_steal_pointer (&onscreen_native->gbm.direct_fb);
 
   error = meta_kms_feedback_get_error (kms_feedback);
   if (!error)
@@ -1290,8 +1296,7 @@ scanout_result_feedback (const MetaKmsFeedback *kms_feedback,
 
       g_warning ("Direct scanout page flip failed: %s", error->message);
 
-      cogl_scanout_notify_failed (COGL_SCANOUT (onscreen_native->gbm.next_fb),
-                                  onscreen);
+      cogl_scanout_notify_failed (COGL_SCANOUT (direct_fb), onscreen);
       clutter_stage_view_add_redraw_clip (view, NULL);
       clutter_stage_view_schedule_update_now (view);
     }
@@ -1365,6 +1370,8 @@ meta_onscreen_native_direct_scanout (CoglOnscreen   *onscreen,
   kms_device = meta_kms_crtc_get_device (kms_crtc);
   kms_update = meta_frame_native_ensure_kms_update (frame_native, kms_device);
 
+  g_set_object (&onscreen_native->gbm.direct_fb,
+                onscreen_native->gbm.next_fb);
   meta_kms_update_add_result_listener (kms_update,
                                        &scanout_result_listener_vtable,
                                        NULL,
@@ -2401,6 +2408,7 @@ meta_onscreen_native_dispose (GObject *object)
     {
     case META_RENDERER_NATIVE_MODE_GBM:
       g_clear_object (&onscreen_native->gbm.next_fb);
+      g_clear_object (&onscreen_native->gbm.direct_fb);
       break;
     case META_RENDERER_NATIVE_MODE_SURFACELESS:
       g_assert_not_reached ();
