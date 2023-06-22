@@ -1245,7 +1245,8 @@ try_post_latest_swap (CoglOnscreen *onscreen)
   g_autoptr (ClutterFrame) frame = NULL;
   MetaFrameNative *frame_native;
 
-  if (onscreen_native->next_post.frame == NULL)
+  if (onscreen_native->next_post.frame == NULL ||
+      onscreen_native->view == NULL)
     return;
 
   if (meta_kms_is_shutting_down (kms))
