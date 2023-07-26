@@ -1557,12 +1557,6 @@ void
 meta_onscreen_native_before_redraw (CoglOnscreen *onscreen,
                                     ClutterFrame *frame)
 {
-  MetaOnscreenNative *onscreen_native = META_ONSCREEN_NATIVE (onscreen);
-  MetaCrtcKms *crtc_kms = META_CRTC_KMS (onscreen_native->crtc);
-  MetaKmsCrtc *kms_crtc = meta_crtc_kms_get_kms_crtc (crtc_kms);
-
-  meta_kms_device_await_flush (meta_kms_crtc_get_device (kms_crtc),
-                               kms_crtc);
 }
 
 void

@@ -1483,8 +1483,10 @@ meta_kms_impl_device_handle_update (MetaKmsImplDevice *impl_device,
       meta_kms_update_merge_from (crtc_frame->pending_update, update);
       meta_kms_update_free (update);
       update = g_steal_pointer (&crtc_frame->pending_update);
-      disarm_crtc_frame_deadline_timer (crtc_frame);
     }
+
+  if (crtc_frame->deadline.armed)
+    disarm_crtc_frame_deadline_timer (crtc_frame);
 
   meta_kms_device_handle_flush (priv->device, latch_crtc);
 
