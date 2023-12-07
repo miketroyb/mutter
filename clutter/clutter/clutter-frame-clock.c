@@ -518,6 +518,7 @@ calculate_next_update_time_us (ClutterFrameClock *frame_clock,
   int64_t max_render_time_allowed_us;
   int64_t next_presentation_time_us = 0;
   int64_t next_update_time_us;
+  gboolean skipped_frames = FALSE;
 
   now_us = g_get_monotonic_time ();
 
@@ -614,6 +615,7 @@ calculate_next_update_time_us (ClutterFrameClock *frame_clock,
 
       current_phase_us = (now_us - last_presentation_time_us) % refresh_interval_us;
       next_presentation_time_us = now_us - current_phase_us + refresh_interval_us;
+      skipped_frames = TRUE;
     }
 
   if (frame_clock->is_next_presentation_time_valid)
@@ -646,7 +648,7 @@ calculate_next_update_time_us (ClutterFrameClock *frame_clock,
         }
     }
 
-  if (next_presentation_time_us != last_presentation_time_us + refresh_interval_us)
+  if (skipped_frames)
     {
       /* There was an idle period since the last presentation, so there seems
        * be no constantly updating actor. In this case it's best to start
