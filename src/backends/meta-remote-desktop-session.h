@@ -14,14 +14,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#ifndef META_REMOTE_DESKTOP_SESSION_H
-#define META_REMOTE_DESKTOP_SESSION_H
+#pragma once
 
 #include <glib-object.h>
 
@@ -33,18 +30,23 @@ G_DECLARE_FINAL_TYPE (MetaRemoteDesktopSession, meta_remote_desktop_session,
                       META, REMOTE_DESKTOP_SESSION,
                       MetaDBusRemoteDesktopSessionSkeleton)
 
-char * meta_remote_desktop_session_get_object_path (MetaRemoteDesktopSession *session);
+#define META_TYPE_REMOTE_DESKTOP_SESSION_HANDLE (meta_remote_desktop_session_handle_get_type ())
+G_DECLARE_FINAL_TYPE (MetaRemoteDesktopSessionHandle,
+                      meta_remote_desktop_session_handle,
+                      META, REMOTE_DESKTOP_SESSION_HANDLE,
+                      MetaRemoteAccessHandle)
 
-char * meta_remote_desktop_session_get_session_id (MetaRemoteDesktopSession *session);
+char * meta_remote_desktop_session_get_object_path (MetaRemoteDesktopSession *session);
 
 gboolean meta_remote_desktop_session_register_screen_cast (MetaRemoteDesktopSession  *session,
                                                            MetaScreenCastSession     *screen_cast_session,
                                                            GError                   **error);
 
-void meta_remote_desktop_session_close (MetaRemoteDesktopSession *session);
+const char * meta_remote_desktop_session_acquire_mapping_id (MetaRemoteDesktopSession *session);
 
-MetaRemoteDesktopSession * meta_remote_desktop_session_new (MetaRemoteDesktop  *remote_desktop,
-                                                            const char         *peer_name,
-                                                            GError            **error);
+void meta_remote_desktop_session_release_mapping_id (MetaRemoteDesktopSession *session,
+                                                     const char               *mapping_id);
 
-#endif /* META_REMOTE_DESKTOP_SESSION_H */
+void meta_remote_desktop_session_request_transfer (MetaRemoteDesktopSession  *session,
+                                                   const char                *mime_type,
+                                                   GTask                     *task);

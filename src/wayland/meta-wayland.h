@@ -12,58 +12,96 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jasper St. Pierre <jstpierre@mecheye.net>
  */
 
-#ifndef META_WAYLAND_H
-#define META_WAYLAND_H
+#pragma once
 
-#include <clutter/clutter.h>
-#include <meta/types.h>
-#include "meta-wayland-types.h"
+#include "clutter/clutter.h"
+#include "core/meta-context-private.h"
+#include "core/util-private.h"
+#include "meta/types.h"
+#include "meta/meta-wayland-compositor.h"
+#include "wayland/meta-wayland-text-input.h"
+#include "wayland/meta-wayland-types.h"
 
-void                    meta_wayland_override_display_name (char *display_name);
+META_EXPORT_TEST
+void                    meta_wayland_override_display_name (const char *display_name);
 
-void                    meta_wayland_pre_clutter_init           (void);
-void                    meta_wayland_init                       (void);
-void                    meta_wayland_finalize                   (void);
+MetaWaylandCompositor * meta_wayland_compositor_new             (MetaContext *context);
 
-/* We maintain a singleton MetaWaylandCompositor which can be got at via this
- * API after meta_wayland_init() has been called. */
-MetaWaylandCompositor  *meta_wayland_compositor_get_default     (void);
+void                    meta_wayland_compositor_prepare_shutdown (MetaWaylandCompositor *compositor);
 
 void                    meta_wayland_compositor_update          (MetaWaylandCompositor *compositor,
                                                                  const ClutterEvent    *event);
+
 gboolean                meta_wayland_compositor_handle_event    (MetaWaylandCompositor *compositor,
                                                                  const ClutterEvent    *event);
+
 void                    meta_wayland_compositor_update_key_state (MetaWaylandCompositor *compositor,
                                                                  char                  *key_vector,
                                                                   int                    key_vector_len,
                                                                   int                    offset);
-void                    meta_wayland_compositor_repick          (MetaWaylandCompositor *compositor);
 
 void                    meta_wayland_compositor_set_input_focus (MetaWaylandCompositor *compositor,
                                                                  MetaWindow            *window);
 
 void                    meta_wayland_compositor_paint_finished  (MetaWaylandCompositor *compositor);
 
-void                    meta_wayland_compositor_destroy_frame_callbacks (MetaWaylandCompositor *compositor,
-                                                                         MetaWaylandSurface    *surface);
+void                    meta_wayland_compositor_add_frame_callback_surface (MetaWaylandCompositor *compositor,
+                                                                            MetaWaylandSurface    *surface);
 
+void                    meta_wayland_compositor_remove_frame_callback_surface (MetaWaylandCompositor *compositor,
+                                                                               MetaWaylandSurface    *surface);
+
+void                    meta_wayland_compositor_add_presentation_feedback_surface (MetaWaylandCompositor *compositor,
+                                                                                   MetaWaylandSurface    *surface);
+
+void                    meta_wayland_compositor_remove_presentation_feedback_surface (MetaWaylandCompositor *compositor,
+                                                                                      MetaWaylandSurface    *surface);
+
+GQueue                 *meta_wayland_compositor_get_committed_transactions (MetaWaylandCompositor *compositor);
+
+META_EXPORT_TEST
 const char             *meta_wayland_get_wayland_display_name   (MetaWaylandCompositor *compositor);
-const char             *meta_wayland_get_xwayland_display_name  (MetaWaylandCompositor *compositor);
+
+#ifdef HAVE_XWAYLAND
+META_EXPORT_TEST
+const char             *meta_wayland_get_public_xwayland_display_name  (MetaWaylandCompositor *compositor);
+
+const char             *meta_wayland_get_private_xwayland_display_name (MetaWaylandCompositor *compositor);
+#endif
 
 void                    meta_wayland_compositor_restore_shortcuts      (MetaWaylandCompositor *compositor,
                                                                         ClutterInputDevice    *source);
+
 gboolean                meta_wayland_compositor_is_shortcuts_inhibited (MetaWaylandCompositor *compositor,
                                                                         ClutterInputDevice    *source);
 
 void                    meta_wayland_compositor_flush_clients (MetaWaylandCompositor *compositor);
 
+void                    meta_wayland_compositor_schedule_surface_association (MetaWaylandCompositor *compositor,
+                                                                              int                    id,
+                                                                              MetaWindow            *window);
+
+MetaWaylandTextInput *  meta_wayland_compositor_get_text_input (MetaWaylandCompositor *compositor);
+
+#ifdef HAVE_XWAYLAND
+void                    meta_wayland_compositor_notify_surface_id (MetaWaylandCompositor *compositor,
+                                                                   int                    id,
+                                                                   MetaWaylandSurface    *surface);
+
+META_EXPORT_TEST
+MetaXWaylandManager *   meta_wayland_compositor_get_xwayland_manager (MetaWaylandCompositor *compositor);
 #endif
 
+META_EXPORT_TEST
+MetaContext * meta_wayland_compositor_get_context (MetaWaylandCompositor *compositor);
+
+gboolean meta_wayland_compositor_is_grabbed (MetaWaylandCompositor *compositor);
+
+META_EXPORT_TEST
+MetaWaylandFilterManager * meta_wayland_compositor_get_filter_manager (MetaWaylandCompositor *compositor);

@@ -29,13 +29,14 @@
 #include "backends/meta-monitor-config-store.h"
 #include "backends/meta-monitor-manager-private.h"
 #include "backends/meta-monitor-config-migration.h"
-#include "tests/monitor-test-utils.h"
+#include "tests/meta-monitor-test-utils.h"
+#include "tests/unit-tests.h"
 
 static void
 test_migration (const char *old_config,
                 const char *new_config)
 {
-  MetaBackend *backend = meta_get_backend ();
+  MetaBackend *backend = meta_context_get_backend (test_context);
   MetaMonitorManager *monitor_manager =
     meta_backend_get_monitor_manager (backend);
   MetaMonitorConfigManager *config_manager = monitor_manager->config_manager;
@@ -55,6 +56,7 @@ test_migration (const char *old_config,
                                     NULL);
   if (!meta_monitor_config_store_set_custom (config_store, "/dev/null",
                                              migrated_path,
+                                             META_MONITORS_CONFIG_FLAG_NONE,
                                              &error))
     g_error ("Failed to set custom config store: %s", error->message);
 
@@ -69,13 +71,13 @@ test_migration (const char *old_config,
   expected_path = g_test_get_filename (G_TEST_DIST, "tests", "migration",
                                        new_config, NULL);
 
-  expected_data = read_file (expected_path);
-  migrated_data = read_file (migrated_path);
+  expected_data = meta_read_file (expected_path);
+  migrated_data = meta_read_file (migrated_path);
 
   g_assert_nonnull (expected_data);
   g_assert_nonnull (migrated_data);
 
-  g_assert (strcmp (expected_data, migrated_data) == 0);
+  g_assert_cmpstr (expected_data, ==, migrated_data);
 
   migrated_file = g_file_new_for_path (migrated_path);
   if (!g_file_delete (migrated_file, NULL, &error))

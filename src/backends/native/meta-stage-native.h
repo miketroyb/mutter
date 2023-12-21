@@ -14,23 +14,19 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jonas Ådahl <jadahl@gmail.com>
  */
 
-#ifndef META_STAGE_NATIVE_H
-#define META_STAGE_NATIVE_H
+#pragma once
 
+#include "backends/meta-stage-impl-private.h"
 #include "clutter/clutter-mutter.h"
 
 #define META_TYPE_STAGE_NATIVE (meta_stage_native_get_type ())
 G_DECLARE_FINAL_TYPE (MetaStageNative, meta_stage_native,
-                      META, STAGE_NATIVE, ClutterStageCogl)
+                      META, STAGE_NATIVE, MetaStageImpl)
 
 void meta_stage_native_rebuild_views (MetaStageNative *stage_native);
-
-#endif /* META_STAGE_NATIVE_H */

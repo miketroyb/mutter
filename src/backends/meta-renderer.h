@@ -14,23 +14,21 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jonas Ådahl <jadahl@gmail.com>
  */
 
-#ifndef META_RENDERER_H
-#define META_RENDERER_H
+#pragma once
 
 #include <glib-object.h>
 
-#include "cogl/cogl.h"
-#include "clutter/clutter-mutter.h"
 #include "backends/meta-monitor-manager-private.h"
 #include "backends/meta-renderer-view.h"
+#include "core/util-private.h"
+#include "clutter/clutter-mutter.h"
+#include "cogl/cogl.h"
 
 #define META_TYPE_RENDERER (meta_renderer_get_type ())
 G_DECLARE_DERIVABLE_TYPE (MetaRenderer, meta_renderer, META, RENDERER, GObject)
@@ -41,16 +39,36 @@ struct _MetaRendererClass
 
   CoglRenderer * (* create_cogl_renderer) (MetaRenderer *renderer);
   MetaRendererView * (* create_view) (MetaRenderer       *renderer,
-                                      MetaLogicalMonitor *logical_monitor);
+                                      MetaLogicalMonitor *logical_monitor,
+                                      MetaOutput         *output,
+                                      MetaCrtc           *crtc);
+  void (* rebuild_views) (MetaRenderer *renderer);
+  void (* resume) (MetaRenderer *renderer);
+  GList * (* get_views_for_monitor) (MetaRenderer *renderer,
+                                     MetaMonitor  *monitor);
 };
+
+MetaBackend * meta_renderer_get_backend (MetaRenderer *renderer);
 
 CoglRenderer * meta_renderer_create_cogl_renderer (MetaRenderer *renderer);
 
 void meta_renderer_rebuild_views (MetaRenderer *renderer);
 
-void meta_renderer_set_legacy_view (MetaRenderer     *renderer,
-                                    MetaRendererView *legacy_view);
+void meta_renderer_add_view (MetaRenderer     *renderer,
+                             MetaRendererView *view);
 
+GList * meta_renderer_get_views_for_monitor (MetaRenderer *renderer,
+                                             MetaMonitor  *monitor);
+
+META_EXPORT_TEST
+MetaRendererView * meta_renderer_get_view_for_crtc (MetaRenderer *renderer,
+                                                    MetaCrtc     *crtc);
+
+META_EXPORT_TEST
 GList * meta_renderer_get_views (MetaRenderer *renderer);
 
-#endif /* META_RENDERER_H */
+gboolean meta_renderer_is_hardware_accelerated (MetaRenderer *renderer);
+
+void meta_renderer_pause (MetaRenderer *renderer);
+
+void meta_renderer_resume (MetaRenderer *renderer);

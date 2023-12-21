@@ -8,6 +8,7 @@
  * Copyright (C) 2003 Rob Adams
  * Copyright (C) 2004-2006 Elijah Newren
  * Copyright (C) 2013 Red Hat Inc.
+ * Copyright (C) 2020 NVIDIA CORPORATION
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -23,27 +24,45 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
+/**
+ * MetaMonitorManager:
+ *
+ * A manager for multiple monitors
+ *
+ * #MetaMonitorManager is an abstract class which contains methods to handle
+ * multiple monitors (both #MetaMonitor and #MetaLogicalMonitor) and GPU's
+ * (#MetaGpu). Its functions include reading and/or changing the current
+ * configuration and available capabiliies.
+ *
+ * The #MetaMonitorManager also provides the "org.gnome.Mutter.DisplayConfig"
+ * DBus service, so apps like GNOME Settings can use this functionality.
+ */
+
 #include "config.h"
 
-#include "meta-monitor-manager-private.h"
+#include "backends/meta-monitor-manager-private.h"
 
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
-#include <clutter/clutter.h>
 
-#include <meta/main.h>
-#include "util-private.h"
-#include <meta/errors.h>
-#include "edid.h"
+#include "backends/meta-backend-private.h"
 #include "backends/meta-crtc.h"
 #include "backends/meta-logical-monitor.h"
 #include "backends/meta-monitor.h"
 #include "backends/meta-monitor-config-manager.h"
+#include "backends/meta-monitor-config-store.h"
 #include "backends/meta-orientation-manager.h"
 #include "backends/meta-output.h"
+#include "backends/meta-virtual-monitor.h"
 #include "backends/x11/meta-monitor-manager-xrandr.h"
-#include "meta-backend-private.h"
+#include "clutter/clutter.h"
+#include "core/util-private.h"
+#include "meta/main.h"
+#include "meta/meta-enum-types.h"
+#include "meta/meta-x11-errors.h"
+
+#include "meta-dbus-display-config.h"
 
 #define DEFAULT_DISPLAY_CONFIGURATION_TIMEOUT 20
 
@@ -52,15 +71,23 @@ enum
   PROP_0,
 
   PROP_BACKEND,
+  PROP_PANEL_ORIENTATION_MANAGED,
+  PROP_HAS_BUILTIN_PANEL,
+  PROP_NIGHT_LIGHT_SUPPORTED,
+  PROP_EXPERIMENTAL_HDR,
 
   PROP_LAST
 };
 
 static GParamSpec *obj_props[PROP_LAST];
 
-enum {
+enum
+{
+  MONITORS_CHANGED,
   MONITORS_CHANGED_INTERNAL,
+  POWER_SAVE_MODE_CHANGED,
   CONFIRM_DISPLAY_CHANGE,
+  MONITOR_PRIVACY_SCREEN_CHANGED,
   SIGNALS_LAST
 };
 
@@ -78,16 +105,38 @@ static gfloat transform_matrices[][6] = {
 
 static int signals[SIGNALS_LAST];
 
-static void meta_monitor_manager_display_config_init (MetaDBusDisplayConfigIface *iface);
+typedef struct _MetaMonitorManagerPrivate
+{
+  MetaPowerSave power_save_mode;
+  gboolean      initial_orient_change_done;
 
-G_DEFINE_ABSTRACT_TYPE_WITH_CODE (MetaMonitorManager, meta_monitor_manager, META_DBUS_TYPE_DISPLAY_CONFIG_SKELETON,
-                                  G_IMPLEMENT_INTERFACE (META_DBUS_TYPE_DISPLAY_CONFIG, meta_monitor_manager_display_config_init));
+  GList *virtual_monitors;
+
+  gboolean shutting_down;
+
+  gboolean has_builtin_panel;
+  gboolean night_light_supported;
+  const char *experimental_hdr;
+
+  guint switch_config_handle_id;
+} MetaMonitorManagerPrivate;
+
+G_DEFINE_TYPE_WITH_PRIVATE (MetaMonitorManager, meta_monitor_manager,
+                            G_TYPE_OBJECT)
 
 static void initialize_dbus_interface (MetaMonitorManager *manager);
+static void monitor_manager_setup_dbus_config_handlers (MetaMonitorManager *manager);
 
 static gboolean
 meta_monitor_manager_is_config_complete (MetaMonitorManager *manager,
                                          MetaMonitorsConfig *config);
+
+static void
+meta_monitor_manager_real_read_current_state (MetaMonitorManager *manager);
+
+static gboolean
+is_global_scale_matching_in_config (MetaMonitorsConfig *config,
+                                    float               scale);
 
 MetaBackend *
 meta_monitor_manager_get_backend (MetaMonitorManager *manager)
@@ -112,13 +161,16 @@ meta_monitor_manager_set_primary_logical_monitor (MetaMonitorManager *manager,
 static gboolean
 is_main_tiled_monitor_output (MetaOutput *output)
 {
-  return output->tile_info.loc_h_tile == 0 && output->tile_info.loc_v_tile == 0;
+  const MetaOutputInfo *output_info = meta_output_get_info (output);
+
+  return (output_info->tile_info.loc_h_tile == 0 &&
+          output_info->tile_info.loc_v_tile == 0);
 }
 
 static MetaLogicalMonitor *
 logical_monitor_from_layout (MetaMonitorManager *manager,
                              GList              *logical_monitors,
-                             MetaRectangle      *layout)
+                             MtkRectangle       *layout)
 {
   GList *l;
 
@@ -126,7 +178,7 @@ logical_monitor_from_layout (MetaMonitorManager *manager,
     {
       MetaLogicalMonitor *logical_monitor = l->data;
 
-      if (meta_rectangle_equal (layout, &logical_monitor->rect))
+      if (mtk_rectangle_equal (layout, &logical_monitor->rect))
         return logical_monitor;
     }
 
@@ -176,11 +228,17 @@ static float
 derive_configured_global_scale (MetaMonitorManager *manager,
                                 MetaMonitorsConfig *config)
 {
-  MetaLogicalMonitorConfig *logical_monitor_config;
+  GList *l;
 
-  logical_monitor_config = config->logical_monitor_configs->data;
+  for (l = config->logical_monitor_configs; l; l = l->next)
+    {
+      MetaLogicalMonitorConfig *monitor_config = l->data;
 
-  return logical_monitor_config->scale;
+      if (is_global_scale_matching_in_config (config, monitor_config->scale))
+        return monitor_config->scale;
+    }
+
+  return 1.0;
 }
 
 static float
@@ -191,26 +249,77 @@ calculate_monitor_scale (MetaMonitorManager *manager,
 
   monitor_mode = meta_monitor_get_current_mode (monitor);
   return meta_monitor_manager_calculate_monitor_mode_scale (manager,
+                                                            manager->layout_mode,
                                                             monitor,
                                                             monitor_mode);
+}
+
+static gboolean
+meta_monitor_manager_is_scale_supported_by_other_monitors (MetaMonitorManager *manager,
+                                                           MetaMonitor        *not_this_one,
+                                                           float               scale)
+{
+  GList *l;
+
+  for (l = manager->monitors; l; l = l->next)
+    {
+      MetaMonitor *monitor = l->data;
+      MetaMonitorMode *mode;
+
+      if (monitor == not_this_one || !meta_monitor_is_active (monitor))
+        continue;
+
+      mode = meta_monitor_get_current_mode (monitor);
+      if (!meta_monitor_manager_is_scale_supported (manager,
+                                                    manager->layout_mode,
+                                                    monitor, mode, scale))
+        return FALSE;
+    }
+
+  return TRUE;
 }
 
 static float
 derive_calculated_global_scale (MetaMonitorManager *manager)
 {
-  MetaMonitor *primary_monitor;
+  MetaMonitor *monitor = NULL;
+  float scale;
+  GList *l;
 
-  primary_monitor = meta_monitor_manager_get_primary_monitor (manager);
-  if (!primary_monitor)
-    return 1.0;
+  scale = 1.0;
+  monitor = meta_monitor_manager_get_primary_monitor (manager);
 
-  return calculate_monitor_scale (manager, primary_monitor);
+  if (monitor && meta_monitor_is_active (monitor))
+    {
+      scale = calculate_monitor_scale (manager, monitor);
+      if (meta_monitor_manager_is_scale_supported_by_other_monitors (manager,
+                                                                     monitor,
+                                                                     scale))
+        return scale;
+    }
+
+  for (l = manager->monitors; l; l = l->next)
+    {
+      MetaMonitor *other_monitor = l->data;
+      float monitor_scale;
+
+      if (other_monitor == monitor || !meta_monitor_is_active (other_monitor))
+        continue;
+
+      monitor_scale = calculate_monitor_scale (manager, other_monitor);
+      if (meta_monitor_manager_is_scale_supported_by_other_monitors (manager,
+                                                                     other_monitor,
+                                                                     monitor_scale))
+        scale = MAX (scale, monitor_scale);
+    }
+
+  return scale;
 }
 
 static float
 derive_scale_from_config (MetaMonitorManager *manager,
                           MetaMonitorsConfig *config,
-                          MetaRectangle      *layout)
+                          MtkRectangle       *layout)
 {
   GList *l;
 
@@ -218,7 +327,7 @@ derive_scale_from_config (MetaMonitorManager *manager,
     {
       MetaLogicalMonitorConfig *logical_monitor_config = l->data;
 
-      if (meta_rectangle_equal (layout, &logical_monitor_config->layout))
+      if (mtk_rectangle_equal (layout, &logical_monitor_config->layout))
         return logical_monitor_config->scale;
     }
 
@@ -256,7 +365,7 @@ meta_monitor_manager_rebuild_logical_monitors_derived (MetaMonitorManager *manag
     {
       MetaMonitor *monitor = l->data;
       MetaLogicalMonitor *logical_monitor;
-      MetaRectangle layout;
+      MtkRectangle layout;
 
       if (!meta_monitor_is_active (monitor))
         continue;
@@ -307,21 +416,39 @@ meta_monitor_manager_rebuild_logical_monitors_derived (MetaMonitorManager *manag
                                                     primary_logical_monitor);
 }
 
+void
+meta_monitor_manager_power_save_mode_changed (MetaMonitorManager        *manager,
+                                              MetaPowerSave              mode,
+                                              MetaPowerSaveChangeReason  reason)
+{
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (manager);
+
+  if (priv->power_save_mode == mode)
+    return;
+
+  priv->power_save_mode = mode;
+  g_signal_emit (manager, signals[POWER_SAVE_MODE_CHANGED], 0, reason);
+}
+
 static void
 power_save_mode_changed (MetaMonitorManager *manager,
                          GParamSpec         *pspec,
                          gpointer            user_data)
 {
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (manager);
   MetaMonitorManagerClass *klass;
-  int mode = meta_dbus_display_config_get_power_save_mode (META_DBUS_DISPLAY_CONFIG (manager));
+  int mode = meta_dbus_display_config_get_power_save_mode (manager->display_config);
+  MetaPowerSaveChangeReason reason;
 
   if (mode == META_POWER_SAVE_UNSUPPORTED)
     return;
 
   /* If DPMS is unsupported, force the property back. */
-  if (manager->power_save_mode == META_POWER_SAVE_UNSUPPORTED)
+  if (priv->power_save_mode == META_POWER_SAVE_UNSUPPORTED)
     {
-      meta_dbus_display_config_set_power_save_mode (META_DBUS_DISPLAY_CONFIG (manager), META_POWER_SAVE_UNSUPPORTED);
+      meta_dbus_display_config_set_power_save_mode (manager->display_config, META_POWER_SAVE_UNSUPPORTED);
       return;
     }
 
@@ -329,7 +456,8 @@ power_save_mode_changed (MetaMonitorManager *manager,
   if (klass->set_power_save_mode)
     klass->set_power_save_mode (manager, mode);
 
-  manager->power_save_mode = mode;
+  reason = META_POWER_SAVE_CHANGE_REASON_MODE_CHANGE;
+  meta_monitor_manager_power_save_mode_changed (manager, mode, reason);
 }
 
 void
@@ -339,30 +467,128 @@ meta_monitor_manager_lid_is_closed_changed (MetaMonitorManager *manager)
 }
 
 static void
-lid_is_closed_changed (UpClient   *client,
-                       GParamSpec *pspec,
-                       gpointer    user_data)
+lid_is_closed_changed (MetaBackend *backend,
+                       gboolean     lid_is_closed,
+                       gpointer     user_data)
 {
   MetaMonitorManager *manager = user_data;
-
   meta_monitor_manager_lid_is_closed_changed (manager);
 }
 
-static gboolean
-meta_monitor_manager_real_is_lid_closed (MetaMonitorManager *manager)
+static void
+prepare_shutdown (MetaBackend        *backend,
+                  MetaMonitorManager *manager)
 {
-  if (!manager->up_client)
-    return FALSE;
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (manager);
 
-  return up_client_get_lid_is_closed (manager->up_client);
+  priv->shutting_down = TRUE;
 }
 
-gboolean
-meta_monitor_manager_is_lid_closed (MetaMonitorManager *manager)
+static void
+ensure_hdr_settings (MetaMonitorManager *manager)
 {
-  return META_MONITOR_MANAGER_GET_CLASS (manager)->is_lid_closed (manager);
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (manager);
+  MetaOutputColorspace color_space;
+  MetaOutputHdrMetadata hdr_metadata;
+  GList *l;
+
+  if (g_strcmp0 (priv->experimental_hdr, "on") == 0)
+    {
+      color_space = META_OUTPUT_COLORSPACE_BT2020;
+      hdr_metadata = (MetaOutputHdrMetadata) {
+        .active = TRUE,
+        .eotf = META_OUTPUT_HDR_METADATA_EOTF_PQ,
+      };
+
+      meta_topic (META_DEBUG_COLOR,
+                  "MonitorManager: Trying to enabling HDR mode "
+                  "(Colorimetry: bt.2020, TF: PQ, HDR Metadata: Minimal):");
+    }
+  else
+    {
+      color_space = META_OUTPUT_COLORSPACE_DEFAULT;
+      hdr_metadata = (MetaOutputHdrMetadata) {
+        .active = FALSE,
+      };
+
+      meta_topic (META_DEBUG_COLOR,
+                  "MonitorManager: Trying to enable default mode "
+                  "(Colorimetry: default, TF: default, HDR Metadata: None):");
+    }
+
+  for (l = manager->monitors; l; l = l->next)
+    {
+      MetaMonitor *monitor = l->data;
+      g_autoptr (GError) error = NULL;
+
+      if (!meta_monitor_set_color_space (monitor, color_space, &error))
+        {
+          meta_monitor_set_color_space (monitor,
+                                        META_OUTPUT_COLORSPACE_DEFAULT,
+                                        NULL);
+          meta_monitor_set_hdr_metadata (monitor, &(MetaOutputHdrMetadata) {
+                                           .active = FALSE,
+                                         }, NULL);
+
+          if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED))
+            {
+              meta_topic (META_DEBUG_COLOR,
+                          "MonitorManager: Colorimetry not supported "
+                          "on monitor %s",
+                          meta_monitor_get_display_name (monitor));
+            }
+          else
+            {
+              g_warning ("Failed to set color space on monitor %s: %s",
+                         meta_monitor_get_display_name (monitor), error->message);
+            }
+
+          continue;
+        }
+
+      if (!meta_monitor_set_hdr_metadata (monitor, &hdr_metadata, &error))
+        {
+          meta_monitor_set_color_space (monitor,
+                                        META_OUTPUT_COLORSPACE_DEFAULT,
+                                        NULL);
+          meta_monitor_set_hdr_metadata (monitor, &(MetaOutputHdrMetadata) {
+                                           .active = FALSE,
+                                         }, NULL);
+
+          if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED))
+            {
+              meta_topic (META_DEBUG_COLOR,
+                          "MonitorManager: HDR Metadata not supported "
+                          "on monitor %s",
+                          meta_monitor_get_display_name (monitor));
+            }
+          else
+            {
+              g_warning ("Failed to set HDR metadata on monitor %s: %s",
+                         meta_monitor_get_display_name (monitor),
+                         error->message);
+            }
+
+          continue;
+        }
+
+        meta_topic (META_DEBUG_COLOR,
+                    "MonitorManager: successfully set on monitor %s",
+                    meta_monitor_get_display_name (monitor));
+    }
 }
 
+/**
+ * meta_monitor_manager_is_headless:
+ * @manager: A #MetaMonitorManager object
+ *
+ * Returns whether the monitor manager is headless, i.e. without
+ * any `MetaLogicalMonitor`s attached to it.
+ *
+ * Returns: %TRUE if no monitors are attached, %FALSE otherwise.
+ */
 gboolean
 meta_monitor_manager_is_headless (MetaMonitorManager *manager)
 {
@@ -370,24 +596,26 @@ meta_monitor_manager_is_headless (MetaMonitorManager *manager)
 }
 
 float
-meta_monitor_manager_calculate_monitor_mode_scale (MetaMonitorManager *manager,
-                                                   MetaMonitor        *monitor,
-                                                   MetaMonitorMode    *monitor_mode)
+meta_monitor_manager_calculate_monitor_mode_scale (MetaMonitorManager           *manager,
+                                                   MetaLogicalMonitorLayoutMode  layout_mode,
+                                                   MetaMonitor                  *monitor,
+                                                   MetaMonitorMode              *monitor_mode)
 {
   MetaMonitorManagerClass *manager_class =
     META_MONITOR_MANAGER_GET_CLASS (manager);
 
   return manager_class->calculate_monitor_mode_scale (manager,
+                                                      layout_mode,
                                                       monitor,
                                                       monitor_mode);
 }
 
 float *
-meta_monitor_manager_calculate_supported_scales (MetaMonitorManager          *manager,
-                                                 MetaLogicalMonitorLayoutMode layout_mode,
-                                                 MetaMonitor                 *monitor,
-                                                 MetaMonitorMode             *monitor_mode,
-                                                 int                         *n_supported_scales)
+meta_monitor_manager_calculate_supported_scales (MetaMonitorManager           *manager,
+                                                 MetaLogicalMonitorLayoutMode  layout_mode,
+                                                 MetaMonitor                  *monitor,
+                                                 MetaMonitorMode              *monitor_mode,
+                                                 int                          *n_supported_scales)
 {
   MetaMonitorManagerClass *manager_class =
     META_MONITOR_MANAGER_GET_CLASS (manager);
@@ -399,6 +627,14 @@ meta_monitor_manager_calculate_supported_scales (MetaMonitorManager          *ma
                                                     n_supported_scales);
 }
 
+/**
+ * meta_monitor_manager_get_capabilities:
+ * @manager: A #MetaMonitorManager object
+ *
+ * Queries the capabilities of the monitor manager.
+ *
+ * Returns: #MetaMonitorManagerCapability flags representing the capabilities.
+ */
 MetaMonitorManagerCapability
 meta_monitor_manager_get_capabilities (MetaMonitorManager *manager)
 {
@@ -430,12 +666,66 @@ meta_monitor_manager_get_default_layout_mode (MetaMonitorManager *manager)
 }
 
 static void
+on_virtual_monitor_destroyed (MetaVirtualMonitor *virtual_monitor,
+                              MetaMonitorManager *manager)
+{
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (manager);
+  MetaOutput *output;
+
+  output = meta_virtual_monitor_get_output (virtual_monitor);
+  g_message ("Removed virtual monitor %s", meta_output_get_name (output));
+  priv->virtual_monitors = g_list_remove (priv->virtual_monitors,
+                                          virtual_monitor);
+
+  if (!priv->shutting_down)
+    meta_monitor_manager_reload (manager);
+}
+
+MetaVirtualMonitor *
+meta_monitor_manager_create_virtual_monitor (MetaMonitorManager            *manager,
+                                             const MetaVirtualMonitorInfo  *info,
+                                             GError                       **error)
+{
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (manager);
+  MetaMonitorManagerClass *manager_class =
+    META_MONITOR_MANAGER_GET_CLASS (manager);
+  MetaVirtualMonitor *virtual_monitor;
+  MetaOutput *output;
+
+  if (!manager_class->create_virtual_monitor)
+    {
+      g_set_error (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED,
+                   "Backend doesn't support creating virtual monitors");
+      return NULL;
+    }
+
+  virtual_monitor = manager_class->create_virtual_monitor (manager, info,
+                                                           error);
+  if (!virtual_monitor)
+    return NULL;
+
+  g_signal_connect (virtual_monitor, "destroy",
+                    G_CALLBACK (on_virtual_monitor_destroyed),
+                    manager);
+
+  priv->virtual_monitors = g_list_append (priv->virtual_monitors,
+                                          virtual_monitor);
+
+  output = meta_virtual_monitor_get_output (virtual_monitor);
+  g_message ("Added virtual monitor %s", meta_output_get_name (output));
+
+  return virtual_monitor;
+}
+
+static void
 meta_monitor_manager_ensure_initial_config (MetaMonitorManager *manager)
 {
   META_MONITOR_MANAGER_GET_CLASS (manager)->ensure_initial_config (manager);
 }
 
-static gboolean
+gboolean
 meta_monitor_manager_apply_monitors_config (MetaMonitorManager      *manager,
                                             MetaMonitorsConfig      *config,
                                             MetaMonitorsConfigMethod method,
@@ -466,9 +756,11 @@ meta_monitor_manager_apply_monitors_config (MetaMonitorManager      *manager,
 gboolean
 meta_monitor_manager_has_hotplug_mode_update (MetaMonitorManager *manager)
 {
+  GList *gpus;
   GList *l;
 
-  for (l = manager->gpus; l; l = l->next)
+  gpus = meta_backend_get_gpus (manager->backend);
+  for (l = gpus; l; l = l->next)
     {
       MetaGpu *gpu = l->data;
 
@@ -507,6 +799,17 @@ meta_monitor_manager_ensure_configured (MetaMonitorManager *manager)
       config = meta_monitor_config_manager_get_stored (manager->config_manager);
       if (config)
         {
+          g_autoptr (MetaMonitorsConfig) oriented_config = NULL;
+
+          if (manager->panel_orientation_managed)
+            {
+              oriented_config = meta_monitor_config_manager_create_for_builtin_orientation (
+                manager->config_manager, config);
+
+              if (oriented_config)
+                config = oriented_config;
+            }
+
           if (!meta_monitor_manager_apply_monitors_config (manager,
                                                            config,
                                                            method,
@@ -520,6 +823,39 @@ meta_monitor_manager_ensure_configured (MetaMonitorManager *manager)
           else
             {
               g_object_ref (config);
+              goto done;
+            }
+        }
+    }
+
+  if (manager->panel_orientation_managed)
+    {
+      MetaMonitorsConfig *current_config =
+        meta_monitor_config_manager_get_current (manager->config_manager);
+
+      if (current_config)
+        {
+          config = meta_monitor_config_manager_create_for_builtin_orientation (
+            manager->config_manager, current_config);
+        }
+    }
+
+  if (config)
+    {
+      if (meta_monitor_manager_is_config_complete (manager, config))
+        {
+          if (!meta_monitor_manager_apply_monitors_config (manager,
+                                                           config,
+                                                           method,
+                                                           &error))
+            {
+              g_clear_object (&config);
+              g_warning ("Failed to use current monitor configuration: %s",
+                         error->message);
+              g_clear_error (&error);
+            }
+          else
+            {
               goto done;
             }
         }
@@ -547,6 +883,18 @@ meta_monitor_manager_ensure_configured (MetaMonitorManager *manager)
   config = meta_monitor_config_manager_get_previous (manager->config_manager);
   if (config)
     {
+      g_autoptr (MetaMonitorsConfig) oriented_config = NULL;
+
+      if (manager->panel_orientation_managed)
+        {
+          oriented_config =
+            meta_monitor_config_manager_create_for_builtin_orientation (
+              manager->config_manager, config);
+
+          if (oriented_config)
+            config = oriented_config;
+        }
+
       config = g_object_ref (config);
 
       if (meta_monitor_manager_is_config_complete (manager, config))
@@ -598,7 +946,7 @@ meta_monitor_manager_ensure_configured (MetaMonitorManager *manager)
         {
           g_clear_object (&config);
           g_warning ("Failed to use fallback monitor configuration: %s",
-                 error->message);
+                     error->message);
           g_clear_error (&error);
         }
       else
@@ -623,35 +971,42 @@ done:
 }
 
 static void
-orientation_changed (MetaOrientationManager *orientation_manager,
-                     MetaMonitorManager     *manager)
+handle_orientation_change (MetaOrientationManager *orientation_manager,
+                           MetaMonitorManager     *manager)
 {
+  MetaOrientation orientation;
   MetaMonitorTransform transform;
+  MetaMonitorTransform panel_transform;
   GError *error = NULL;
   MetaMonitorsConfig *config;
+  MetaMonitor *laptop_panel;
+  MetaLogicalMonitor *laptop_logical_monitor;
+  MetaMonitorsConfig *current_config;
 
-  switch (meta_orientation_manager_get_orientation (orientation_manager))
-    {
-    case META_ORIENTATION_NORMAL:
-      transform = META_MONITOR_TRANSFORM_NORMAL;
-      break;
-    case META_ORIENTATION_BOTTOM_UP:
-      transform = META_MONITOR_TRANSFORM_180;
-      break;
-    case META_ORIENTATION_LEFT_UP:
-      transform = META_MONITOR_TRANSFORM_90;
-      break;
-    case META_ORIENTATION_RIGHT_UP:
-      transform = META_MONITOR_TRANSFORM_270;
-      break;
+  laptop_panel = meta_monitor_manager_get_laptop_panel (manager);
+  g_return_if_fail (laptop_panel);
 
-    case META_ORIENTATION_UNDEFINED:
-    default:
-      return;
-    }
+  if (!meta_monitor_is_active (laptop_panel))
+    return;
+
+  orientation = meta_orientation_manager_get_orientation (orientation_manager);
+  transform = meta_monitor_transform_from_orientation (orientation);
+
+  laptop_logical_monitor = meta_monitor_get_logical_monitor (laptop_panel);
+  panel_transform =
+    meta_monitor_crtc_to_logical_transform (laptop_panel, transform);
+  if (meta_logical_monitor_get_transform (laptop_logical_monitor) ==
+      panel_transform)
+    return;
+
+  current_config =
+    meta_monitor_config_manager_get_current (manager->config_manager);
+  if (!current_config)
+    return;
 
   config =
     meta_monitor_config_manager_create_for_orientation (manager->config_manager,
+                                                        current_config,
                                                         transform);
   if (!config)
     return;
@@ -666,6 +1021,70 @@ orientation_changed (MetaOrientationManager *orientation_manager,
       g_error_free (error);
     }
   g_object_unref (config);
+}
+
+/*
+ * Special case for tablets with a native portrait mode and a keyboard dock,
+ * where the device gets docked in landscape mode. For this combo to work
+ * properly with mutter starting while the tablet is docked, we need to take
+ * the accelerometer reported orientation into account (at mutter startup)
+ * even if there is a tablet-mode-switch which indicates that the device is
+ * NOT in tablet-mode (because it is docked).
+ */
+static gboolean
+handle_initial_orientation_change (MetaOrientationManager *orientation_manager,
+                                   MetaMonitorManager     *manager)
+{
+  ClutterBackend *clutter_backend;
+  ClutterSeat *seat;
+  MetaMonitor *monitor;
+  MetaMonitorMode *mode;
+  int width, height;
+
+  clutter_backend = meta_backend_get_clutter_backend (manager->backend);
+  seat = clutter_backend_get_default_seat (clutter_backend);
+
+  /*
+   * This is a workaround to ignore the tablet mode switch on the initial config
+   * of devices with a native portrait mode panel. The touchscreen and
+   * accelerometer requirements for applying the orientation must still be met.
+   */
+  if (!clutter_seat_has_touchscreen (seat) ||
+      !meta_orientation_manager_has_accelerometer (orientation_manager))
+    return FALSE;
+
+  /* Check for a portrait mode panel */
+  monitor = meta_monitor_manager_get_laptop_panel (manager);
+  if (!monitor)
+    return FALSE;
+
+  mode = meta_monitor_get_preferred_mode (monitor);
+  meta_monitor_mode_get_resolution (mode, &width, &height);
+  if (width > height)
+    return FALSE;
+
+  handle_orientation_change (orientation_manager, manager);
+  return TRUE;
+}
+
+static void
+orientation_changed (MetaOrientationManager *orientation_manager,
+                     MetaMonitorManager     *manager)
+{
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (manager);
+
+  if (!priv->initial_orient_change_done)
+    {
+      priv->initial_orient_change_done = TRUE;
+      if (handle_initial_orientation_change (orientation_manager, manager))
+        return;
+    }
+
+  if (!manager->panel_orientation_managed)
+    return;
+
+  handle_orientation_change (orientation_manager, manager);
 }
 
 static void
@@ -689,21 +1108,215 @@ experimental_features_changed (MetaSettings           *settings,
     should_reconfigure = TRUE;
 
   if (should_reconfigure)
-    meta_monitor_manager_on_hotplug (manager);
+    meta_monitor_manager_reconfigure (manager);
 
   meta_settings_update_ui_scaling_factor (settings);
+}
+
+static gboolean
+ensure_privacy_screen_settings (MetaMonitorManager *manager)
+{
+  MetaSettings *settings = meta_backend_get_settings (manager->backend);
+  gboolean privacy_screen_enabled;
+  GList *l;
+
+  privacy_screen_enabled = meta_settings_is_privacy_screen_enabled (settings);
+  for (l = manager->monitors; l; l = l->next)
+    {
+      MetaMonitor *monitor = l->data;
+      g_autoptr (GError) error = NULL;
+
+      if (!meta_monitor_set_privacy_screen_enabled (monitor,
+                                                    privacy_screen_enabled,
+                                                    &error))
+        {
+          if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED))
+            continue;
+
+          g_warning ("Failed to set privacy screen setting on monitor %s: %s",
+                     meta_monitor_get_display_name (monitor), error->message);
+          return FALSE;
+        }
+    }
+
+  return TRUE;
+}
+
+static MetaPrivacyScreenState
+get_global_privacy_screen_state (MetaMonitorManager *manager)
+{
+  MetaPrivacyScreenState global_state = META_PRIVACY_SCREEN_UNAVAILABLE;
+  GList *l;
+
+  for (l = manager->monitors; l; l = l->next)
+    {
+      MetaMonitor *monitor = l->data;
+      MetaPrivacyScreenState monitor_state;
+
+      if (!meta_monitor_is_active (monitor))
+        continue;
+
+      monitor_state = meta_monitor_get_privacy_screen_state (monitor);
+      if (monitor_state == META_PRIVACY_SCREEN_UNAVAILABLE)
+        continue;
+
+      if (monitor_state & META_PRIVACY_SCREEN_DISABLED)
+        return META_PRIVACY_SCREEN_DISABLED;
+
+      if (monitor_state & META_PRIVACY_SCREEN_ENABLED)
+        global_state = META_PRIVACY_SCREEN_ENABLED;
+    }
+
+  return global_state;
+}
+
+static gboolean
+privacy_screen_needs_update (MetaMonitorManager *manager)
+{
+  MetaSettings *settings = meta_backend_get_settings (manager->backend);
+  MetaPrivacyScreenState privacy_screen_state =
+    get_global_privacy_screen_state (manager);
+
+  if (privacy_screen_state == META_PRIVACY_SCREEN_UNAVAILABLE)
+    return FALSE;
+
+  return (!!(privacy_screen_state & META_PRIVACY_SCREEN_ENABLED) !=
+      meta_settings_is_privacy_screen_enabled (settings));
+}
+
+static void
+apply_privacy_screen_settings (MetaMonitorManager *manager)
+{
+  if (privacy_screen_needs_update (manager) &&
+      ensure_privacy_screen_settings (manager))
+    {
+      manager->privacy_screen_change_state =
+        META_PRIVACY_SCREEN_CHANGE_STATE_PENDING_SETTING;
+    }
+}
+
+static void
+update_panel_orientation_managed (MetaMonitorManager *manager)
+{
+  MetaOrientationManager *orientation_manager;
+  ClutterBackend *clutter_backend;
+  ClutterSeat *seat;
+  gboolean panel_orientation_managed;
+
+  clutter_backend = meta_backend_get_clutter_backend (manager->backend);
+  seat = clutter_backend_get_default_seat (clutter_backend);
+
+  orientation_manager = meta_backend_get_orientation_manager (manager->backend);
+
+  panel_orientation_managed =
+    (clutter_seat_get_touch_mode (seat) &&
+     meta_orientation_manager_has_accelerometer (orientation_manager) &&
+     meta_monitor_manager_get_laptop_panel (manager));
+
+  if (manager->panel_orientation_managed == panel_orientation_managed)
+    return;
+
+  manager->panel_orientation_managed = panel_orientation_managed;
+  g_object_notify_by_pspec (G_OBJECT (manager),
+                            obj_props[PROP_PANEL_ORIENTATION_MANAGED]);
+
+  meta_dbus_display_config_set_panel_orientation_managed (manager->display_config,
+                                                          manager->panel_orientation_managed);
+
+  /* The orientation may have changed while it was unmanaged */
+  if (panel_orientation_managed)
+    handle_orientation_change (orientation_manager, manager);
+}
+
+static void
+update_has_builtin_panel (MetaMonitorManager *manager)
+{
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (manager);
+  GList *l;
+  gboolean has_builtin_panel = FALSE;
+
+  for (l = manager->monitors; l; l = l->next)
+    {
+      MetaMonitor *monitor = META_MONITOR (l->data);
+
+      if (meta_monitor_is_laptop_panel (monitor))
+        {
+          has_builtin_panel = TRUE;
+          break;
+        }
+    }
+
+  if (priv->has_builtin_panel == has_builtin_panel)
+    return;
+
+  priv->has_builtin_panel = has_builtin_panel;
+  g_object_notify_by_pspec (G_OBJECT (manager),
+                            obj_props[PROP_HAS_BUILTIN_PANEL]);
+}
+
+static void
+update_night_light_supported (MetaMonitorManager *manager)
+{
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (manager);
+  GList *l;
+
+  gboolean night_light_supported = FALSE;
+
+  for (l = meta_backend_get_gpus (manager->backend); l; l = l->next)
+    {
+      MetaGpu *gpu = l->data;
+      GList *l_crtc;
+
+      for (l_crtc = meta_gpu_get_crtcs (gpu); l_crtc; l_crtc = l_crtc->next)
+        {
+          MetaCrtc *crtc = l_crtc->data;
+
+          if (meta_crtc_get_gamma_lut_size (crtc) > 0)
+            {
+              night_light_supported = TRUE;
+              break;
+            }
+        }
+    }
+
+  if (priv->night_light_supported == night_light_supported)
+    return;
+
+  priv->night_light_supported = night_light_supported;
+  g_object_notify_by_pspec (G_OBJECT (manager),
+                            obj_props[PROP_NIGHT_LIGHT_SUPPORTED]);
+  meta_dbus_display_config_set_night_light_supported (manager->display_config,
+                                                      night_light_supported);
 }
 
 void
 meta_monitor_manager_setup (MetaMonitorManager *manager)
 {
+  MetaMonitorConfigStore *config_store;
+  const MetaMonitorConfigPolicy *policy;
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (manager);
+
   manager->in_init = TRUE;
 
   manager->config_manager = meta_monitor_config_manager_new (manager);
+  config_store =
+    meta_monitor_config_manager_get_store (manager->config_manager);
+  policy = meta_monitor_config_store_get_policy (config_store);
+  meta_dbus_display_config_set_apply_monitors_config_allowed (manager->display_config,
+                                                              policy->enable_dbus);
+
+  meta_dbus_display_config_set_night_light_supported (manager->display_config,
+                                                      priv->night_light_supported);
 
   meta_monitor_manager_read_current_state (manager);
 
   meta_monitor_manager_ensure_initial_config (manager);
+
+  if (privacy_screen_needs_update (manager))
+    manager->privacy_screen_change_state = META_PRIVACY_SCREEN_CHANGE_STATE_INIT;
 
   manager->in_init = FALSE;
 }
@@ -712,31 +1325,49 @@ static void
 meta_monitor_manager_constructed (GObject *object)
 {
   MetaMonitorManager *manager = META_MONITOR_MANAGER (object);
-  MetaMonitorManagerClass *manager_class =
-    META_MONITOR_MANAGER_GET_CLASS (manager);
   MetaBackend *backend = manager->backend;
   MetaSettings *settings = meta_backend_get_settings (backend);
 
-  manager->experimental_features_changed_handler_id =
-    g_signal_connect (settings,
-                      "experimental-features-changed",
-                      G_CALLBACK (experimental_features_changed),
-                      manager);
+  manager->display_config = meta_dbus_display_config_skeleton_new ();
 
-  if (manager_class->is_lid_closed == meta_monitor_manager_real_is_lid_closed)
-    {
-      manager->up_client = up_client_new ();
-      g_signal_connect_object (manager->up_client, "notify::lid-is-closed",
-                               G_CALLBACK (lid_is_closed_changed), manager, 0);
-    }
+  g_signal_connect_object (settings,
+                           "experimental-features-changed",
+                           G_CALLBACK (experimental_features_changed),
+                           manager, 0);
 
-  g_signal_connect_object (manager, "notify::power-save-mode",
-                           G_CALLBACK (power_save_mode_changed), manager, 0);
+  g_signal_connect_object (settings,
+                           "privacy-screen-changed",
+                           G_CALLBACK (apply_privacy_screen_settings),
+                           manager, G_CONNECT_SWAPPED);
+
+  monitor_manager_setup_dbus_config_handlers (manager);
+
+  g_signal_connect_object (manager->display_config, "notify::power-save-mode",
+                           G_CALLBACK (power_save_mode_changed), manager,
+                           G_CONNECT_SWAPPED);
 
   g_signal_connect_object (meta_backend_get_orientation_manager (backend),
                            "orientation-changed",
                            G_CALLBACK (orientation_changed),
                            manager, 0);
+
+  g_signal_connect_object (meta_backend_get_orientation_manager (backend),
+                           "notify::has-accelerometer",
+                           G_CALLBACK (update_panel_orientation_managed), manager,
+                           G_CONNECT_SWAPPED);
+
+  g_signal_connect_object (backend,
+                           "lid-is-closed-changed",
+                           G_CALLBACK (lid_is_closed_changed),
+                           manager, 0);
+
+  g_signal_connect (backend, "prepare-shutdown",
+                    G_CALLBACK (prepare_shutdown),
+                    manager);
+
+  g_signal_connect (manager, "notify::experimental-hdr",
+                    G_CALLBACK (ensure_hdr_settings),
+                    NULL);
 
   manager->current_switch_config = META_MONITOR_SWITCH_CONFIG_UNKNOWN;
 
@@ -747,12 +1378,12 @@ static void
 meta_monitor_manager_finalize (GObject *object)
 {
   MetaMonitorManager *manager = META_MONITOR_MANAGER (object);
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (manager);
 
-  g_list_free_full (manager->gpus, g_object_unref);
   g_list_free_full (manager->logical_monitors, g_object_unref);
 
-  g_signal_handler_disconnect (manager->backend,
-                               manager->experimental_features_changed_handler_id);
+  g_warn_if_fail (!priv->virtual_monitors);
 
   G_OBJECT_CLASS (meta_monitor_manager_parent_class)->finalize (object);
 }
@@ -761,15 +1392,17 @@ static void
 meta_monitor_manager_dispose (GObject *object)
 {
   MetaMonitorManager *manager = META_MONITOR_MANAGER (object);
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (manager);
 
-  if (manager->dbus_name_id != 0)
-    {
-      g_bus_unown_name (manager->dbus_name_id);
-      manager->dbus_name_id = 0;
-    }
+  g_clear_handle_id (&manager->dbus_name_id, g_bus_unown_name);
 
+  g_clear_object (&manager->display_config);
   g_clear_object (&manager->config_manager);
-  g_clear_object (&manager->up_client);
+
+  g_clear_handle_id (&manager->persistent_timeout_id, g_source_remove);
+  g_clear_handle_id (&manager->restore_config_id, g_source_remove);
+  g_clear_handle_id (&priv->switch_config_handle_id, g_source_remove);
 
   G_OBJECT_CLASS (meta_monitor_manager_parent_class)->dispose (object);
 }
@@ -781,13 +1414,6 @@ meta_monitor_manager_real_read_edid (MetaMonitorManager *manager,
   return NULL;
 }
 
-static char *
-meta_monitor_manager_real_get_edid_file (MetaMonitorManager *manager,
-                                         MetaOutput         *output)
-{
-  return NULL;
-}
-
 static void
 meta_monitor_manager_set_property (GObject      *object,
                                    guint         prop_id,
@@ -795,12 +1421,20 @@ meta_monitor_manager_set_property (GObject      *object,
                                    GParamSpec   *pspec)
 {
   MetaMonitorManager *manager = META_MONITOR_MANAGER (object);
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (manager);
 
   switch (prop_id)
     {
     case PROP_BACKEND:
       manager->backend = g_value_get_object (value);
       break;
+    case PROP_EXPERIMENTAL_HDR:
+      priv->experimental_hdr = g_value_dup_string (value);
+      break;
+    case PROP_PANEL_ORIENTATION_MANAGED:
+    case PROP_HAS_BUILTIN_PANEL:
+    case PROP_NIGHT_LIGHT_SUPPORTED:
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
     }
@@ -813,11 +1447,25 @@ meta_monitor_manager_get_property (GObject    *object,
                                    GParamSpec *pspec)
 {
   MetaMonitorManager *manager = META_MONITOR_MANAGER (object);
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (manager);
 
   switch (prop_id)
     {
     case PROP_BACKEND:
       g_value_set_object (value, manager->backend);
+      break;
+    case PROP_PANEL_ORIENTATION_MANAGED:
+      g_value_set_boolean (value, manager->panel_orientation_managed);
+      break;
+    case PROP_HAS_BUILTIN_PANEL:
+      g_value_set_boolean (value, priv->has_builtin_panel);
+      break;
+    case PROP_NIGHT_LIGHT_SUPPORTED:
+      g_value_set_boolean (value, priv->night_light_supported);
+      break;
+    case PROP_EXPERIMENTAL_HDR:
+      g_value_set_string (value, priv->experimental_hdr);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -835,9 +1483,16 @@ meta_monitor_manager_class_init (MetaMonitorManagerClass *klass)
   object_class->get_property = meta_monitor_manager_get_property;
   object_class->set_property = meta_monitor_manager_set_property;
 
-  klass->get_edid_file = meta_monitor_manager_real_get_edid_file;
   klass->read_edid = meta_monitor_manager_real_read_edid;
-  klass->is_lid_closed = meta_monitor_manager_real_is_lid_closed;
+  klass->read_current_state = meta_monitor_manager_real_read_current_state;
+
+  signals[MONITORS_CHANGED] =
+    g_signal_new ("monitors-changed",
+                  G_TYPE_FROM_CLASS (object_class),
+                  G_SIGNAL_RUN_LAST,
+                  0,
+                  NULL, NULL, NULL,
+                  G_TYPE_NONE, 0);
 
   signals[MONITORS_CHANGED_INTERNAL] =
     g_signal_new ("monitors-changed-internal",
@@ -847,6 +1502,15 @@ meta_monitor_manager_class_init (MetaMonitorManagerClass *klass)
                   NULL, NULL, NULL,
                   G_TYPE_NONE, 0);
 
+  signals[POWER_SAVE_MODE_CHANGED] =
+    g_signal_new ("power-save-mode-changed",
+                  G_TYPE_FROM_CLASS (object_class),
+                  G_SIGNAL_RUN_LAST,
+                  0,
+                  NULL, NULL, NULL,
+                  G_TYPE_NONE, 1,
+                  META_TYPE_POWER_SAVE_CHANGE_REASON);
+
   signals[CONFIRM_DISPLAY_CHANGE] =
     g_signal_new ("confirm-display-change",
 		  G_TYPE_FROM_CLASS (object_class),
@@ -855,87 +1519,72 @@ meta_monitor_manager_class_init (MetaMonitorManagerClass *klass)
                   NULL, NULL, NULL,
 		  G_TYPE_NONE, 0);
 
+  /**
+   * MetaMonitorManager::monitor-privacy-screen-changed: (skip)
+   * @monitor_manager: The #MetaMonitorManager
+   * @logical_monitor: The #MetaLogicalMonitor where the privacy screen state
+   *                   changed
+   * @enabled: %TRUE if the privacy screen was enabled, otherwise %FALSE
+   */
+  signals[MONITOR_PRIVACY_SCREEN_CHANGED] =
+    g_signal_new ("monitor-privacy-screen-changed",
+                  G_TYPE_FROM_CLASS (object_class),
+                  G_SIGNAL_RUN_LAST,
+                  0,
+                  NULL, NULL, NULL,
+                  G_TYPE_NONE, 2, META_TYPE_LOGICAL_MONITOR, G_TYPE_BOOLEAN);
+
   obj_props[PROP_BACKEND] =
-    g_param_spec_object ("backend",
-                         "backend",
-                         "MetaBackend",
+    g_param_spec_object ("backend", NULL, NULL,
                          META_TYPE_BACKEND,
                          G_PARAM_READWRITE |
                          G_PARAM_CONSTRUCT_ONLY |
                          G_PARAM_STATIC_STRINGS);
+
+  obj_props[PROP_PANEL_ORIENTATION_MANAGED] =
+    g_param_spec_boolean ("panel-orientation-managed", NULL, NULL,
+                          FALSE,
+                          G_PARAM_READABLE |
+                          G_PARAM_EXPLICIT_NOTIFY |
+                          G_PARAM_STATIC_STRINGS);
+
+  obj_props[PROP_HAS_BUILTIN_PANEL] =
+    g_param_spec_boolean ("has-builtin-panel", NULL, NULL,
+                          FALSE,
+                          G_PARAM_READABLE |
+                          G_PARAM_EXPLICIT_NOTIFY |
+                          G_PARAM_STATIC_STRINGS);
+
+  obj_props[PROP_NIGHT_LIGHT_SUPPORTED] =
+    g_param_spec_boolean ("night-light-supported", NULL, NULL,
+                          FALSE,
+                          G_PARAM_READABLE |
+                          G_PARAM_EXPLICIT_NOTIFY |
+                          G_PARAM_STATIC_STRINGS);
+
+  obj_props[PROP_EXPERIMENTAL_HDR] =
+    g_param_spec_string ("experimental-hdr", NULL, NULL,
+                         NULL,
+                         G_PARAM_READWRITE |
+                         G_PARAM_STATIC_STRINGS);
+
   g_object_class_install_properties (object_class, PROP_LAST, obj_props);
 }
 
-static const double known_diagonals[] = {
-    12.1,
-    13.3,
-    15.6
-};
-
-static char *
-diagonal_to_str (double d)
+gboolean
+meta_monitor_has_aspect_as_size (MetaMonitor *monitor)
 {
-  unsigned int i;
+  int width_mm;
+  int height_mm;
 
-  for (i = 0; i < G_N_ELEMENTS (known_diagonals); i++)
-    {
-      double delta;
+  meta_monitor_get_physical_dimensions (monitor, &width_mm, &height_mm);
 
-      delta = fabs(known_diagonals[i] - d);
-      if (delta < 0.1)
-        return g_strdup_printf ("%0.1lf\"", known_diagonals[i]);
-    }
-
-  return g_strdup_printf ("%d\"", (int) (d + 0.5));
-}
-
-static char *
-make_display_name (MetaMonitorManager *manager,
-                   MetaOutput         *output)
-{
-  g_autofree char *inches = NULL;
-  g_autofree char *vendor_name = NULL;
-
-  if (meta_output_is_laptop (output))
-      return g_strdup (_("Built-in display"));
-
-  if (output->width_mm > 0 && output->height_mm > 0)
-    {
-      double d = sqrt (output->width_mm * output->width_mm +
-                       output->height_mm * output->height_mm);
-      inches = diagonal_to_str (d / 25.4);
-    }
-
-  if (g_strcmp0 (output->vendor, "unknown") != 0)
-    {
-      if (!manager->pnp_ids)
-        manager->pnp_ids = gnome_pnp_ids_new ();
-
-      vendor_name = gnome_pnp_ids_get_pnp_id (manager->pnp_ids,
-                                              output->vendor);
-
-      if (!vendor_name)
-        vendor_name = g_strdup (output->vendor);
-    }
-  else
-    {
-      if (inches != NULL)
-        vendor_name = g_strdup (_("Unknown"));
-      else
-        vendor_name = g_strdup (_("Unknown Display"));
-    }
-
-  if (inches != NULL)
-    {
-      /* TRANSLATORS: this is a monitor vendor name, followed by a
-       * size in inches, like 'Dell 15"'
-       */
-      return g_strdup_printf (_("%s %s"), vendor_name, inches);
-    }
-  else
-    {
-      return g_strdup (vendor_name);
-    }
+  return (width_mm == 1600 && height_mm == 900) ||
+     (width_mm == 1600 && height_mm == 1000) ||
+     (width_mm == 160 && height_mm == 90) ||
+     (width_mm == 160 && height_mm == 100) ||
+     (width_mm == 16 && height_mm == 9) ||
+     (width_mm == 16 && height_mm == 10);
 }
 
 static const char *
@@ -960,18 +1609,25 @@ get_connector_type_name (MetaConnectorType connector_type)
     case META_CONNECTOR_TYPE_eDP: return "eDP";
     case META_CONNECTOR_TYPE_VIRTUAL: return "VIRTUAL";
     case META_CONNECTOR_TYPE_DSI: return "DSI";
+    case META_CONNECTOR_TYPE_DPI: return "DPI";
+    case META_CONNECTOR_TYPE_WRITEBACK: return "WRITEBACK";
+    case META_CONNECTOR_TYPE_SPI: return "SPI";
+    case META_CONNECTOR_TYPE_USB: return "USB";
     default: g_assert_not_reached ();
     }
+  return NULL;
 }
 
 static GList *
 combine_gpu_lists (MetaMonitorManager    *manager,
                    GList              * (*list_getter) (MetaGpu *gpu))
 {
+  GList *gpus;
   GList *list = NULL;
   GList *l;
 
-  for (l = manager->gpus; l; l = l->next)
+  gpus = meta_backend_get_gpus (manager->backend);
+  for (l = gpus; l; l = l->next)
     {
       MetaGpu *gpu = l->data;
 
@@ -981,12 +1637,62 @@ combine_gpu_lists (MetaMonitorManager    *manager,
   return list;
 }
 
+static void
+emit_privacy_screen_change (MetaMonitorManager *manager)
+{
+  GList *l;
+
+  for (l = manager->monitors; l; l = l->next)
+    {
+      MetaMonitor *monitor = l->data;
+      MetaPrivacyScreenState privacy_screen_state;
+      gboolean enabled;
+
+      if (!meta_monitor_is_active (monitor))
+        continue;
+
+      privacy_screen_state = meta_monitor_get_privacy_screen_state (monitor);
+      if (privacy_screen_state == META_PRIVACY_SCREEN_UNAVAILABLE)
+        continue;
+
+      enabled = !!(privacy_screen_state & META_PRIVACY_SCREEN_ENABLED);
+
+      g_signal_emit (manager, signals[MONITOR_PRIVACY_SCREEN_CHANGED], 0,
+                     meta_monitor_get_logical_monitor (monitor), enabled);
+    }
+}
+
+void
+meta_monitor_manager_maybe_emit_privacy_screen_change (MetaMonitorManager *manager)
+{
+  MetaPrivacyScreenChangeState reason = manager->privacy_screen_change_state;
+
+  if (reason == META_PRIVACY_SCREEN_CHANGE_STATE_NONE ||
+      reason == META_PRIVACY_SCREEN_CHANGE_STATE_INIT)
+    return;
+
+  if (reason == META_PRIVACY_SCREEN_CHANGE_STATE_PENDING_HOTKEY)
+    emit_privacy_screen_change (manager);
+
+  if (reason != META_PRIVACY_SCREEN_CHANGE_STATE_PENDING_SETTING)
+    {
+      MetaSettings *settings = meta_backend_get_settings (manager->backend);
+
+      meta_settings_set_privacy_screen_enabled (settings,
+        get_global_privacy_screen_state (manager) ==
+        META_PRIVACY_SCREEN_ENABLED);
+    }
+
+  meta_dbus_display_config_emit_monitors_changed (manager->display_config);
+  manager->privacy_screen_change_state = META_PRIVACY_SCREEN_CHANGE_STATE_NONE;
+}
+
 static gboolean
 meta_monitor_manager_handle_get_resources (MetaDBusDisplayConfig *skeleton,
-                                           GDBusMethodInvocation *invocation)
+                                           GDBusMethodInvocation *invocation,
+                                           MetaMonitorManager    *manager)
 {
-  MetaMonitorManager *manager = META_MONITOR_MANAGER (skeleton);
-  MetaMonitorManagerClass *manager_class = META_MONITOR_MANAGER_GET_CLASS (skeleton);
+  MetaMonitorManagerClass *manager_class = META_MONITOR_MANAGER_GET_CLASS (manager);
   GList *combined_modes;
   GList *combined_outputs;
   GList *combined_crtcs;
@@ -1008,42 +1714,73 @@ meta_monitor_manager_handle_get_resources (MetaDBusDisplayConfig *skeleton,
     {
       MetaCrtc *crtc = l->data;
       GVariantBuilder transforms;
-      int current_mode_index;
+      const MetaCrtcConfig *crtc_config;
 
       g_variant_builder_init (&transforms, G_VARIANT_TYPE ("au"));
       for (j = 0; j <= META_MONITOR_TRANSFORM_FLIPPED_270; j++)
-        if (crtc->all_transforms & (1 << j))
-          g_variant_builder_add (&transforms, "u", j);
+        {
+          if (meta_crtc_get_all_transforms (crtc) & (1 << j))
+            g_variant_builder_add (&transforms, "u", j);
+        }
 
-      if (crtc->current_mode)
-        current_mode_index = g_list_index (combined_modes, crtc->current_mode);
+      crtc_config = meta_crtc_get_config (crtc);
+      if (crtc_config)
+        {
+          int current_mode_index;
+
+          current_mode_index = g_list_index (combined_modes, crtc_config->mode);
+          g_variant_builder_add (&crtc_builder, "(uxiiiiiuaua{sv})",
+                                 i, /* ID */
+                                 (int64_t) meta_crtc_get_id (crtc),
+                                 (int) roundf (crtc_config->layout.origin.x),
+                                 (int) roundf (crtc_config->layout.origin.y),
+                                 (int) roundf (crtc_config->layout.size.width),
+                                 (int) roundf (crtc_config->layout.size.height),
+                                 current_mode_index,
+                                 (uint32_t) crtc_config->transform,
+                                 &transforms,
+                                 NULL /* properties */);
+        }
       else
-        current_mode_index = -1;
-      g_variant_builder_add (&crtc_builder, "(uxiiiiiuaua{sv})",
-                             i, /* ID */
-                             (gint64)crtc->crtc_id,
-                             (int)crtc->rect.x,
-                             (int)crtc->rect.y,
-                             (int)crtc->rect.width,
-                             (int)crtc->rect.height,
-                             current_mode_index,
-                             (guint32)crtc->transform,
-                             &transforms,
-                             NULL /* properties */);
+        {
+          g_variant_builder_add (&crtc_builder, "(uxiiiiiuaua{sv})",
+                                 i, /* ID */
+                                 (int64_t) meta_crtc_get_id (crtc),
+                                 0,
+                                 0,
+                                 0,
+                                 0,
+                                 -1,
+                                 (uint32_t) META_MONITOR_TRANSFORM_NORMAL,
+                                 &transforms,
+                                 NULL /* properties */);
+        }
     }
 
-  for (l = combined_outputs; l; l = l->next)
+  for (l = combined_outputs, i = 0; l; l = l->next, i++)
     {
       MetaOutput *output = l->data;
+      const MetaOutputInfo *output_info = meta_output_get_info (output);
       GVariantBuilder crtcs, modes, clones, properties;
       GBytes *edid;
-      char *edid_file;
+      MetaCrtc *crtc;
       int crtc_index;
+      int backlight;
+      int min_backlight_step;
+      gboolean is_primary;
+      gboolean is_presentation;
+      const char * connector_type_name;
+      gboolean is_underscanning;
+      gboolean supports_underscanning;
+      gboolean supports_color_transform;
+      const char *vendor;
+      const char *product;
+      const char *serial;
 
       g_variant_builder_init (&crtcs, G_VARIANT_TYPE ("au"));
-      for (j = 0; j < output->n_possible_crtcs; j++)
+      for (j = 0; j < output_info->n_possible_crtcs; j++)
         {
-          MetaCrtc *possible_crtc = output->possible_crtcs[j];
+          MetaCrtc *possible_crtc = output_info->possible_crtcs[j];
           unsigned possible_crtc_index;
 
           possible_crtc_index = g_list_index (combined_crtcs, possible_crtc);
@@ -1051,94 +1788,102 @@ meta_monitor_manager_handle_get_resources (MetaDBusDisplayConfig *skeleton,
         }
 
       g_variant_builder_init (&modes, G_VARIANT_TYPE ("au"));
-      for (j = 0; j < output->n_modes; j++)
+      for (j = 0; j < output_info->n_modes; j++)
         {
           unsigned mode_index;
 
-          mode_index = g_list_index (combined_modes, output->modes[j]);
+          mode_index = g_list_index (combined_modes, output_info->modes[j]);
           g_variant_builder_add (&modes, "u", mode_index);
         }
 
       g_variant_builder_init (&clones, G_VARIANT_TYPE ("au"));
-      for (j = 0; j < output->n_possible_clones; j++)
+      for (j = 0; j < output_info->n_possible_clones; j++)
         {
           unsigned int possible_clone_index;
 
           possible_clone_index = g_list_index (combined_outputs,
-                                               output->possible_clones[j]);
+                                               output_info->possible_clones[j]);
           g_variant_builder_add (&clones, "u", possible_clone_index);
         }
 
+      backlight = meta_output_get_backlight (output);
+      min_backlight_step =
+        output_info->backlight_max - output_info->backlight_min
+        ? 100 / (output_info->backlight_max - output_info->backlight_min)
+        : -1;
+      is_primary = meta_output_is_primary (output);
+      is_presentation = meta_output_is_presentation (output);
+      is_underscanning = meta_output_is_underscanning (output);
+      connector_type_name = get_connector_type_name (output_info->connector_type);
+      supports_underscanning = output_info->supports_underscanning;
+      supports_color_transform = output_info->supports_color_transform;
+      vendor = output_info->vendor;
+      product = output_info->product;
+      serial = output_info->serial;
+
       g_variant_builder_init (&properties, G_VARIANT_TYPE ("a{sv}"));
       g_variant_builder_add (&properties, "{sv}", "vendor",
-                             g_variant_new_string (output->vendor));
+                             g_variant_new_string (vendor ? vendor : "unknown"));
       g_variant_builder_add (&properties, "{sv}", "product",
-                             g_variant_new_string (output->product));
+                             g_variant_new_string (product ? product : "unknown"));
       g_variant_builder_add (&properties, "{sv}", "serial",
-                             g_variant_new_string (output->serial));
+                             g_variant_new_string (serial ? serial : "unknown"));
       g_variant_builder_add (&properties, "{sv}", "width-mm",
-                             g_variant_new_int32 (output->width_mm));
+                             g_variant_new_int32 (output_info->width_mm));
       g_variant_builder_add (&properties, "{sv}", "height-mm",
-                             g_variant_new_int32 (output->height_mm));
+                             g_variant_new_int32 (output_info->height_mm));
       g_variant_builder_add (&properties, "{sv}", "display-name",
-                             g_variant_new_take_string (make_display_name (manager, output)));
+                             g_variant_new_string (output_info->name));
       g_variant_builder_add (&properties, "{sv}", "backlight",
-                             g_variant_new_int32 (output->backlight));
+                             g_variant_new_int32 (backlight));
       g_variant_builder_add (&properties, "{sv}", "min-backlight-step",
-                             g_variant_new_int32 ((output->backlight_max - output->backlight_min) ?
-                                                  100 / (output->backlight_max - output->backlight_min) : -1));
+                             g_variant_new_int32 (min_backlight_step));
       g_variant_builder_add (&properties, "{sv}", "primary",
-                             g_variant_new_boolean (output->is_primary));
+                             g_variant_new_boolean (is_primary));
       g_variant_builder_add (&properties, "{sv}", "presentation",
-                             g_variant_new_boolean (output->is_presentation));
+                             g_variant_new_boolean (is_presentation));
       g_variant_builder_add (&properties, "{sv}", "connector-type",
-                             g_variant_new_string (get_connector_type_name (output->connector_type)));
+                             g_variant_new_string (connector_type_name));
       g_variant_builder_add (&properties, "{sv}", "underscanning",
-                             g_variant_new_boolean (output->is_underscanning));
+                             g_variant_new_boolean (is_underscanning));
       g_variant_builder_add (&properties, "{sv}", "supports-underscanning",
-                             g_variant_new_boolean (output->supports_underscanning));
+                             g_variant_new_boolean (supports_underscanning));
+      g_variant_builder_add (&properties, "{sv}", "supports-color-transform",
+                             g_variant_new_boolean (supports_color_transform));
 
-      edid_file = manager_class->get_edid_file (manager, output);
-      if (edid_file)
+      edid = manager_class->read_edid (manager, output);
+      if (edid)
         {
-          g_variant_builder_add (&properties, "{sv}", "edid-file",
-                                 g_variant_new_take_string (edid_file));
-        }
-      else
-        {
-          edid = manager_class->read_edid (manager, output);
-
-          if (edid)
-            {
-              g_variant_builder_add (&properties, "{sv}", "edid",
-                                     g_variant_new_from_bytes (G_VARIANT_TYPE ("ay"),
-                                                               edid, TRUE));
-              g_bytes_unref (edid);
-            }
+          g_variant_builder_add (&properties, "{sv}", "edid",
+                                 g_variant_new_from_bytes (G_VARIANT_TYPE ("ay"),
+                                                           edid, TRUE));
+          g_bytes_unref (edid);
         }
 
-      if (output->tile_info.group_id)
+      if (output_info->tile_info.group_id)
         {
-          g_variant_builder_add (&properties, "{sv}", "tile",
-                                 g_variant_new ("(uuuuuuuu)",
-                                                output->tile_info.group_id,
-                                                output->tile_info.flags,
-                                                output->tile_info.max_h_tiles,
-                                                output->tile_info.max_v_tiles,
-                                                output->tile_info.loc_h_tile,
-                                                output->tile_info.loc_v_tile,
-                                                output->tile_info.tile_w,
-                                                output->tile_info.tile_h));
+          GVariant *tile_variant;
+
+          tile_variant = g_variant_new ("(uuuuuuuu)",
+                                        output_info->tile_info.group_id,
+                                        output_info->tile_info.flags,
+                                        output_info->tile_info.max_h_tiles,
+                                        output_info->tile_info.max_v_tiles,
+                                        output_info->tile_info.loc_h_tile,
+                                        output_info->tile_info.loc_v_tile,
+                                        output_info->tile_info.tile_w,
+                                        output_info->tile_info.tile_h);
+          g_variant_builder_add (&properties, "{sv}", "tile", tile_variant);
         }
 
-      crtc_index = output->crtc ? g_list_index (combined_crtcs, output->crtc)
-                                : -1;
+      crtc = meta_output_get_assigned_crtc (output);
+      crtc_index = crtc ? g_list_index (combined_crtcs, crtc) : -1;
       g_variant_builder_add (&output_builder, "(uxiausauaua{sv})",
                              i, /* ID */
-                             (gint64)output->winsys_id,
+                             meta_output_get_id (output),
                              crtc_index,
                              &crtcs,
-                             output->name,
+                             meta_output_get_name (output),
                              &modes,
                              &clones,
                              &properties);
@@ -1147,14 +1892,16 @@ meta_monitor_manager_handle_get_resources (MetaDBusDisplayConfig *skeleton,
   for (l = combined_modes, i = 0; l; l = l->next, i++)
     {
       MetaCrtcMode *mode = l->data;
+      const MetaCrtcModeInfo *crtc_mode_info =
+        meta_crtc_mode_get_info (mode);
 
       g_variant_builder_add (&mode_builder, "(uxuudu)",
                              i, /* ID */
-                             (gint64)mode->mode_id,
-                             (guint32)mode->width,
-                             (guint32)mode->height,
-                             (double)mode->refresh_rate,
-                             (guint32)mode->flags);
+                             (int64_t) meta_crtc_mode_get_id (mode),
+                             (uint32_t) crtc_mode_info->width,
+                             (uint32_t) crtc_mode_info->height,
+                             (double) crtc_mode_info->refresh_rate,
+                             (uint32_t) crtc_mode_info->flags);
     }
 
   if (!meta_monitor_manager_get_max_screen_size (manager,
@@ -1195,6 +1942,18 @@ restore_previous_config (MetaMonitorManager *manager)
     {
       MetaMonitorsConfigMethod method;
 
+      if (manager->panel_orientation_managed)
+        {
+          g_autoptr (MetaMonitorsConfig) oriented_config = NULL;
+
+          oriented_config =
+            meta_monitor_config_manager_create_for_builtin_orientation (
+              manager->config_manager, previous_config);
+
+          if (oriented_config)
+            g_set_object (&previous_config, oriented_config);
+        }
+
       method = META_MONITORS_CONFIG_METHOD_TEMPORARY;
       if (meta_monitor_manager_apply_monitors_config (manager,
                                                       previous_config,
@@ -1216,8 +1975,8 @@ restore_previous_config (MetaMonitorManager *manager)
   meta_monitor_manager_ensure_configured (manager);
 }
 
-gint
-meta_monitor_manager_get_display_configuration_timeout (void)
+int
+meta_monitor_manager_get_display_configuration_timeout (MetaMonitorManager *manager)
 {
   return DEFAULT_DISPLAY_CONFIGURATION_TIMEOUT;
 }
@@ -1234,16 +1993,12 @@ save_config_timeout (gpointer user_data)
 }
 
 static void
-cancel_persistent_confirmation (MetaMonitorManager *manager)
-{
-  g_source_remove (manager->persistent_timeout_id);
-  manager->persistent_timeout_id = 0;
-}
-
-static void
 request_persistent_confirmation (MetaMonitorManager *manager)
 {
-  manager->persistent_timeout_id = g_timeout_add_seconds (meta_monitor_manager_get_display_configuration_timeout (),
+  int timeout_s;
+
+  timeout_s = meta_monitor_manager_get_display_configuration_timeout (manager);
+  manager->persistent_timeout_id = g_timeout_add_seconds (timeout_s,
                                                           save_config_timeout,
                                                           manager);
   g_source_set_name_by_id (manager->persistent_timeout_id,
@@ -1267,9 +2022,9 @@ request_persistent_confirmation (MetaMonitorManager *manager)
 
 static gboolean
 meta_monitor_manager_handle_get_current_state (MetaDBusDisplayConfig *skeleton,
-                                               GDBusMethodInvocation *invocation)
+                                               GDBusMethodInvocation *invocation,
+                                               MetaMonitorManager    *manager)
 {
-  MetaMonitorManager *manager = META_MONITOR_MANAGER (skeleton);
   MetaSettings *settings = meta_backend_get_settings (manager->backend);
   GVariantBuilder monitors_builder;
   GVariantBuilder logical_monitors_builder;
@@ -1291,12 +2046,12 @@ meta_monitor_manager_handle_get_current_state (MetaDBusDisplayConfig *skeleton,
       MetaMonitorSpec *monitor_spec = meta_monitor_get_spec (monitor);
       MetaMonitorMode *current_mode;
       MetaMonitorMode *preferred_mode;
+      MetaPrivacyScreenState privacy_screen_state;
       GVariantBuilder modes_builder;
       GVariantBuilder monitor_properties_builder;
       GList *k;
       gboolean is_builtin;
-      MetaOutput *main_output;
-      char *display_name;
+      const char *display_name;
 
       current_mode = meta_monitor_get_current_mode (monitor);
       preferred_mode = meta_monitor_get_preferred_mode (monitor);
@@ -1315,13 +2070,18 @@ meta_monitor_manager_handle_get_current_state (MetaDBusDisplayConfig *skeleton,
           GVariantBuilder mode_properties_builder;
           MetaCrtcModeFlag mode_flags;
 
+          if (!meta_monitor_mode_should_be_advertised (monitor_mode))
+            continue;
+
           mode_id = meta_monitor_mode_get_id (monitor_mode);
           meta_monitor_mode_get_resolution (monitor_mode,
                                             &mode_width, &mode_height);
+
           refresh_rate = meta_monitor_mode_get_refresh_rate (monitor_mode);
 
           preferred_scale =
             meta_monitor_manager_calculate_monitor_mode_scale (manager,
+                                                               manager->layout_mode,
                                                                monitor,
                                                                monitor_mode);
 
@@ -1381,11 +2141,23 @@ meta_monitor_manager_handle_get_current_state (MetaDBusDisplayConfig *skeleton,
                              "is-builtin",
                              g_variant_new_boolean (is_builtin));
 
-      main_output = meta_monitor_get_main_output (monitor);
-      display_name = make_display_name (manager, main_output);
+      display_name = meta_monitor_get_display_name (monitor);
       g_variant_builder_add (&monitor_properties_builder, "{sv}",
                              "display-name",
-                             g_variant_new_take_string (display_name));
+                             g_variant_new_string (display_name));
+
+      privacy_screen_state = meta_monitor_get_privacy_screen_state (monitor);
+      if (privacy_screen_state != META_PRIVACY_SCREEN_UNAVAILABLE)
+        {
+          GVariant *state;
+
+          state = g_variant_new ("(bb)",
+            !!(privacy_screen_state & META_PRIVACY_SCREEN_ENABLED),
+            !!(privacy_screen_state & META_PRIVACY_SCREEN_LOCKED));
+
+          g_variant_builder_add (&monitor_properties_builder, "{sv}",
+                                 "privacy-screen-state", state);
+        }
 
       g_variant_builder_add (&monitors_builder, MONITOR_FORMAT,
                              monitor_spec->connector,
@@ -1431,12 +2203,6 @@ meta_monitor_manager_handle_get_current_state (MetaDBusDisplayConfig *skeleton,
 
   g_variant_builder_init (&properties_builder, G_VARIANT_TYPE ("a{sv}"));
   capabilities = meta_monitor_manager_get_capabilities (manager);
-  if ((capabilities & META_MONITOR_MANAGER_CAPABILITY_MIRRORING) == 0)
-    {
-      g_variant_builder_add (&properties_builder, "{sv}",
-                             "supports-mirroring",
-                             g_variant_new_boolean (FALSE));
-    }
 
   g_variant_builder_add (&properties_builder, "{sv}",
                          "layout-mode",
@@ -1525,6 +2291,43 @@ meta_monitor_manager_is_scale_supported (MetaMonitorManager          *manager,
 }
 
 static gboolean
+is_global_scale_matching_in_config (MetaMonitorsConfig *config,
+                                    float               scale)
+{
+  GList *l;
+
+  for (l = config->logical_monitor_configs; l; l = l->next)
+    {
+      MetaLogicalMonitorConfig *logical_monitor_config = l->data;
+
+      if (!G_APPROX_VALUE (logical_monitor_config->scale, scale, FLT_EPSILON))
+        return FALSE;
+    }
+
+  return TRUE;
+}
+
+static gboolean
+meta_monitor_manager_is_scale_supported_for_config (MetaMonitorManager *manager,
+                                                    MetaMonitorsConfig *config,
+                                                    MetaMonitor        *monitor,
+                                                    MetaMonitorMode    *monitor_mode,
+                                                    float               scale)
+{
+  if (meta_monitor_manager_is_scale_supported (manager, config->layout_mode,
+                                               monitor, monitor_mode, scale))
+    {
+      if (meta_monitor_manager_get_capabilities (manager) &
+          META_MONITOR_MANAGER_CAPABILITY_GLOBAL_SCALE_REQUIRED)
+        return is_global_scale_matching_in_config (config, scale);
+
+      return TRUE;
+    }
+
+  return FALSE;
+}
+
+static gboolean
 meta_monitor_manager_is_config_applicable (MetaMonitorManager *manager,
                                            MetaMonitorsConfig *config,
                                            GError            **error)
@@ -1562,11 +2365,11 @@ meta_monitor_manager_is_config_applicable (MetaMonitorManager *manager,
               return FALSE;
             }
 
-          if (!meta_monitor_manager_is_scale_supported (manager,
-                                                        config->layout_mode,
-                                                        monitor,
-                                                        monitor_mode,
-                                                        scale))
+          if (!meta_monitor_manager_is_scale_supported_for_config (manager,
+                                                                   config,
+                                                                   monitor,
+                                                                   monitor_mode,
+                                                                   scale))
             {
               g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED,
                            "Scale not supported by backend");
@@ -1574,7 +2377,7 @@ meta_monitor_manager_is_config_applicable (MetaMonitorManager *manager,
             }
 
           if (meta_monitor_is_laptop_panel (monitor) &&
-              meta_monitor_manager_is_lid_closed (manager))
+              meta_backend_is_lid_closed (manager->backend))
             {
               g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED,
                            "Refusing to activate a closed laptop panel");
@@ -1651,6 +2454,7 @@ create_monitor_config_from_variant (MetaMonitorManager *manager,
   MetaMonitorModeSpec *monitor_mode_spec;
   g_autoptr (GVariant) properties_variant = NULL;
   gboolean enable_underscanning = FALSE;
+  gboolean set_underscanning = FALSE;
 
   g_variant_get (monitor_config_variant, "(ss@a{sv})",
                  &connector,
@@ -1673,7 +2477,18 @@ create_monitor_config_from_variant (MetaMonitorManager *manager,
       return NULL;
     }
 
-  g_variant_lookup (properties_variant, "underscanning", "b", &enable_underscanning);
+  set_underscanning =
+    g_variant_lookup (properties_variant, "underscanning", "b",
+                      &enable_underscanning);
+  if (set_underscanning)
+    {
+      if (enable_underscanning && !meta_monitor_supports_underscanning (monitor))
+        {
+          g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED,
+                       "Underscanning requested but unsupported");
+          return NULL;
+        }
+    }
 
   monitor_spec = meta_monitor_spec_clone (meta_monitor_get_spec (monitor));
 
@@ -1909,9 +2724,11 @@ meta_monitor_manager_handle_apply_monitors_config (MetaDBusDisplayConfig *skelet
                                                    guint                  serial,
                                                    guint                  method,
                                                    GVariant              *logical_monitor_configs_variant,
-                                                   GVariant              *properties_variant)
+                                                   GVariant              *properties_variant,
+                                                   MetaMonitorManager    *manager)
 {
-  MetaMonitorManager *manager = META_MONITOR_MANAGER (skeleton);
+  MetaMonitorConfigStore *config_store;
+  const MetaMonitorConfigPolicy *policy;
   MetaMonitorManagerCapability capabilities;
   GVariant *layout_mode_variant = NULL;
   MetaLogicalMonitorLayoutMode layout_mode;
@@ -1925,6 +2742,18 @@ meta_monitor_manager_handle_apply_monitors_config (MetaDBusDisplayConfig *skelet
       g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR,
                                              G_DBUS_ERROR_ACCESS_DENIED,
                                              "The requested configuration is based on stale information");
+      return TRUE;
+    }
+
+  config_store =
+    meta_monitor_config_manager_get_store (manager->config_manager);
+  policy = meta_monitor_config_store_get_policy (config_store);
+
+  if (!policy->enable_dbus)
+    {
+      g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR,
+                                             G_DBUS_ERROR_ACCESS_DENIED,
+                                             "Monitor configuration via D-Bus is disabled");
       return TRUE;
     }
 
@@ -2018,9 +2847,11 @@ meta_monitor_manager_handle_apply_monitors_config (MetaDBusDisplayConfig *skelet
       return TRUE;
     }
 
-  if (manager->persistent_timeout_id &&
-      method != META_MONITORS_CONFIG_METHOD_VERIFY)
-    cancel_persistent_confirmation (manager);
+  if (method != META_MONITORS_CONFIG_METHOD_VERIFY)
+    {
+      g_clear_handle_id (&manager->restore_config_id, g_source_remove);
+      g_clear_handle_id (&manager->persistent_timeout_id, g_source_remove);
+    }
 
   if (!meta_monitor_manager_apply_monitors_config (manager,
                                                    config,
@@ -2048,28 +2879,25 @@ meta_monitor_manager_handle_apply_monitors_config (MetaDBusDisplayConfig *skelet
 #undef MONITOR_CONFIGS_FORMAT
 #undef LOGICAL_MONITOR_CONFIG_FORMAT
 
-static void
-confirm_configuration (MetaMonitorManager *manager,
-                       gboolean            confirmed)
-{
-  if (confirmed)
-    meta_monitor_config_manager_save_current (manager->config_manager);
-  else
-    restore_previous_config (manager);
-}
-
 void
 meta_monitor_manager_confirm_configuration (MetaMonitorManager *manager,
                                             gboolean            ok)
 {
   if (!manager->persistent_timeout_id)
-    {
-      /* too late */
-      return;
-    }
+    return;
 
-  cancel_persistent_confirmation (manager);
-  confirm_configuration (manager, ok);
+  g_clear_handle_id (&manager->restore_config_id, g_source_remove);
+  g_clear_handle_id (&manager->persistent_timeout_id, g_source_remove);
+
+  if (ok)
+    {
+      meta_monitor_config_manager_save_current (manager->config_manager);
+    }
+  else
+    {
+      manager->restore_config_id =
+        g_idle_add_once ((GSourceOnceFunc) restore_previous_config, manager);
+    }
 }
 
 static gboolean
@@ -2077,11 +2905,13 @@ meta_monitor_manager_handle_change_backlight  (MetaDBusDisplayConfig *skeleton,
                                                GDBusMethodInvocation *invocation,
                                                guint                  serial,
                                                guint                  output_index,
-                                               gint                   value)
+                                               gint                   value,
+                                               MetaMonitorManager    *manager)
 {
-  MetaMonitorManager *manager = META_MONITOR_MANAGER (skeleton);
   GList *combined_outputs;
   MetaOutput *output;
+  const MetaOutputInfo *output_info;
+  int new_backlight;
 
   if (serial != manager->serial)
     {
@@ -2112,8 +2942,10 @@ meta_monitor_manager_handle_change_backlight  (MetaDBusDisplayConfig *skeleton,
       return TRUE;
     }
 
-  if (output->backlight == -1 ||
-      (output->backlight_min == 0 && output->backlight_max == 0))
+  output_info = meta_output_get_info (output);
+  if (meta_output_get_backlight (output) == -1 ||
+      (output_info->backlight_min == 0 &&
+       output_info->backlight_max == 0))
     {
       g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR,
                                              G_DBUS_ERROR_INVALID_ARGS,
@@ -2123,7 +2955,10 @@ meta_monitor_manager_handle_change_backlight  (MetaDBusDisplayConfig *skeleton,
 
   META_MONITOR_MANAGER_GET_CLASS (manager)->change_backlight (manager, output, value);
 
-  meta_dbus_display_config_complete_change_backlight (skeleton, invocation, output->backlight);
+  new_backlight = meta_output_get_backlight (output);
+  meta_dbus_display_config_complete_change_backlight (skeleton,
+                                                      invocation,
+                                                      new_backlight);
   return TRUE;
 }
 
@@ -2131,16 +2966,12 @@ static gboolean
 meta_monitor_manager_handle_get_crtc_gamma  (MetaDBusDisplayConfig *skeleton,
                                              GDBusMethodInvocation *invocation,
                                              guint                  serial,
-                                             guint                  crtc_id)
+                                             guint                  crtc_id,
+                                             MetaMonitorManager    *manager)
 {
-  MetaMonitorManager *manager = META_MONITOR_MANAGER (skeleton);
-  MetaMonitorManagerClass *klass;
   GList *combined_crtcs;
   MetaCrtc *crtc;
-  gsize size;
-  unsigned short *red;
-  unsigned short *green;
-  unsigned short *blue;
+  g_autoptr (MetaGammaLut) gamma_lut = NULL;
   GBytes *red_bytes, *green_bytes, *blue_bytes;
   GVariant *red_v, *green_v, *blue_v;
 
@@ -2165,18 +2996,14 @@ meta_monitor_manager_handle_get_crtc_gamma  (MetaDBusDisplayConfig *skeleton,
   crtc = g_list_nth_data (combined_crtcs, crtc_id);
   g_list_free (combined_crtcs);
 
-  klass = META_MONITOR_MANAGER_GET_CLASS (manager);
-  if (klass->get_crtc_gamma)
-    klass->get_crtc_gamma (manager, crtc, &size, &red, &green, &blue);
-  else
-    {
-      size = 0;
-      red = green = blue = NULL;
-    }
+  gamma_lut = meta_crtc_get_gamma_lut (crtc);
 
-  red_bytes = g_bytes_new_take (red, size * sizeof (unsigned short));
-  green_bytes = g_bytes_new_take (green, size * sizeof (unsigned short));
-  blue_bytes = g_bytes_new_take (blue, size * sizeof (unsigned short));
+  red_bytes = g_bytes_new_take (g_steal_pointer (&gamma_lut->red),
+                                gamma_lut->size * sizeof (unsigned short));
+  green_bytes = g_bytes_new_take (g_steal_pointer (&gamma_lut->green),
+                                  gamma_lut->size * sizeof (unsigned short));
+  blue_bytes = g_bytes_new_take (g_steal_pointer (&gamma_lut->blue),
+                                 gamma_lut->size * sizeof (unsigned short));
 
   red_v = g_variant_new_from_bytes (G_VARIANT_TYPE ("aq"), red_bytes, TRUE);
   green_v = g_variant_new_from_bytes (G_VARIANT_TYPE ("aq"), green_bytes, TRUE);
@@ -2199,17 +3026,14 @@ meta_monitor_manager_handle_set_crtc_gamma  (MetaDBusDisplayConfig *skeleton,
                                              guint                  crtc_id,
                                              GVariant              *red_v,
                                              GVariant              *green_v,
-                                             GVariant              *blue_v)
+                                             GVariant              *blue_v,
+                                             MetaMonitorManager    *manager)
 {
-  MetaMonitorManager *manager = META_MONITOR_MANAGER (skeleton);
-  MetaMonitorManagerClass *klass;
   GList *combined_crtcs;
   MetaCrtc *crtc;
-  gsize size, dummy;
-  unsigned short *red;
-  unsigned short *green;
-  unsigned short *blue;
+  size_t dummy;
   GBytes *red_bytes, *green_bytes, *blue_bytes;
+  MetaGammaLut lut;
 
   if (serial != manager->serial)
     {
@@ -2237,14 +3061,12 @@ meta_monitor_manager_handle_set_crtc_gamma  (MetaDBusDisplayConfig *skeleton,
   green_bytes = g_variant_get_data_as_bytes (green_v);
   blue_bytes = g_variant_get_data_as_bytes (blue_v);
 
-  size = g_bytes_get_size (red_bytes) / sizeof (unsigned short);
-  red = (unsigned short*) g_bytes_get_data (red_bytes, &dummy);
-  green = (unsigned short*) g_bytes_get_data (green_bytes, &dummy);
-  blue = (unsigned short*) g_bytes_get_data (blue_bytes, &dummy);
+  lut.size = g_bytes_get_size (red_bytes) / sizeof (uint16_t);
+  lut.red = (uint16_t *) g_bytes_get_data (red_bytes, &dummy);
+  lut.green = (uint16_t *) g_bytes_get_data (green_bytes, &dummy);
+  lut.blue = (uint16_t *) g_bytes_get_data (blue_bytes, &dummy);
 
-  klass = META_MONITOR_MANAGER_GET_CLASS (manager);
-  if (klass->set_crtc_gamma)
-    klass->set_crtc_gamma (manager, crtc, size, red, green, blue);
+  meta_crtc_set_gamma_lut (crtc, &lut);
   meta_dbus_display_config_complete_set_crtc_gamma (skeleton, invocation);
 
   g_bytes_unref (red_bytes);
@@ -2254,15 +3076,89 @@ meta_monitor_manager_handle_set_crtc_gamma  (MetaDBusDisplayConfig *skeleton,
   return TRUE;
 }
 
-static void
-meta_monitor_manager_display_config_init (MetaDBusDisplayConfigIface *iface)
+static gboolean
+meta_monitor_manager_handle_set_output_ctm  (MetaDBusDisplayConfig *skeleton,
+                                             GDBusMethodInvocation *invocation,
+                                             guint                  serial,
+                                             guint                  output_id,
+                                             GVariant              *ctm_var,
+                                             MetaMonitorManager    *manager)
 {
-  iface->handle_get_resources = meta_monitor_manager_handle_get_resources;
-  iface->handle_change_backlight = meta_monitor_manager_handle_change_backlight;
-  iface->handle_get_crtc_gamma = meta_monitor_manager_handle_get_crtc_gamma;
-  iface->handle_set_crtc_gamma = meta_monitor_manager_handle_set_crtc_gamma;
-  iface->handle_get_current_state = meta_monitor_manager_handle_get_current_state;
-  iface->handle_apply_monitors_config = meta_monitor_manager_handle_apply_monitors_config;
+  MetaMonitorManagerClass *klass;
+  GList *combined_outputs;
+  MetaOutput *output;
+  MetaOutputCtm ctm;
+  int i;
+
+  if (serial != manager->serial)
+    {
+      g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR,
+                                             G_DBUS_ERROR_ACCESS_DENIED,
+                                             "The requested configuration is based on stale information");
+      return TRUE;
+    }
+
+  combined_outputs = combine_gpu_lists (manager, meta_gpu_get_outputs);
+
+  if (output_id >= g_list_length (combined_outputs))
+    {
+      g_list_free (combined_outputs);
+      g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR,
+                                             G_DBUS_ERROR_INVALID_ARGS,
+                                             "Invalid output id");
+      return TRUE;
+    }
+
+  output = g_list_nth_data (combined_outputs, output_id);
+  g_list_free (combined_outputs);
+
+  if (g_variant_n_children (ctm_var) != 9)
+    {
+      g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR,
+                                             G_DBUS_ERROR_INVALID_ARGS,
+                                             "Unexpected color transform matrix variant length");
+      return TRUE;
+    }
+
+  for (i = 0; i < 9; i++)
+    {
+      GVariant *tmp = g_variant_get_child_value (ctm_var, i);
+      ctm.matrix[i] = g_variant_get_uint64 (tmp);
+      g_variant_unref (tmp);
+    }
+
+  klass = META_MONITOR_MANAGER_GET_CLASS (manager);
+  if (klass->set_output_ctm)
+    klass->set_output_ctm (output, &ctm);
+  meta_dbus_display_config_complete_set_output_ctm (skeleton, invocation);
+
+  return TRUE;
+}
+
+static void
+monitor_manager_setup_dbus_config_handlers (MetaMonitorManager *manager)
+{
+  g_signal_connect_object (manager->display_config, "handle-get-resources",
+                           G_CALLBACK (meta_monitor_manager_handle_get_resources),
+                           manager, 0);
+  g_signal_connect_object (manager->display_config, "handle-change-backlight",
+                           G_CALLBACK (meta_monitor_manager_handle_change_backlight),
+                           manager, 0);
+  g_signal_connect_object (manager->display_config, "handle-get-crtc-gamma",
+                           G_CALLBACK (meta_monitor_manager_handle_get_crtc_gamma),
+                           manager, 0);
+  g_signal_connect_object (manager->display_config, "handle-set-crtc-gamma",
+                           G_CALLBACK (meta_monitor_manager_handle_set_crtc_gamma),
+                           manager, 0);
+  g_signal_connect_object (manager->display_config, "handle-get-current-state",
+                           G_CALLBACK (meta_monitor_manager_handle_get_current_state),
+                           manager, 0);
+  g_signal_connect_object (manager->display_config, "handle-apply-monitors-config",
+                           G_CALLBACK (meta_monitor_manager_handle_apply_monitors_config),
+                           manager, 0);
+  g_signal_connect_object (manager->display_config, "handle-set-output-ctm",
+                           G_CALLBACK (meta_monitor_manager_handle_set_output_ctm),
+                           manager, 0);
 }
 
 static void
@@ -2272,7 +3168,7 @@ on_bus_acquired (GDBusConnection *connection,
 {
   MetaMonitorManager *manager = user_data;
 
-  g_dbus_interface_skeleton_export (G_DBUS_INTERFACE_SKELETON (manager),
+  g_dbus_interface_skeleton_export (G_DBUS_INTERFACE_SKELETON (manager->display_config),
                                     connection,
                                     "/org/gnome/Mutter/DisplayConfig",
                                     NULL);
@@ -2283,7 +3179,7 @@ on_name_acquired (GDBusConnection *connection,
                   const char      *name,
                   gpointer         user_data)
 {
-  meta_topic (META_DEBUG_DBUS, "Acquired name %s\n", name);
+  meta_topic (META_DEBUG_DBUS, "Acquired name %s", name);
 }
 
 static void
@@ -2291,45 +3187,53 @@ on_name_lost (GDBusConnection *connection,
               const char      *name,
               gpointer         user_data)
 {
-  meta_topic (META_DEBUG_DBUS, "Lost or failed to acquire name %s\n", name);
+  meta_topic (META_DEBUG_DBUS, "Lost or failed to acquire name %s", name);
 }
 
 static void
 initialize_dbus_interface (MetaMonitorManager *manager)
 {
-  manager->dbus_name_id = g_bus_own_name (G_BUS_TYPE_SESSION,
-                                          "org.gnome.Mutter.DisplayConfig",
-                                          G_BUS_NAME_OWNER_FLAGS_ALLOW_REPLACEMENT |
-                                          (meta_get_replace_current_wm () ?
-                                           G_BUS_NAME_OWNER_FLAGS_REPLACE : 0),
-                                          on_bus_acquired,
-                                          on_name_acquired,
-                                          on_name_lost,
-                                          g_object_ref (manager),
-                                          g_object_unref);
+  MetaContext *context = meta_backend_get_context (manager->backend);
+
+  manager->dbus_name_id =
+    g_bus_own_name (G_BUS_TYPE_SESSION,
+                    "org.gnome.Mutter.DisplayConfig",
+                    G_BUS_NAME_OWNER_FLAGS_ALLOW_REPLACEMENT |
+                    (meta_context_is_replacing (context) ?
+                     G_BUS_NAME_OWNER_FLAGS_REPLACE :
+                     G_BUS_NAME_OWNER_FLAGS_NONE),
+                    on_bus_acquired,
+                    on_name_acquired,
+                    on_name_lost,
+                    g_object_ref (manager),
+                    g_object_unref);
 }
 
 /**
- * meta_monitor_manager_get:
+ * meta_monitor_manager_get_num_logical_monitors:
+ * @manager: A #MetaMonitorManager object
  *
- * Accessor for the singleton MetaMonitorManager.
+ * Returns the number of `MetaLogicalMonitor`s (can be 0 in case of a
+ * headless setup).
  *
- * Returns: (transfer none): The only #MetaMonitorManager there is.
+ * Returns: the total number of `MetaLogicalMonitor`s.
  */
-MetaMonitorManager *
-meta_monitor_manager_get (void)
-{
-  MetaBackend *backend = meta_get_backend ();
-
-  return meta_backend_get_monitor_manager (backend);
-}
-
 int
 meta_monitor_manager_get_num_logical_monitors (MetaMonitorManager *manager)
 {
   return g_list_length (manager->logical_monitors);
 }
 
+/**
+ * meta_monitor_manager_get_logical_monitors:
+ * @manager: A #MetaMonitorManager object
+ *
+ * Returns the list of `MetaLogicalMonitor`s that is handled. See also
+ * meta_monitor_manager_get_num_logical_monitors() if you only need the size of
+ * the list.
+ *
+ * Returns: (transfer none) (nullable): the list of logical monitors.
+ */
 GList *
 meta_monitor_manager_get_logical_monitors (MetaMonitorManager *manager)
 {
@@ -2370,12 +3274,30 @@ find_monitor (MetaMonitorManager *monitor_manager,
   return NULL;
 }
 
+/**
+ * meta_monitor_manager_get_primary_monitor:
+ * @manager: A #MetaMonitorManager object
+ *
+ * Returns the primary monitor. This can be %NULL (e.g. when running headless).
+ *
+ * Returns: (transfer none) (nullable): The primary #MetaMonitor, or %NULL if
+ *          none.
+ */
 MetaMonitor *
 meta_monitor_manager_get_primary_monitor (MetaMonitorManager *manager)
 {
   return find_monitor (manager, meta_monitor_is_primary);
 }
 
+/**
+ * meta_monitor_manager_get_laptop_panel:
+ * @manager: A #MetaMonitorManager object
+ *
+ * Returns the #MetaMonitor that represents the built-in laptop panel (if
+ * applicable).
+ *
+ * Returns: (transfer none) (nullable): The laptop panel, or %NULL if none.
+ */
 MetaMonitor *
 meta_monitor_manager_get_laptop_panel (MetaMonitorManager *manager)
 {
@@ -2418,6 +3340,18 @@ meta_monitor_manager_get_monitor_from_spec (MetaMonitorManager *manager,
   return NULL;
 }
 
+/**
+ * meta_monitor_manager_get_logical_monitor_at:
+ * @manager: A #MetaMonitorManager object
+ * @x: The x-coordinate
+ * @y: The y-coordinate
+ *
+ * Finds the #MetaLogicalMonitor at the given @x and @y coordinates in the
+ * total layout.
+ *
+ * Returns: (transfer none) (nullable): The #MetaLogicalMonitor at the given
+ *          point, or %NULL if none.
+ */
 MetaLogicalMonitor *
 meta_monitor_manager_get_logical_monitor_at (MetaMonitorManager *manager,
                                              float               x,
@@ -2429,20 +3363,34 @@ meta_monitor_manager_get_logical_monitor_at (MetaMonitorManager *manager,
     {
       MetaLogicalMonitor *logical_monitor = l->data;
 
-      if (POINT_IN_RECT (x, y, logical_monitor->rect))
+      if (META_POINT_IN_RECT (x, y, logical_monitor->rect))
         return logical_monitor;
     }
 
   return NULL;
 }
 
+/**
+ * meta_monitor_manager_get_logical_monitor_from_rect:
+ * @manager: A #MetaMonitorManager object
+ * @rect: The rectangle
+ *
+ * Finds the #MetaLogicalMonitor which contains the center of the given @rect
+ * or which has the largest area in common with the given @rect in the total
+ * layout if the center is not on a monitor.
+ *
+ * Returns: (transfer none) (nullable): The #MetaLogicalMonitor which
+ *          corresponds the most to the given @rect, or %NULL if none.
+ */
 MetaLogicalMonitor *
 meta_monitor_manager_get_logical_monitor_from_rect (MetaMonitorManager *manager,
-                                                    MetaRectangle      *rect)
+                                                    MtkRectangle       *rect)
 {
   MetaLogicalMonitor *best_logical_monitor;
   int best_logical_monitor_area;
   GList *l;
+  int center_x = rect->x + (rect->width / 2);
+  int center_y = rect->y + (rect->height / 2);
 
   best_logical_monitor = NULL;
   best_logical_monitor_area = 0;
@@ -2450,15 +3398,18 @@ meta_monitor_manager_get_logical_monitor_from_rect (MetaMonitorManager *manager,
   for (l = manager->logical_monitors; l; l = l->next)
     {
       MetaLogicalMonitor *logical_monitor = l->data;
-      MetaRectangle intersection;
+      MtkRectangle intersection;
       int intersection_area;
 
-      if (!meta_rectangle_intersect (&logical_monitor->rect,
-                                     rect,
-                                     &intersection))
+      if (META_POINT_IN_RECT (center_x, center_y, logical_monitor->rect))
+        return logical_monitor;
+
+      if (!mtk_rectangle_intersect (&logical_monitor->rect,
+                                    rect,
+                                    &intersection))
         continue;
 
-      intersection_area = meta_rectangle_area (&intersection);
+      intersection_area = mtk_rectangle_area (&intersection);
 
       if (intersection_area > best_logical_monitor_area)
         {
@@ -2467,20 +3418,57 @@ meta_monitor_manager_get_logical_monitor_from_rect (MetaMonitorManager *manager,
         }
     }
 
-  if (!best_logical_monitor && (rect->width == 0 || rect->height == 0))
-    best_logical_monitor =
-      meta_monitor_manager_get_logical_monitor_at (manager, rect->x, rect->y);
-
   if (!best_logical_monitor)
     best_logical_monitor = manager->primary_logical_monitor;
 
   return best_logical_monitor;
 }
 
+/**
+ * meta_monitor_manager_get_highest_scale_from_rect:
+ * @manager: A #MetaMonitorManager object
+ * @rect: The rectangle
+ *
+ * Finds the #MetaLogicalMonitor with the highest scale intersecting @rect.
+ *
+ * Returns: (transfer none) (nullable): the #MetaLogicalMonitor with the
+ *          highest scale intersecting with @rect, or %NULL if none.
+ */
 MetaLogicalMonitor *
-meta_monitor_manager_get_logical_monitor_neighbor (MetaMonitorManager *manager,
-                                                   MetaLogicalMonitor *logical_monitor,
-                                                   MetaScreenDirection direction)
+meta_monitor_manager_get_highest_scale_monitor_from_rect (MetaMonitorManager *manager,
+                                                          MtkRectangle       *rect)
+{
+  MetaLogicalMonitor *best_logical_monitor = NULL;
+  GList *l;
+  float best_scale = 0.0;
+
+  for (l = manager->logical_monitors; l; l = l->next)
+    {
+      MetaLogicalMonitor *logical_monitor = l->data;
+      MtkRectangle intersection;
+      float scale;
+
+      if (!mtk_rectangle_intersect (&logical_monitor->rect,
+                                    rect,
+                                    &intersection))
+        continue;
+
+      scale = meta_logical_monitor_get_scale (logical_monitor);
+
+      if (scale > best_scale)
+        {
+          best_scale = scale;
+          best_logical_monitor = logical_monitor;
+        }
+    }
+
+  return best_logical_monitor;
+}
+
+MetaLogicalMonitor *
+meta_monitor_manager_get_logical_monitor_neighbor (MetaMonitorManager  *manager,
+                                                   MetaLogicalMonitor  *logical_monitor,
+                                                   MetaDisplayDirection direction)
 {
   GList *l;
 
@@ -2495,23 +3483,20 @@ meta_monitor_manager_get_logical_monitor_neighbor (MetaMonitorManager *manager,
   return NULL;
 }
 
+/**
+ * meta_monitor_manager_get_monitors:
+ * @manager: A #MetaMonitorManager object
+ *
+ * Returns the list of [class@Meta.Monitor]s. See also
+ * meta_monitor_manager_get_logical_monitors() for a list of
+ * `MetaLogicalMonitor`s.
+ *
+ * Returns: (transfer none) (nullable): the list of [class@Meta.Monitor]s.
+ */
 GList *
 meta_monitor_manager_get_monitors (MetaMonitorManager *manager)
 {
   return manager->monitors;
-}
-
-void
-meta_monitor_manager_add_gpu (MetaMonitorManager *manager,
-                              MetaGpu            *gpu)
-{
-  manager->gpus = g_list_append (manager->gpus, gpu);
-}
-
-GList *
-meta_monitor_manager_get_gpus (MetaMonitorManager *manager)
-{
-  return manager->gpus;
 }
 
 void
@@ -2523,18 +3508,36 @@ meta_monitor_manager_get_screen_size (MetaMonitorManager *manager,
   *height = manager->screen_height;
 }
 
+MetaPowerSave
+meta_monitor_manager_get_power_save_mode (MetaMonitorManager *manager)
+{
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (manager);
+
+  return priv->power_save_mode;
+}
+
+static void
+destroy_monitor (MetaMonitor *monitor)
+{
+  g_object_run_dispose (G_OBJECT (monitor));
+  g_object_unref (monitor);
+}
+
 static void
 rebuild_monitors (MetaMonitorManager *manager)
 {
+  GList *gpus;
   GList *l;
 
   if (manager->monitors)
     {
-      g_list_free_full (manager->monitors, g_object_unref);
+      g_list_free_full (manager->monitors, (GDestroyNotify) destroy_monitor);
       manager->monitors = NULL;
     }
 
-  for (l = manager->gpus; l; l = l->next)
+  gpus = meta_backend_get_gpus (manager->backend);
+  for (l = gpus; l; l = l->next)
     {
       MetaGpu *gpu = l->data;
       GList *k;
@@ -2542,14 +3545,15 @@ rebuild_monitors (MetaMonitorManager *manager)
       for (k = meta_gpu_get_outputs (gpu); k; k = k->next)
         {
           MetaOutput *output = k->data;
+          const MetaOutputInfo *output_info = meta_output_get_info (output);
 
-          if (output->tile_info.group_id)
+          if (output_info->tile_info.group_id)
             {
               if (is_main_tiled_monitor_output (output))
                 {
                   MetaMonitorTiled *monitor_tiled;
 
-                  monitor_tiled = meta_monitor_tiled_new (gpu, output);
+                  monitor_tiled = meta_monitor_tiled_new (manager, output);
                   manager->monitors = g_list_append (manager->monitors,
                                                      monitor_tiled);
                 }
@@ -2558,12 +3562,28 @@ rebuild_monitors (MetaMonitorManager *manager)
             {
               MetaMonitorNormal *monitor_normal;
 
-              monitor_normal = meta_monitor_normal_new (gpu, output);
+              monitor_normal = meta_monitor_normal_new (manager, output);
               manager->monitors = g_list_append (manager->monitors,
                                                  monitor_normal);
             }
         }
     }
+
+  for (l = meta_monitor_manager_get_virtual_monitors (manager); l; l = l->next)
+    {
+      MetaVirtualMonitor *virtual_monitor = l->data;
+      MetaOutput *output = meta_virtual_monitor_get_output (virtual_monitor);
+      MetaMonitorNormal *monitor_normal;
+
+      monitor_normal = meta_monitor_normal_new (manager, output);
+      manager->monitors = g_list_append (manager->monitors,
+                                         monitor_normal);
+
+    }
+
+  update_panel_orientation_managed (manager);
+  update_has_builtin_panel (manager);
+  update_night_light_supported (manager);
 }
 
 void
@@ -2599,21 +3619,21 @@ meta_monitor_manager_is_transform_handled (MetaMonitorManager  *manager,
   return manager_class->is_transform_handled (manager, crtc, transform);
 }
 
-void
-meta_monitor_manager_read_current_state (MetaMonitorManager *manager)
+static void
+meta_monitor_manager_real_read_current_state (MetaMonitorManager *manager)
 {
   GList *l;
 
   manager->serial++;
 
-  for (l = manager->gpus; l; l = l->next)
+  for (l = meta_backend_get_gpus (manager->backend); l; l = l->next)
     {
       MetaGpu *gpu = l->data;
       GError *error = NULL;
 
       if (!meta_gpu_read_current (gpu, &error))
         {
-          g_warning ("Failed to read current KMS state: %s", error->message);
+          g_warning ("Failed to read current monitor state: %s", error->message);
           g_clear_error (&error);
         }
     }
@@ -2621,15 +3641,24 @@ meta_monitor_manager_read_current_state (MetaMonitorManager *manager)
   rebuild_monitors (manager);
 }
 
+void
+meta_monitor_manager_read_current_state (MetaMonitorManager *manager)
+{
+  MetaMonitorManagerClass *manager_class =
+    META_MONITOR_MANAGER_GET_CLASS (manager);
+
+  manager_class->read_current_state (manager);
+}
+
 static void
 meta_monitor_manager_notify_monitors_changed (MetaMonitorManager *manager)
 {
-  manager->current_switch_config = META_MONITOR_SWITCH_CONFIG_UNKNOWN;
-
   meta_backend_monitors_changed (manager->backend);
 
   g_signal_emit (manager, signals[MONITORS_CHANGED_INTERNAL], 0);
-  g_signal_emit_by_name (manager, "monitors-changed");
+  g_signal_emit (manager, signals[MONITORS_CHANGED], 0);
+
+  meta_dbus_display_config_emit_monitors_changed (manager->display_config);
 }
 
 static void
@@ -2682,10 +3711,17 @@ meta_monitor_manager_update_logical_state (MetaMonitorManager *manager,
                                            MetaMonitorsConfig *config)
 {
   if (config)
-    manager->layout_mode = config->layout_mode;
+    {
+      manager->layout_mode = config->layout_mode;
+      manager->current_switch_config =
+        meta_monitors_config_get_switch_config (config);
+    }
   else
-    manager->layout_mode =
-      meta_monitor_manager_get_default_layout_mode (manager);
+    {
+      manager->layout_mode =
+        meta_monitor_manager_get_default_layout_mode (manager);
+      manager->current_switch_config = META_MONITOR_SWITCH_CONFIG_UNKNOWN;
+    }
 
   meta_monitor_manager_rebuild_logical_monitors (manager, config);
 }
@@ -2707,6 +3743,10 @@ meta_monitor_manager_rebuild (MetaMonitorManager *manager,
 
   meta_monitor_manager_notify_monitors_changed (manager);
 
+  ensure_privacy_screen_settings (manager);
+
+  ensure_hdr_settings (manager);
+
   g_list_free_full (old_logical_monitors, g_object_unref);
 }
 
@@ -2727,6 +3767,12 @@ void
 meta_monitor_manager_update_logical_state_derived (MetaMonitorManager *manager,
                                                    MetaMonitorsConfig *config)
 {
+  if (config)
+    manager->current_switch_config =
+      meta_monitors_config_get_switch_config (config);
+  else
+    manager->current_switch_config = META_MONITOR_SWITCH_CONFIG_UNKNOWN;
+
   manager->layout_mode = META_LOGICAL_MONITOR_LAYOUT_MODE_PHYSICAL;
 
   meta_monitor_manager_rebuild_logical_monitors_derived (manager, config);
@@ -2753,70 +3799,16 @@ meta_monitor_manager_rebuild_derived (MetaMonitorManager *manager,
 }
 
 void
-meta_output_parse_edid (MetaOutput *output,
-                        GBytes     *edid)
+meta_monitor_manager_reconfigure (MetaMonitorManager *manager)
 {
-  MonitorInfo *parsed_edid;
-  gsize len;
-
-  if (!edid)
-    goto out;
-
-  parsed_edid = decode_edid (g_bytes_get_data (edid, &len));
-
-  if (parsed_edid)
-    {
-      output->vendor = g_strndup (parsed_edid->manufacturer_code, 4);
-      if (!g_utf8_validate (output->vendor, -1, NULL))
-        g_clear_pointer (&output->vendor, g_free);
-
-      output->product = g_strndup (parsed_edid->dsc_product_name, 14);
-      if (!g_utf8_validate (output->product, -1, NULL) ||
-          output->product[0] == '\0')
-        {
-          g_clear_pointer (&output->product, g_free);
-          output->product = g_strdup_printf ("0x%04x", (unsigned) parsed_edid->product_code);
-        }
-
-      output->serial = g_strndup (parsed_edid->dsc_serial_number, 14);
-      if (!g_utf8_validate (output->serial, -1, NULL) ||
-          output->serial[0] == '\0')
-        {
-          g_clear_pointer (&output->serial, g_free);
-          output->serial = g_strdup_printf ("0x%08x", parsed_edid->serial_number);
-        }
-
-      g_free (parsed_edid);
-    }
-
- out:
-  if (!output->vendor)
-    output->vendor = g_strdup ("unknown");
-  if (!output->product)
-    output->product = g_strdup ("unknown");
-  if (!output->serial)
-    output->serial = g_strdup ("unknown");
-}
-
-gboolean
-meta_output_is_laptop (MetaOutput *output)
-{
-  /* FIXME: extend with better heuristics */
-  switch (output->connector_type)
-    {
-    case META_CONNECTOR_TYPE_eDP:
-    case META_CONNECTOR_TYPE_LVDS:
-    case META_CONNECTOR_TYPE_DSI:
-      return TRUE;
-    default:
-      return FALSE;
-    }
+  meta_monitor_manager_ensure_configured (manager);
 }
 
 void
-meta_monitor_manager_on_hotplug (MetaMonitorManager *manager)
+meta_monitor_manager_reload (MetaMonitorManager *manager)
 {
-  meta_monitor_manager_ensure_configured (manager);
+  meta_monitor_manager_read_current_state (manager);
+  meta_monitor_manager_reconfigure (manager);
 }
 
 static gboolean
@@ -2894,16 +3886,18 @@ meta_monitor_manager_get_monitor_for_connector (MetaMonitorManager *manager,
 
       if (meta_monitor_is_active (monitor) &&
           g_str_equal (connector, meta_monitor_get_connector (monitor)))
-        {
-          MetaOutput *main_output = meta_monitor_get_main_output (monitor);
-
-          return main_output->crtc->logical_monitor->number;
-        }
+        return meta_monitor_get_logical_monitor (monitor)->number;
     }
 
   return -1;
 }
 
+/**
+ * meta_monitor_manager_get_is_builtin_display_on:
+ * @manager: A #MetaMonitorManager object
+ *
+ * Returns whether the built-in display (i.e. a laptop panel) is turned on.
+ */
 gboolean
 meta_monitor_manager_get_is_builtin_display_on (MetaMonitorManager *manager)
 {
@@ -2940,41 +3934,72 @@ meta_monitor_manager_rotate_monitor (MetaMonitorManager *manager)
   g_object_unref (config);
 }
 
-void
-meta_monitor_manager_switch_config (MetaMonitorManager          *manager,
-                                    MetaMonitorSwitchConfigType  config_type)
+typedef struct
 {
-  GError *error = NULL;
-  MetaMonitorsConfig *config;
+  MetaMonitorManager *monitor_manager;
+  MetaMonitorSwitchConfigType config_type;
+} SwitchConfigData;
 
-  g_return_if_fail (config_type != META_MONITOR_SWITCH_CONFIG_UNKNOWN);
+static gboolean
+switch_config_idle_cb (gpointer user_data)
+{
+  SwitchConfigData *data = user_data;
+  MetaMonitorManager *monitor_manager = data->monitor_manager;
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (monitor_manager);
+  MetaMonitorConfigManager *config_manager = monitor_manager->config_manager;
+  MetaMonitorsConfig *config;
+  g_autoptr (GError) error = NULL;
+
+  priv->switch_config_handle_id = 0;
 
   config =
-    meta_monitor_config_manager_create_for_switch_config (manager->config_manager,
-                                                          config_type);
+    meta_monitor_config_manager_create_for_switch_config (config_manager,
+                                                          data->config_type);
   if (!config)
-    return;
+    return G_SOURCE_REMOVE;
 
-  if (!meta_monitor_manager_apply_monitors_config (manager,
+  if (!meta_monitor_manager_apply_monitors_config (monitor_manager,
                                                    config,
                                                    META_MONITORS_CONFIG_METHOD_TEMPORARY,
                                                    &error))
     {
       g_warning ("Failed to use switch monitor configuration: %s",
                  error->message);
-      g_error_free (error);
     }
   else
     {
-      manager->current_switch_config = config_type;
+      monitor_manager->current_switch_config = data->config_type;
     }
-  g_object_unref (config);
+
+  return G_SOURCE_REMOVE;
+}
+
+void
+meta_monitor_manager_switch_config (MetaMonitorManager          *manager,
+                                    MetaMonitorSwitchConfigType  config_type)
+{
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (manager);
+  SwitchConfigData *data;
+
+  g_return_if_fail (config_type != META_MONITOR_SWITCH_CONFIG_UNKNOWN);
+
+  data = g_new0 (SwitchConfigData, 1);
+  data->monitor_manager = manager;
+  data->config_type = config_type;
+
+  g_clear_handle_id (&priv->switch_config_handle_id, g_source_remove);
+  priv->switch_config_handle_id = g_idle_add_full (G_PRIORITY_DEFAULT_IDLE,
+                                                   switch_config_idle_cb,
+                                                   data,
+                                                   g_free);
 }
 
 gboolean
 meta_monitor_manager_can_switch_config (MetaMonitorManager *manager)
 {
-  return (!meta_monitor_manager_is_lid_closed (manager) &&
+  return (!meta_backend_is_lid_closed (manager->backend) &&
           g_list_length (manager->monitors) > 1);
 }
 
@@ -2988,4 +4013,80 @@ MetaMonitorConfigManager *
 meta_monitor_manager_get_config_manager (MetaMonitorManager *manager)
 {
   return manager->config_manager;
+}
+
+gboolean
+meta_monitor_manager_get_panel_orientation_managed (MetaMonitorManager *manager)
+{
+  g_return_val_if_fail (META_IS_MONITOR_MANAGER (manager), FALSE);
+
+  return manager->panel_orientation_managed;
+}
+
+void
+meta_monitor_manager_post_init (MetaMonitorManager *manager)
+{
+  ClutterBackend *clutter_backend;
+  ClutterSeat *seat;
+
+  if (manager->privacy_screen_change_state ==
+      META_PRIVACY_SCREEN_CHANGE_STATE_INIT)
+    {
+      manager->privacy_screen_change_state =
+        META_PRIVACY_SCREEN_CHANGE_STATE_NONE;
+    }
+
+  apply_privacy_screen_settings (manager);
+
+  clutter_backend = meta_backend_get_clutter_backend (manager->backend);
+  seat = clutter_backend_get_default_seat (clutter_backend);
+
+  g_signal_connect_object (seat, "notify::touch-mode",
+                           G_CALLBACK (update_panel_orientation_managed), manager,
+                           G_CONNECT_SWAPPED);
+}
+
+MetaViewportInfo *
+meta_monitor_manager_get_viewports (MetaMonitorManager *manager)
+{
+  MetaBackend *backend = meta_monitor_manager_get_backend (manager);
+  MetaViewportInfo *info;
+  GArray *views, *scales;
+  GList *logical_monitors, *l;
+
+  views = g_array_new (FALSE, FALSE, sizeof (MtkRectangle));
+  scales = g_array_new (FALSE, FALSE, sizeof (float));
+
+  logical_monitors = meta_monitor_manager_get_logical_monitors (manager);
+
+  for (l = logical_monitors; l; l = l->next)
+    {
+      MetaLogicalMonitor *logical_monitor = l->data;
+      MtkRectangle rect;
+      float scale;
+
+      rect = logical_monitor->rect;
+      g_array_append_val (views, rect);
+
+      scale = logical_monitor->scale;
+      g_array_append_val (scales, scale);
+    }
+
+  info = meta_viewport_info_new ((MtkRectangle *) views->data,
+                                 (float *) scales->data,
+                                 views->len,
+                                 meta_backend_is_stage_views_scaled (backend));
+  g_array_unref (views);
+  g_array_unref (scales);
+
+  return info;
+}
+
+GList *
+meta_monitor_manager_get_virtual_monitors (MetaMonitorManager *manager)
+{
+  MetaMonitorManagerPrivate *priv =
+    meta_monitor_manager_get_instance_private (manager);
+
+  return priv->virtual_monitors;
 }

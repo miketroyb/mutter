@@ -31,13 +31,12 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifndef _COGL_ATTRIBUTE_GL_PRIVATE_H_
-#define _COGL_ATTRIBUTE_GL_PRIVATE_H_
+#pragma once
 
-#include "cogl-types.h"
-#include "cogl-framebuffer.h"
-#include "cogl-attribute.h"
-#include "cogl-attribute-private.h"
+#include "cogl/cogl-types.h"
+#include "cogl/cogl-framebuffer.h"
+#include "cogl/cogl-attribute.h"
+#include "cogl/cogl-attribute-private.h"
 
 void
 _cogl_gl_flush_attributes_state (CoglFramebuffer *framebuffer,
@@ -46,8 +45,3 @@ _cogl_gl_flush_attributes_state (CoglFramebuffer *framebuffer,
                                  CoglDrawFlags flags,
                                  CoglAttribute **attributes,
                                  int n_attributes);
-
-void
-_cogl_gl_disable_all_attributes (CoglContext *ctx);
-
-#endif /* _COGL_ATTRIBUTE_GL_PRIVATE_H_ */

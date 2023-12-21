@@ -14,9 +14,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jasper St. Pierre <jstpierre@mecheye.net>
@@ -24,12 +22,13 @@
 
 #include "config.h"
 
-#include "meta-cursor-renderer-x11.h"
+#include "backends/x11/meta-cursor-renderer-x11.h"
 
 #include <X11/extensions/Xfixes.h>
 
-#include "meta-backend-x11.h"
-#include "meta-stage.h"
+#include "backends/meta-cursor-sprite-xcursor.h"
+#include "backends/meta-stage-private.h"
+#include "backends/x11/meta-backend-x11.h"
 
 struct _MetaCursorRendererX11Private
 {
@@ -45,27 +44,32 @@ meta_cursor_renderer_x11_update_cursor (MetaCursorRenderer *renderer,
 {
   MetaCursorRendererX11 *x11 = META_CURSOR_RENDERER_X11 (renderer);
   MetaCursorRendererX11Private *priv = meta_cursor_renderer_x11_get_instance_private (x11);
-
-  MetaBackendX11 *backend = META_BACKEND_X11 (meta_get_backend ());
-  Window xwindow = meta_backend_x11_get_xwindow (backend);
-  Display *xdisplay = meta_backend_x11_get_xdisplay (backend);
+  MetaBackend *backend = meta_cursor_renderer_get_backend (renderer);
+  MetaBackendX11 *backend_x11 = META_BACKEND_X11 (backend);
+  Window xwindow = meta_backend_x11_get_xwindow (backend_x11);
+  Display *xdisplay = meta_backend_x11_get_xdisplay (backend_x11);
 
   if (xwindow == None)
     {
       if (cursor_sprite)
         meta_cursor_sprite_realize_texture (cursor_sprite);
-      return FALSE;
+      return TRUE;
     }
 
   gboolean has_server_cursor = FALSE;
 
-  if (cursor_sprite)
+  if (cursor_sprite && META_IS_CURSOR_SPRITE_XCURSOR (cursor_sprite))
     {
-      MetaCursor cursor = meta_cursor_sprite_get_meta_cursor (cursor_sprite);
+      MetaCursorSpriteXcursor *sprite_xcursor =
+        META_CURSOR_SPRITE_XCURSOR (cursor_sprite);
+      MetaCursor cursor;
 
+      cursor = meta_cursor_sprite_xcursor_get_cursor (sprite_xcursor);
       if (cursor != META_CURSOR_NONE)
         {
-          Cursor xcursor = meta_cursor_create_x_cursor (xdisplay, cursor);
+          Cursor xcursor;
+
+          xcursor = meta_create_x_cursor (xdisplay, cursor);
           XDefineCursor (xdisplay, xwindow, xcursor);
           XFlush (xdisplay);
           XFreeCursor (xdisplay, xcursor);
@@ -84,10 +88,10 @@ meta_cursor_renderer_x11_update_cursor (MetaCursorRenderer *renderer,
       priv->server_cursor_visible = has_server_cursor;
     }
 
-  if (!priv->server_cursor_visible && cursor_sprite)
+  if (cursor_sprite)
     meta_cursor_sprite_realize_texture (cursor_sprite);
 
-  return priv->server_cursor_visible;
+  return !priv->server_cursor_visible;
 }
 
 static void

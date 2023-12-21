@@ -28,17 +28,16 @@
  *
  */
 
-#ifndef __COGL_PROGRAM_H
-#define __COGL_PROGRAM_H
+#pragma once
 
-#include "cogl-object-private.h"
-#include "cogl-shader-private.h"
+#include "cogl/cogl-object-private.h"
+#include "cogl/deprecated/cogl-shader-private.h"
 
 typedef struct _CoglProgram CoglProgram;
 
 struct _CoglProgram
 {
-  CoglHandleObject _parent;
+  CoglObject _parent;
 
   GSList *attached_shaders;
 
@@ -74,15 +73,10 @@ struct _CoglProgramUniform
 void
 _cogl_program_flush_uniforms (CoglProgram *program,
                               GLuint gl_program,
-                              CoglBool gl_program_changed);
+                              gboolean gl_program_changed);
 
-CoglShaderLanguage
-_cogl_program_get_language (CoglHandle handle);
-
-CoglBool
+gboolean
 _cogl_program_has_fragment_shader (CoglHandle handle);
 
-CoglBool
+gboolean
 _cogl_program_has_vertex_shader (CoglHandle handle);
-
-#endif /* __COGL_PROGRAM_H */

@@ -22,14 +22,13 @@
  *   Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_FIXED_LAYOUT_H__
-#define __CLUTTER_FIXED_LAYOUT_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-layout-manager.h>
+#include "clutter/clutter-layout-manager.h"
 
 G_BEGIN_DECLS
 
@@ -43,14 +42,6 @@ G_BEGIN_DECLS
 typedef struct _ClutterFixedLayout              ClutterFixedLayout;
 typedef struct _ClutterFixedLayoutClass         ClutterFixedLayoutClass;
 
-/**
- * ClutterFixedLayout:
- *
- * The #ClutterFixedLayout structure contains only private data and
- * it should be accessed using the provided API
- *
- * Since: 1.2
- */
 struct _ClutterFixedLayout
 {
   /*< private >*/
@@ -62,8 +53,6 @@ struct _ClutterFixedLayout
  *
  * The #ClutterFixedLayoutClass structure contains only private data
  * and it should be accessed using the provided API
- *
- * Since: 1.2
  */
 struct _ClutterFixedLayoutClass
 {
@@ -71,12 +60,10 @@ struct _ClutterFixedLayoutClass
   ClutterLayoutManagerClass parent_class;
 };
 
-CLUTTER_AVAILABLE_IN_1_2
+CLUTTER_EXPORT
 GType clutter_fixed_layout_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_2
+CLUTTER_EXPORT
 ClutterLayoutManager *clutter_fixed_layout_new (void);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_FIXED_LAYOUT_H__ */

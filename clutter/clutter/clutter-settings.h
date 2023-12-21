@@ -1,11 +1,10 @@
-#ifndef __CLUTTER_SETTINGS_H__
-#define __CLUTTER_SETTINGS_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-types.h>
+#include "clutter/clutter-types.h"
 
 G_BEGIN_DECLS
 
@@ -16,12 +15,10 @@ G_BEGIN_DECLS
 typedef struct _ClutterSettings         ClutterSettings;
 typedef struct _ClutterSettingsClass    ClutterSettingsClass;
 
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 GType clutter_settings_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 ClutterSettings *clutter_settings_get_default (void);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_SETTINGS_H__ */

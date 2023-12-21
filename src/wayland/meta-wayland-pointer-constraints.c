@@ -14,9 +14,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jonas Ådahl <jadahl@gmail.com>
@@ -24,24 +22,27 @@
 
 #include "config.h"
 
-#include "meta-wayland-pointer-constraints.h"
+#include "wayland/meta-wayland-pointer-constraints.h"
 
 #include <glib.h>
 
-#include "meta/meta-backend.h"
-#include "meta-wayland-private.h"
-#include "meta-wayland-seat.h"
-#include "meta-wayland-pointer.h"
-#include "meta-wayland-surface.h"
-#include "meta-wayland-region.h"
-#include "meta-xwayland.h"
-#include "meta-pointer-lock-wayland.h"
-#include "meta-pointer-confinement-wayland.h"
-#include "window-private.h"
 #include "backends/meta-backend-private.h"
-#include "backends/native/meta-backend-native.h"
 #include "backends/meta-pointer-constraint.h"
 #include "core/frame.h"
+#include "core/window-private.h"
+#include "meta/meta-backend.h"
+#include "wayland/meta-pointer-confinement-wayland.h"
+#include "wayland/meta-pointer-lock-wayland.h"
+#include "wayland/meta-wayland-pointer.h"
+#include "wayland/meta-wayland-private.h"
+#include "wayland/meta-wayland-region.h"
+#include "wayland/meta-wayland-seat.h"
+#include "wayland/meta-wayland-subsurface.h"
+#include "wayland/meta-wayland-surface.h"
+
+#ifdef HAVE_XWAYLAND
+#include "wayland/meta-xwayland.h"
+#endif
 
 #include "pointer-constraints-unstable-v1-server-protocol.h"
 
@@ -65,7 +66,7 @@ struct _MetaWaylandPointerConstraint
   wl_fixed_t x_hint;
   wl_fixed_t y_hint;
 
-  MetaPointerConstraint *constraint;
+  MetaPointerConfinementWayland *confinement;
 };
 
 typedef struct _MetaWaylandSurfacePointerConstraintsData
@@ -126,9 +127,11 @@ appears_focused_changed (MetaWindow *window,
                          GParamSpec *pspec,
                          gpointer    user_data)
 {
-  MetaWaylandCompositor *wayland_compositor;
+  MetaDisplay *display = meta_window_get_display (window);
+  MetaContext *context = meta_display_get_context (display);
+  MetaWaylandCompositor *wayland_compositor =
+    meta_context_get_wayland_compositor (context);
 
-  wayland_compositor = meta_wayland_compositor_get_default ();
   meta_wayland_pointer_constraint_maybe_remove_for_seat (wayland_compositor->seat,
                                                          window);
 
@@ -156,43 +159,48 @@ connect_window (MetaWaylandSurfacePointerConstraintsData *data,
                       G_CALLBACK (window_raised), NULL);
 }
 
+#ifdef HAVE_XWAYLAND
 static void
 window_associated (MetaWaylandSurfaceRole                   *surface_role,
                    MetaWaylandSurfacePointerConstraintsData *data)
 {
   MetaWaylandSurface *surface = data->surface;
+  MetaWindow *window;
 
-  connect_window (data, surface->window);
-  g_signal_handler_disconnect (surface, data->window_associated_handler_id);
-  data->window_associated_handler_id = 0;
+  window = meta_wayland_surface_get_window (surface);
+  connect_window (data, window);
+  g_clear_signal_handler (&data->window_associated_handler_id, surface);
 
-  meta_wayland_pointer_constraint_maybe_enable_for_window (surface->window);
+  meta_wayland_pointer_constraint_maybe_enable_for_window (window);
 }
+#endif
 
 static MetaWaylandSurfacePointerConstraintsData *
 surface_constraint_data_new (MetaWaylandSurface *surface)
 {
   MetaWaylandSurfacePointerConstraintsData *data;
+  MetaWindow *window;
 
   data = g_new0 (MetaWaylandSurfacePointerConstraintsData, 1);
 
   data->surface = surface;
 
-  if (surface->window)
+  window = meta_wayland_surface_get_window (surface);
+  if (window)
     {
-      connect_window (data, surface->window);
+      connect_window (data, window);
     }
-  else if (meta_xwayland_is_xwayland_surface (surface))
+#ifdef HAVE_XWAYLAND
+  else if (meta_wayland_surface_is_xwayland (surface))
     {
       data->window_associated_handler_id =
         g_signal_connect (surface->role, "window-associated",
                           G_CALLBACK (window_associated),
                           data);
     }
+#endif
   else
     {
-      /* TODO: Support constraints on non-toplevel windows, such as subsurfaces.
-       */
       g_warn_if_reached ();
     }
 
@@ -203,17 +211,15 @@ surface_constraint_data_free (MetaWaylandSurfacePointerConstraintsData *data)
 {
   if (data->window)
     {
-      g_signal_handler_disconnect (data->window,
-                                   data->appears_changed_handler_id);
-      g_signal_handler_disconnect (data->window,
-                                   data->raised_handler_id);
+      g_clear_signal_handler (&data->appears_changed_handler_id, data->window);
+      g_clear_signal_handler (&data->raised_handler_id, data->window);
       g_object_remove_weak_pointer (G_OBJECT (data->window),
                                     (gpointer *) &data->window);
     }
   else
     {
-      g_signal_handler_disconnect (data->surface->role,
-                                   data->window_associated_handler_id);
+      g_clear_signal_handler (&data->window_associated_handler_id,
+                              data->surface->role);
     }
 
   g_list_free_full (data->pointer_constraints,
@@ -280,8 +286,9 @@ static void
 pointer_focus_surface_changed (MetaWaylandPointer           *pointer,
                                MetaWaylandPointerConstraint *constraint)
 {
-  MetaWindow *window = constraint->surface->window;
+  MetaWindow *window;
 
+  window = meta_wayland_surface_get_window (constraint->surface);
   if (window)
     {
       MetaWaylandSeat *seat = meta_wayland_pointer_get_seat (pointer);
@@ -370,7 +377,7 @@ meta_wayland_pointer_constraint_notify_deactivated (MetaWaylandPointerConstraint
     zwp_confined_pointer_v1_send_unconfined (resource);
 }
 
-static MetaPointerConstraint *
+static MetaPointerConfinementWayland *
 meta_wayland_pointer_constraint_create_pointer_constraint (MetaWaylandPointerConstraint *constraint)
 {
   struct wl_resource *resource = constraint->resource;
@@ -379,7 +386,7 @@ meta_wayland_pointer_constraint_create_pointer_constraint (MetaWaylandPointerCon
                                &zwp_locked_pointer_v1_interface,
                                &locked_pointer_interface))
     {
-      return meta_pointer_lock_wayland_new ();
+      return meta_pointer_lock_wayland_new (constraint);
     }
   else if (wl_resource_instance_of (resource,
                                     &zwp_confined_pointer_v1_interface,
@@ -394,8 +401,6 @@ meta_wayland_pointer_constraint_create_pointer_constraint (MetaWaylandPointerCon
 static void
 meta_wayland_pointer_constraint_enable (MetaWaylandPointerConstraint *constraint)
 {
-  MetaBackend *backend = meta_get_backend ();
-
   g_assert (!constraint->is_enabled);
 
   constraint->is_enabled = TRUE;
@@ -403,21 +408,26 @@ meta_wayland_pointer_constraint_enable (MetaWaylandPointerConstraint *constraint
   meta_wayland_pointer_start_grab (constraint->seat->pointer,
                                    &constraint->grab);
 
-  constraint->constraint =
+  constraint->confinement =
     meta_wayland_pointer_constraint_create_pointer_constraint (constraint);
-  meta_backend_set_client_pointer_constraint (backend, constraint->constraint);
-  g_object_add_weak_pointer (G_OBJECT (constraint->constraint),
-                             (gpointer *) &constraint->constraint);
-  g_object_unref (constraint->constraint);
+  meta_pointer_confinement_wayland_enable (constraint->confinement);
+  g_object_add_weak_pointer (G_OBJECT (constraint->confinement),
+                             (gpointer *) &constraint->confinement);
 }
 
 static void
 meta_wayland_pointer_constraint_disable (MetaWaylandPointerConstraint *constraint)
 {
   constraint->is_enabled = FALSE;
+
+  if (constraint->confinement)
+    {
+      meta_pointer_confinement_wayland_disable (constraint->confinement);
+      g_object_unref (constraint->confinement);
+    }
+
   meta_wayland_pointer_constraint_notify_deactivated (constraint);
   meta_wayland_pointer_end_grab (constraint->grab.pointer);
-  meta_backend_set_client_pointer_constraint (meta_get_backend (), NULL);
 }
 
 void
@@ -453,16 +463,22 @@ should_constraint_be_enabled (MetaWaylandPointerConstraint *constraint)
 {
   MetaWindow *window;
 
-  window = constraint->surface->window;
+  window = meta_wayland_surface_get_window (constraint->surface);
+#ifdef HAVE_XWAYLAND
   if (!window)
     {
       /*
        * Locks from Xwayland may come before we have had the opportunity to
        * associate the X11 Window with the wl_surface.
+       * For subsurfaces the window of the ancestor might be gone already.
        */
-      g_warn_if_fail (meta_xwayland_is_xwayland_surface (constraint->surface));
+#ifdef HAVE_XWAYLAND
+      g_warn_if_fail (meta_wayland_surface_is_xwayland (constraint->surface) ||
+                      META_IS_WAYLAND_SUBSURFACE (constraint->surface->role));
+#endif
       return FALSE;
     }
+#endif
 
   if (window->unmanaging)
     return FALSE;
@@ -470,9 +486,9 @@ should_constraint_be_enabled (MetaWaylandPointerConstraint *constraint)
   if (constraint->seat->pointer->focus_surface != constraint->surface)
     return FALSE;
 
-  if (meta_xwayland_is_xwayland_surface (constraint->surface))
+  if (meta_wayland_surface_is_xwayland (constraint->surface))
     {
-      MetaDisplay *display = meta_get_display ();
+      MetaDisplay *display = meta_window_get_display (window);
 
       /*
        * We need to handle Xwayland surfaces differently in order to allow
@@ -492,13 +508,9 @@ should_constraint_be_enabled (MetaWaylandPointerConstraint *constraint)
           display->focus_window->client_type != META_WINDOW_CLIENT_TYPE_X11)
         return FALSE;
     }
-  else
-    {
-      MetaWindow *window = constraint->surface->window;
 
-      if (!meta_window_appears_focused (window))
-        return FALSE;
-    }
+  if (!meta_window_appears_focused (window))
+    return FALSE;
 
   return TRUE;
 }
@@ -572,7 +584,7 @@ meta_wayland_pointer_constraint_maybe_remove_for_seat (MetaWaylandSeat *seat,
 static void
 meta_wayland_pointer_constraint_maybe_enable_for_window (MetaWindow *window)
 {
-  MetaWaylandSurface *surface = window->surface;
+  MetaWaylandSurface *surface = meta_window_get_wayland_surface (window);
   MetaWaylandSurfacePointerConstraintsData *surface_data;
   GList *l;
 
@@ -594,12 +606,6 @@ meta_wayland_pointer_constraint_maybe_enable_for_window (MetaWindow *window)
     }
 }
 
-MetaWaylandSeat *
-meta_wayland_pointer_constraint_get_seat (MetaWaylandPointerConstraint *constraint)
-{
-  return constraint->seat;
-}
-
 cairo_region_t *
 meta_wayland_pointer_constraint_calculate_effective_region (MetaWaylandPointerConstraint *constraint)
 {
@@ -610,24 +616,27 @@ meta_wayland_pointer_constraint_calculate_effective_region (MetaWaylandPointerCo
   if (constraint->region)
     cairo_region_intersect (region, constraint->region);
 
-  window = constraint->surface->window;
+  window = meta_wayland_surface_get_window (constraint->surface);
   if (window && window->frame)
     {
       MetaFrame *frame = window->frame;
       int actual_width, actual_height;
 
-      g_assert (meta_xwayland_is_xwayland_surface (constraint->surface));
+      g_assert (meta_wayland_surface_is_xwayland (constraint->surface));
 
       actual_width = window->buffer_rect.width - (frame->child_x +
                                                   frame->right_width);
       actual_height = window->buffer_rect.height - (frame->child_y +
                                                     frame->bottom_height);
-      cairo_region_intersect_rectangle (region, &(cairo_rectangle_int_t) {
-                                          .x = frame->child_x,
-                                          .y = frame->child_y,
-                                          .width = actual_width,
-                                          .height = actual_height
-                                        });
+      if (actual_width > 0 && actual_height > 0)
+        {
+          cairo_region_intersect_rectangle (region, &(MtkRectangle) {
+                                              .x = frame->child_x,
+                                              .y = frame->child_y,
+                                              .width = actual_width,
+                                              .height = actual_height
+                                            });
+        }
     }
 
   return region;
@@ -637,6 +646,12 @@ MetaWaylandSurface *
 meta_wayland_pointer_constraint_get_surface (MetaWaylandPointerConstraint *constraint)
 {
   return constraint->surface;
+}
+
+MetaWaylandCompositor *
+meta_wayland_pointer_constraint_get_compositor (MetaWaylandPointerConstraint *constraint)
+{
+  return constraint->surface->compositor;
 }
 
 static void
@@ -661,7 +676,7 @@ pending_constraint_state_free (MetaWaylandPendingConstraintState *constraint_pen
 }
 
 static MetaWaylandPendingConstraintStateContainer *
-get_pending_constraint_state_container (MetaWaylandPendingState *pending)
+get_pending_constraint_state_container (MetaWaylandSurfaceState *pending)
 {
   return g_object_get_qdata (G_OBJECT (pending),
                              quark_pending_constraint_state);
@@ -670,10 +685,11 @@ get_pending_constraint_state_container (MetaWaylandPendingState *pending)
 static MetaWaylandPendingConstraintState *
 get_pending_constraint_state (MetaWaylandPointerConstraint *constraint)
 {
-  MetaWaylandPendingState *pending = constraint->surface->pending;
+  MetaWaylandSurfaceState *pending;
   MetaWaylandPendingConstraintStateContainer *container;
   GList *l;
 
+  pending = meta_wayland_surface_get_pending_state (constraint->surface);
   container = get_pending_constraint_state_container (pending);
   for (l = container->pending_constraint_states; l; l = l->next)
     {
@@ -695,7 +711,7 @@ pending_constraint_state_container_free (MetaWaylandPendingConstraintStateContai
 }
 
 static MetaWaylandPendingConstraintStateContainer *
-ensure_pending_constraint_state_container (MetaWaylandPendingState *pending)
+ensure_pending_constraint_state_container (MetaWaylandSurfaceState *pending)
 {
   MetaWaylandPendingConstraintStateContainer *container;
 
@@ -715,7 +731,7 @@ ensure_pending_constraint_state_container (MetaWaylandPendingState *pending)
 
 static void
 remove_pending_constraint_state (MetaWaylandPointerConstraint *constraint,
-                                 MetaWaylandPendingState      *pending)
+                                 MetaWaylandSurfaceState      *pending)
 {
   MetaWaylandPendingConstraintStateContainer *container;
   GList *l;
@@ -735,7 +751,7 @@ remove_pending_constraint_state (MetaWaylandPointerConstraint *constraint,
 }
 
 static void
-pending_constraint_state_applied (MetaWaylandPendingState           *pending,
+pending_constraint_state_applied (MetaWaylandSurfaceState           *pending,
                                   MetaWaylandPendingConstraintState *constraint_pending)
 {
   MetaWaylandPointerConstraint *constraint = constraint_pending->constraint;
@@ -754,8 +770,7 @@ pending_constraint_state_applied (MetaWaylandPendingState           *pending,
       constraint->region = NULL;
     }
 
-  g_signal_handler_disconnect (pending,
-                               constraint_pending->applied_handler_id);
+  g_clear_signal_handler (&constraint_pending->applied_handler_id, pending);
   remove_pending_constraint_state (constraint, pending);
 
   /* The pointer is potentially warped by the actor paint signal callback if
@@ -766,10 +781,11 @@ pending_constraint_state_applied (MetaWaylandPendingState           *pending,
 static MetaWaylandPendingConstraintState *
 ensure_pending_constraint_state (MetaWaylandPointerConstraint *constraint)
 {
-  MetaWaylandPendingState *pending = constraint->surface->pending;
+  MetaWaylandSurfaceState *pending;
   MetaWaylandPendingConstraintStateContainer *container;
   MetaWaylandPendingConstraintState *constraint_pending;
 
+  pending = meta_wayland_surface_get_pending_state (constraint->surface);
   container = ensure_pending_constraint_state_container (pending);
   constraint_pending = get_pending_constraint_state (constraint);
   if (!constraint_pending)
@@ -848,7 +864,7 @@ init_pointer_constraint (struct wl_resource                      *resource,
     {
       wl_resource_post_error (resource,
                               WL_DISPLAY_ERROR_INVALID_OBJECT,
-                              "the pointer as already requested to be "
+                              "the pointer was already requested to be "
                               "locked or confined on that surface");
       return;
     }
@@ -859,6 +875,19 @@ init_pointer_constraint (struct wl_resource                      *resource,
   if (cr == NULL)
     {
       wl_client_post_no_memory (client);
+      return;
+    }
+
+  switch (lifetime)
+    {
+    case ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_ONESHOT:
+    case ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_PERSISTENT:
+      break;
+
+    default:
+      wl_resource_post_error (resource,
+                              WL_DISPLAY_ERROR_INVALID_OBJECT,
+                              "Invalid constraint lifetime");
       return;
     }
 
@@ -909,7 +938,12 @@ locked_pointer_destroy (struct wl_client   *client,
   wl_resource_destroy (resource);
 
   if (warp_pointer)
-    meta_backend_warp_pointer (meta_get_backend (), warp_x, warp_y);
+    {
+      ClutterSeat *seat;
+
+      seat = clutter_backend_get_default_seat (clutter_get_default_backend ());
+      clutter_seat_warp_pointer (seat, warp_x, warp_y);
+    }
 }
 
 static void
@@ -1142,8 +1176,8 @@ meta_wayland_pointer_constraint_finalize (GObject *object)
   MetaWaylandPointerConstraint *constraint =
     META_WAYLAND_POINTER_CONSTRAINT (object);
 
-  g_signal_handler_disconnect (constraint->seat->pointer,
-                               constraint->pointer_focus_surface_handler_id);
+  g_clear_signal_handler (&constraint->pointer_focus_surface_handler_id,
+                          constraint->seat->pointer);
 
   G_OBJECT_CLASS (meta_wayland_pointer_constraint_parent_class)->finalize (object);
 }

@@ -31,12 +31,11 @@
  *   Neil Roberts <neil@linux.intel.com>
  */
 
-#ifndef __COGL_PIPELINE_SNIPPET_PRIVATE_H
-#define __COGL_PIPELINE_SNIPPET_PRIVATE_H
+#pragma once
 
 #include <glib.h>
 
-#include "cogl-snippet.h"
+#include "cogl/cogl-snippet.h"
 
 typedef struct
 {
@@ -73,7 +72,7 @@ typedef struct
      the return value. Instead it is expected that the snippet will
      modify one of the argument variables directly and that will be
      returned */
-  CoglBool return_variable_is_argument;
+  gboolean return_variable_is_argument;
 
   /* The argument names or NULL if there are none */
   const char *arguments;
@@ -108,9 +107,6 @@ void
 _cogl_pipeline_snippet_list_hash (CoglPipelineSnippetList *list,
                                   unsigned int *hash);
 
-CoglBool
+gboolean
 _cogl_pipeline_snippet_list_equal (CoglPipelineSnippetList *list0,
                                    CoglPipelineSnippetList *list1);
-
-#endif /* __COGL_PIPELINE_SNIPPET_PRIVATE_H */
-

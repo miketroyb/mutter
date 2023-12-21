@@ -28,18 +28,13 @@
  *
  */
 
-#ifndef __COGL_SWAP_CHAIN_PRIVATE_H
-#define __COGL_SWAP_CHAIN_PRIVATE_H
+#pragma once
 
-#include "cogl-object-private.h"
+#include "cogl/cogl-object-private.h"
 
 struct _CoglSwapChain
 {
   CoglObject _parent;
 
-  CoglBool has_alpha;
-
   int length;
 };
-
-#endif /* __COGL_SWAP_CHAIN_PRIVATE_H */

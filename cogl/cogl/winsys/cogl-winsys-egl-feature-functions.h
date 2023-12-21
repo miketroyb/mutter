@@ -41,7 +41,7 @@
  * COGL_WINSYS_FEATURE_END ()
  *
  * Note: You can list multiple namespace and extension names if the
- * corresponding _FEATURE_FUNCTIONS have the same semantics accross
+ * corresponding _FEATURE_FUNCTIONS have the same semantics across
  * the different extension variants.
  *
  * XXX: NB: Don't add a trailing semicolon when using these macros
@@ -86,12 +86,6 @@ COGL_WINSYS_FEATURE_BEGIN (bind_wayland_display,
                            "WL\0",
                            "bind_wayland_display\0",
                            COGL_EGL_WINSYS_FEATURE_EGL_IMAGE_FROM_WAYLAND_BUFFER)
-COGL_WINSYS_FEATURE_FUNCTION (EGLImageKHR, eglBindWaylandDisplay,
-                              (EGLDisplay dpy,
-                               struct wl_display *wayland_display))
-COGL_WINSYS_FEATURE_FUNCTION (EGLBoolean, eglUnbindWaylandDisplay,
-                              (EGLDisplay dpy,
-                               struct wl_display *wayland_display))
 COGL_WINSYS_FEATURE_FUNCTION (EGLBoolean, eglQueryWaylandBuffer,
                               (EGLDisplay dpy,
                                struct wl_resource *buffer,
@@ -111,11 +105,33 @@ COGL_WINSYS_FEATURE_BEGIN (buffer_age,
                            COGL_EGL_WINSYS_FEATURE_BUFFER_AGE)
 COGL_WINSYS_FEATURE_END ()
 
-COGL_WINSYS_FEATURE_BEGIN (swap_buffers_with_damage,
+COGL_WINSYS_FEATURE_BEGIN (KHR_swap_buffers_with_damage,
+                           "KHR\0",
+                           "swap_buffers_with_damage\0",
+                           0)
+COGL_WINSYS_FEATURE_FUNCTION (EGLBoolean, eglSwapBuffersWithDamageKHR,
+                              (EGLDisplay dpy,
+                               EGLSurface surface,
+                               const EGLint *rects,
+                               EGLint n_rects))
+COGL_WINSYS_FEATURE_END ()
+
+COGL_WINSYS_FEATURE_BEGIN (EXT_swap_buffers_with_damage,
                            "EXT\0",
                            "swap_buffers_with_damage\0",
                            0)
-COGL_WINSYS_FEATURE_FUNCTION (EGLBoolean, eglSwapBuffersWithDamage,
+COGL_WINSYS_FEATURE_FUNCTION (EGLBoolean, eglSwapBuffersWithDamageEXT,
+                              (EGLDisplay dpy,
+                               EGLSurface surface,
+                               const EGLint *rects,
+                               EGLint n_rects))
+COGL_WINSYS_FEATURE_END ()
+
+COGL_WINSYS_FEATURE_BEGIN (partial_update,
+                           "KHR\0",
+                           "partial_update\0",
+                           COGL_EGL_WINSYS_FEATURE_BUFFER_AGE)
+COGL_WINSYS_FEATURE_FUNCTION (EGLBoolean, eglSetDamageRegion,
                               (EGLDisplay dpy,
                                EGLSurface surface,
                                const EGLint *rects,
@@ -146,4 +162,10 @@ COGL_WINSYS_FEATURE_BEGIN (surfaceless_context,
                            "KHR\0",
                            "surfaceless_context\0",
                            COGL_EGL_WINSYS_FEATURE_SURFACELESS_CONTEXT)
+COGL_WINSYS_FEATURE_END ()
+
+COGL_WINSYS_FEATURE_BEGIN (context_priority,
+                           "IMG\0",
+                           "context_priority\0",
+                           COGL_EGL_WINSYS_FEATURE_CONTEXT_PRIORITY)
 COGL_WINSYS_FEATURE_END ()

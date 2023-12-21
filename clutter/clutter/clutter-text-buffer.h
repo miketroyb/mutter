@@ -12,21 +12,18 @@
  * Library General Public License for more details.
  *
  * You should have received a copy of the GNU Library General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  *
  * Author: Stef Walter <stefw@collabora.co.uk>
  */
 
-#ifndef __CLUTTER_TEXT_BUFFER_H__
-#define __CLUTTER_TEXT_BUFFER_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-types.h>
+#include "clutter/clutter-types.h"
 
 G_BEGIN_DECLS
 
@@ -41,8 +38,6 @@ G_BEGIN_DECLS
  * CLUTTER_TEXT_BUFFER_MAX_SIZE:
  *
  * Maximum size of text buffer, in bytes.
- *
- * Since: 1.10
  */
 #define CLUTTER_TEXT_BUFFER_MAX_SIZE        G_MAXUSHORT
 
@@ -50,14 +45,6 @@ typedef struct _ClutterTextBuffer            ClutterTextBuffer;
 typedef struct _ClutterTextBufferClass       ClutterTextBufferClass;
 typedef struct _ClutterTextBufferPrivate     ClutterTextBufferPrivate;
 
-/**
- * ClutterTextBuffer:
- *
- * The #ClutterTextBuffer structure contains private
- * data and it should only be accessed using the provided API.
- *
- * Since: 1.10
- */
 struct _ClutterTextBuffer
 {
   /*< private >*/
@@ -69,7 +56,7 @@ struct _ClutterTextBuffer
 /**
  * ClutterTextBufferClass:
  * @inserted_text: default handler for the #ClutterTextBuffer::inserted-text signal
- * @deleted_text: default hanlder for the #ClutterTextBuffer::deleted-text signal
+ * @deleted_text: default handler for the #ClutterTextBuffer::deleted-text signal
  * @get_text: virtual function
  * @get_length: virtual function
  * @insert_text: virtual function
@@ -77,8 +64,6 @@ struct _ClutterTextBuffer
  *
  * The #ClutterTextBufferClass structure contains
  * only private data.
- *
- * Since: 1.10
  */
 struct _ClutterTextBufferClass
 {
@@ -110,63 +95,50 @@ struct _ClutterTextBufferClass
   guint        (*delete_text)            (ClutterTextBuffer *buffer,
                                           guint              position,
                                           guint              n_chars);
-
-  /*< private >*/
-  /* Padding for future expansion */
-  void (*_clutter_reserved1) (void);
-  void (*_clutter_reserved2) (void);
-  void (*_clutter_reserved3) (void);
-  void (*_clutter_reserved4) (void);
-  void (*_clutter_reserved5) (void);
-  void (*_clutter_reserved6) (void);
-  void (*_clutter_reserved7) (void);
-  void (*_clutter_reserved8) (void);
 };
 
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 GType               clutter_text_buffer_get_type            (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 ClutterTextBuffer*  clutter_text_buffer_new                 (void);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 ClutterTextBuffer*  clutter_text_buffer_new_with_text       (const gchar       *text,
                                                              gssize             text_len);
 
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 gsize               clutter_text_buffer_get_bytes           (ClutterTextBuffer *buffer);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 guint               clutter_text_buffer_get_length          (ClutterTextBuffer *buffer);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 const gchar*        clutter_text_buffer_get_text            (ClutterTextBuffer *buffer);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 void                clutter_text_buffer_set_text            (ClutterTextBuffer *buffer,
                                                              const gchar       *chars,
                                                              gint               n_chars);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 void                clutter_text_buffer_set_max_length      (ClutterTextBuffer *buffer,
                                                              gint               max_length);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 gint                clutter_text_buffer_get_max_length      (ClutterTextBuffer  *buffer);
 
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 guint               clutter_text_buffer_insert_text         (ClutterTextBuffer *buffer,
                                                              guint              position,
                                                              const gchar       *chars,
                                                              gint               n_chars);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 guint               clutter_text_buffer_delete_text         (ClutterTextBuffer *buffer,
                                                              guint              position,
                                                              gint               n_chars);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 void                clutter_text_buffer_emit_inserted_text  (ClutterTextBuffer *buffer,
                                                              guint              position,
                                                              const gchar       *chars,
                                                              guint              n_chars);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 void                clutter_text_buffer_emit_deleted_text   (ClutterTextBuffer *buffer,
                                                              guint              position,
                                                              guint              n_chars);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_TEXT_BUFFER_H__ */

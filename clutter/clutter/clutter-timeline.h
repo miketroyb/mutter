@@ -21,14 +21,13 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#ifndef __CLUTTER_TIMELINE_H__
-#define __CLUTTER_TIMELINE_H__
-
-#include <clutter/clutter-types.h>
+#include "clutter/clutter-types.h"
 
 G_BEGIN_DECLS
 
@@ -52,22 +51,12 @@ typedef struct _ClutterTimelinePrivate ClutterTimelinePrivate;
  * A function for defining a custom progress.
  *
  * Return value: the progress, as a floating point value between -1.0 and 2.0.
- *
- * Since: 1.10
  */
 typedef gdouble (* ClutterTimelineProgressFunc) (ClutterTimeline *timeline,
                                                  gdouble          elapsed,
                                                  gdouble          total,
                                                  gpointer         user_data);
 
-/**
- * ClutterTimeline:
- *
- * The #ClutterTimeline structure contains only private data
- * and should be accessed using the provided API
- *
- * Since: 0.2
- */
 struct _ClutterTimeline
 {
   /*< private >*/
@@ -86,8 +75,6 @@ struct _ClutterTimeline
  * @stopped: class handler for the #ClutterTimeline::stopped signal
  *
  * The #ClutterTimelineClass structure contains only private data
- *
- * Since: 0.2
  */
 struct _ClutterTimelineClass
 {
@@ -107,120 +94,131 @@ struct _ClutterTimelineClass
                           gint             msecs);
   void (*stopped)        (ClutterTimeline *timeline,
                           gboolean         is_finished);
-
-  /*< private >*/
-  void (*_clutter_timeline_1) (void);
-  void (*_clutter_timeline_2) (void);
-  void (*_clutter_timeline_3) (void);
-  void (*_clutter_timeline_4) (void);
 };
 
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 GType clutter_timeline_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_ALL
-ClutterTimeline *               clutter_timeline_new                            (guint                     msecs);
+CLUTTER_EXPORT
+ClutterTimeline *               clutter_timeline_new_for_actor                  (ClutterActor             *actor,
+                                                                                 unsigned int              duration_ms);
 
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
+ClutterTimeline *               clutter_timeline_new_for_frame_clock            (ClutterFrameClock        *frame_clock,
+                                                                                 unsigned int              duration_ms);
+
+CLUTTER_EXPORT
+ClutterActor *                  clutter_timeline_get_actor                      (ClutterTimeline          *timeline);
+
+CLUTTER_EXPORT
+void                            clutter_timeline_set_actor                      (ClutterTimeline          *timeline,
+                                                                                 ClutterActor             *actor);
+
+CLUTTER_EXPORT
 guint                           clutter_timeline_get_duration                   (ClutterTimeline          *timeline);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 void                            clutter_timeline_set_duration                   (ClutterTimeline          *timeline,
                                                                                  guint                     msecs);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 ClutterTimelineDirection        clutter_timeline_get_direction                  (ClutterTimeline          *timeline);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 void                            clutter_timeline_set_direction                  (ClutterTimeline          *timeline,
                                                                                  ClutterTimelineDirection  direction);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 void                            clutter_timeline_start                          (ClutterTimeline          *timeline);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 void                            clutter_timeline_pause                          (ClutterTimeline          *timeline);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 void                            clutter_timeline_stop                           (ClutterTimeline          *timeline);
-CLUTTER_AVAILABLE_IN_1_6
+CLUTTER_EXPORT
 void                            clutter_timeline_set_auto_reverse               (ClutterTimeline          *timeline,
                                                                                  gboolean                  reverse);
-CLUTTER_AVAILABLE_IN_1_6
+CLUTTER_EXPORT
 gboolean                        clutter_timeline_get_auto_reverse               (ClutterTimeline          *timeline);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 void                            clutter_timeline_set_repeat_count               (ClutterTimeline          *timeline,
                                                                                  gint                      count);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 gint                            clutter_timeline_get_repeat_count               (ClutterTimeline          *timeline);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 void                            clutter_timeline_rewind                         (ClutterTimeline          *timeline);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 void                            clutter_timeline_skip                           (ClutterTimeline          *timeline,
                                                                                  guint                     msecs);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 void                            clutter_timeline_advance                        (ClutterTimeline          *timeline,
                                                                                  guint                     msecs);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 guint                           clutter_timeline_get_elapsed_time               (ClutterTimeline          *timeline);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 gdouble                         clutter_timeline_get_progress                   (ClutterTimeline          *timeline);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 gboolean                        clutter_timeline_is_playing                     (ClutterTimeline          *timeline);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 void                            clutter_timeline_set_delay                      (ClutterTimeline          *timeline,
                                                                                  guint                     msecs);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 guint                           clutter_timeline_get_delay                      (ClutterTimeline          *timeline);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 guint                           clutter_timeline_get_delta                      (ClutterTimeline          *timeline);
-CLUTTER_AVAILABLE_IN_1_14
+CLUTTER_EXPORT
 void                            clutter_timeline_add_marker                     (ClutterTimeline          *timeline,
                                                                                  const gchar              *marker_name,
                                                                                  gdouble                   progress);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 void                            clutter_timeline_add_marker_at_time             (ClutterTimeline          *timeline,
                                                                                  const gchar              *marker_name,
                                                                                  guint                     msecs);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 void                            clutter_timeline_remove_marker                  (ClutterTimeline          *timeline,
                                                                                  const gchar              *marker_name);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 gchar **                        clutter_timeline_list_markers                   (ClutterTimeline          *timeline,
                                                                                  gint                      msecs,
                                                                                  gsize                    *n_markers) G_GNUC_MALLOC;
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 gboolean                        clutter_timeline_has_marker                     (ClutterTimeline          *timeline,
                                                                                  const gchar              *marker_name);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 void                            clutter_timeline_advance_to_marker              (ClutterTimeline          *timeline,
                                                                                  const gchar              *marker_name);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 void                            clutter_timeline_set_progress_func              (ClutterTimeline          *timeline,
                                                                                  ClutterTimelineProgressFunc func,
                                                                                  gpointer                  data,
                                                                                  GDestroyNotify            notify);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 void                            clutter_timeline_set_progress_mode              (ClutterTimeline          *timeline,
                                                                                  ClutterAnimationMode      mode);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 ClutterAnimationMode            clutter_timeline_get_progress_mode              (ClutterTimeline          *timeline);
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                            clutter_timeline_set_step_progress              (ClutterTimeline          *timeline,
                                                                                  gint                      n_steps,
                                                                                  ClutterStepMode           step_mode);
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 gboolean                        clutter_timeline_get_step_progress              (ClutterTimeline          *timeline,
                                                                                  gint                     *n_steps,
                                                                                  ClutterStepMode          *step_mode);
-CLUTTER_AVAILABLE_IN_1_12
-void                            clutter_timeline_set_cubic_bezier_progress      (ClutterTimeline          *timeline,
-                                                                                 const ClutterPoint       *c_1,
-                                                                                 const ClutterPoint       *c_2);
-CLUTTER_AVAILABLE_IN_1_12
-gboolean                        clutter_timeline_get_cubic_bezier_progress      (ClutterTimeline          *timeline,
-                                                                                 ClutterPoint             *c_1,
-                                                                                 ClutterPoint             *c_2);
+CLUTTER_EXPORT
+void                            clutter_timeline_set_cubic_bezier_progress      (ClutterTimeline        *timeline,
+                                                                                 const graphene_point_t *c_1,
+                                                                                 const graphene_point_t *c_2);
+CLUTTER_EXPORT
+gboolean                        clutter_timeline_get_cubic_bezier_progress      (ClutterTimeline  *timeline,
+                                                                                 graphene_point_t *c_1,
+                                                                                 graphene_point_t *c_2);
 
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 gint64                          clutter_timeline_get_duration_hint              (ClutterTimeline          *timeline);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 gint                            clutter_timeline_get_current_repeat             (ClutterTimeline          *timeline);
 
-G_END_DECLS
+CLUTTER_EXPORT
+ClutterFrameClock *             clutter_timeline_get_frame_clock                (ClutterTimeline           *timeline);
 
-#endif /* _CLUTTER_TIMELINE_H__ */
+CLUTTER_EXPORT
+void                            clutter_timeline_set_frame_clock                (ClutterTimeline           *timeline,
+                                                                                 ClutterFrameClock         *frame_clock);
+
+G_END_DECLS

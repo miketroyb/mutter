@@ -21,40 +21,52 @@
  */
 
 /**
- * SECTION:idle-monitor
- * @title: MetaIdleMonitor
- * @short_description: Mutter idle counter (similar to X's IDLETIME)
+ * MetaIdleMonitor:
+ *
+ * Mutter idle counter (similar to X's IDLETIME)
  */
 
 #include "config.h"
 
 #include <string.h>
-#include <clutter/clutter.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/sync.h>
 
-#include <meta/util.h>
-#include <meta/main.h>
-#include <meta/meta-idle-monitor.h>
-#include "meta-idle-monitor-private.h"
-#include "meta-idle-monitor-dbus.h"
-#include "meta-backend-private.h"
+#include "backends/gsm-inhibitor-flag.h"
+#include "backends/meta-backend-private.h"
+#include "backends/meta-idle-monitor-private.h"
+#include "clutter/clutter.h"
+#include "meta/main.h"
+#include "meta/meta-idle-monitor.h"
+#include "meta/util.h"
 
 G_STATIC_ASSERT(sizeof(unsigned long) == sizeof(gpointer));
 
 enum
 {
   PROP_0,
-  PROP_DEVICE_ID,
+  PROP_DEVICE,
   PROP_LAST,
 };
 
 static GParamSpec *obj_props[PROP_LAST];
 
+struct _MetaIdleMonitor
+{
+  GObject parent;
+
+  MetaIdleManager *idle_manager;
+  GDBusProxy *session_proxy;
+  gboolean inhibited;
+  GHashTable *watches;
+  ClutterInputDevice *device;
+  int64_t last_event_time;
+};
+
 G_DEFINE_TYPE (MetaIdleMonitor, meta_idle_monitor, G_TYPE_OBJECT)
 
-void
-_meta_idle_monitor_watch_fire (MetaIdleMonitorWatch *watch)
+static void
+meta_idle_monitor_watch_fire (MetaIdleMonitorWatch *watch)
 {
   MetaIdleMonitor *monitor;
   guint id;
@@ -63,11 +75,7 @@ _meta_idle_monitor_watch_fire (MetaIdleMonitorWatch *watch)
   monitor = watch->monitor;
   g_object_ref (monitor);
 
-  if (watch->idle_source_id)
-    {
-      g_source_remove (watch->idle_source_id);
-      watch->idle_source_id = 0;
-    }
+  g_clear_handle_id (&watch->idle_source_id, g_source_remove);
 
   id = watch->id;
   is_user_active_watch = (watch->timeout_msec == 0);
@@ -87,6 +95,7 @@ meta_idle_monitor_dispose (GObject *object)
   MetaIdleMonitor *monitor = META_IDLE_MONITOR (object);
 
   g_clear_pointer (&monitor->watches, g_hash_table_destroy);
+  g_clear_object (&monitor->session_proxy);
 
   G_OBJECT_CLASS (meta_idle_monitor_parent_class)->dispose (object);
 }
@@ -101,8 +110,8 @@ meta_idle_monitor_get_property (GObject    *object,
 
   switch (prop_id)
     {
-    case PROP_DEVICE_ID:
-      g_value_set_int (value, monitor->device_id);
+    case PROP_DEVICE:
+      g_value_set_object (value, monitor->device);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -119,8 +128,8 @@ meta_idle_monitor_set_property (GObject      *object,
   MetaIdleMonitor *monitor = META_IDLE_MONITOR (object);
   switch (prop_id)
     {
-    case PROP_DEVICE_ID:
-      monitor->device_id = g_value_get_int (value);
+    case PROP_DEVICE:
+      monitor->device = g_value_get_object (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -138,52 +147,171 @@ meta_idle_monitor_class_init (MetaIdleMonitorClass *klass)
   object_class->set_property = meta_idle_monitor_set_property;
 
   /**
-   * MetaIdleMonitor:device_id:
+   * MetaIdleMonitor:device:
    *
    * The device to listen to idletime on.
    */
-  obj_props[PROP_DEVICE_ID] =
-    g_param_spec_int ("device-id",
-                      "Device ID",
-                      "The device to listen to idletime on",
-                      0, 255, 0,
-                      G_PARAM_STATIC_STRINGS | G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
-  g_object_class_install_property (object_class, PROP_DEVICE_ID, obj_props[PROP_DEVICE_ID]);
+  obj_props[PROP_DEVICE] =
+    g_param_spec_object ("device", NULL, NULL,
+                         CLUTTER_TYPE_INPUT_DEVICE,
+                         G_PARAM_STATIC_STRINGS | G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
+
+  g_object_class_install_property (object_class, PROP_DEVICE, obj_props[PROP_DEVICE]);
+}
+
+static void
+free_watch (gpointer data)
+{
+  MetaIdleMonitorWatch *watch = (MetaIdleMonitorWatch *) data;
+  MetaIdleMonitor *monitor = watch->monitor;
+
+  g_object_ref (monitor);
+
+  g_clear_handle_id (&watch->idle_source_id, g_source_remove);
+
+  if (watch->notify != NULL)
+    watch->notify (watch->user_data);
+
+  if (watch->timeout_source != NULL)
+    g_source_destroy (watch->timeout_source);
+
+  g_object_unref (monitor);
+  g_free (watch);
+}
+
+static void
+update_inhibited_watch (gpointer key,
+                        gpointer value,
+                        gpointer user_data)
+{
+  MetaIdleMonitor *monitor = user_data;
+  MetaIdleMonitorWatch *watch = value;
+
+  if (!watch->timeout_source)
+    return;
+
+  if (monitor->inhibited)
+    {
+      g_source_set_ready_time (watch->timeout_source, -1);
+    }
+  else
+    {
+      g_source_set_ready_time (watch->timeout_source,
+                               monitor->last_event_time +
+                               watch->timeout_msec * 1000);
+    }
+}
+
+static void
+update_inhibited (MetaIdleMonitor *monitor,
+                  gboolean         inhibited)
+{
+  if (inhibited == monitor->inhibited)
+    return;
+
+  monitor->inhibited = inhibited;
+
+  g_hash_table_foreach (monitor->watches,
+                        update_inhibited_watch,
+                        monitor);
+}
+
+static void
+meta_idle_monitor_inhibited_actions_changed (GDBusProxy  *session,
+                                             GVariant    *changed,
+                                             char       **invalidated,
+                                             gpointer     user_data)
+{
+  MetaIdleMonitor *monitor = user_data;
+  GVariant *v;
+
+  v = g_variant_lookup_value (changed, "InhibitedActions", G_VARIANT_TYPE_UINT32);
+  if (v)
+    {
+      gboolean inhibited;
+
+      inhibited = !!(g_variant_get_uint32 (v) & GSM_INHIBITOR_FLAG_IDLE);
+      g_variant_unref (v);
+
+      if (!inhibited)
+        monitor->last_event_time = g_get_monotonic_time ();
+      update_inhibited (monitor, inhibited);
+    }
 }
 
 static void
 meta_idle_monitor_init (MetaIdleMonitor *monitor)
 {
+  GVariant *v;
+
+  monitor->watches = g_hash_table_new_full (NULL, NULL, NULL, free_watch);
+  monitor->last_event_time = g_get_monotonic_time ();
+
+  /* Monitor inhibitors */
+  monitor->session_proxy =
+    g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SESSION,
+                                   G_DBUS_PROXY_FLAGS_DO_NOT_CONNECT_SIGNALS |
+                                   G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START,
+                                   NULL,
+                                   "org.gnome.SessionManager",
+                                   "/org/gnome/SessionManager",
+                                   "org.gnome.SessionManager",
+                                   NULL,
+                                   NULL);
+  if (!monitor->session_proxy)
+    return;
+
+  g_signal_connect (monitor->session_proxy, "g-properties-changed",
+                    G_CALLBACK (meta_idle_monitor_inhibited_actions_changed),
+                    monitor);
+
+  v = g_dbus_proxy_get_cached_property (monitor->session_proxy,
+                                        "InhibitedActions");
+  if (v)
+    {
+      monitor->inhibited = !!(g_variant_get_uint32 (v) &
+                              GSM_INHIBITOR_FLAG_IDLE);
+      g_variant_unref (v);
+    }
 }
 
-/**
- * meta_idle_monitor_get_core:
- *
- * Returns: (transfer none): the #MetaIdleMonitor that tracks the server-global
- * idletime for all devices. To track device-specific idletime,
- * use meta_idle_monitor_get_for_device().
- */
-MetaIdleMonitor *
-meta_idle_monitor_get_core (void)
+static guint32
+get_next_watch_serial (void)
 {
-  MetaBackend *backend = meta_get_backend ();
-  return meta_backend_get_idle_monitor (backend, 0);
+  static guint32 serial = 0;
+
+  g_atomic_int_inc (&serial);
+
+  return serial;
 }
 
-/**
- * meta_idle_monitor_get_for_device:
- * @device_id: the device to get the idle time for.
- *
- * Returns: (transfer none): a new #MetaIdleMonitor that tracks the
- * device-specific idletime for @device. To track server-global idletime
- * for all devices, use meta_idle_monitor_get_core().
- */
-MetaIdleMonitor *
-meta_idle_monitor_get_for_device (int device_id)
+static gboolean
+idle_monitor_dispatch_timeout (GSource     *source,
+                               GSourceFunc  callback,
+                               gpointer     user_data)
 {
-  MetaBackend *backend = meta_get_backend ();
-  return meta_backend_get_idle_monitor (backend, device_id);
+  MetaIdleMonitorWatch *watch = (MetaIdleMonitorWatch *) user_data;
+  int64_t now;
+  int64_t ready_time;
+
+  now = g_source_get_time (source);
+  ready_time = g_source_get_ready_time (source);
+  if (ready_time > now)
+    return G_SOURCE_CONTINUE;
+
+  g_source_set_ready_time (watch->timeout_source, -1);
+
+  meta_idle_monitor_watch_fire (watch);
+
+  return G_SOURCE_CONTINUE;
 }
+
+static GSourceFuncs idle_monitor_source_funcs = {
+  .prepare = NULL,
+  .check = NULL,
+  .dispatch = idle_monitor_dispatch_timeout,
+  .finalize = NULL,
+};
 
 static MetaIdleMonitorWatch *
 make_watch (MetaIdleMonitor           *monitor,
@@ -194,11 +322,33 @@ make_watch (MetaIdleMonitor           *monitor,
 {
   MetaIdleMonitorWatch *watch;
 
-  watch = META_IDLE_MONITOR_GET_CLASS (monitor)->make_watch (monitor,
-                                                             timeout_msec,
-                                                             callback,
-                                                             user_data,
-                                                             notify);
+  watch = g_new0 (MetaIdleMonitorWatch, 1);
+
+  watch->monitor = monitor;
+  watch->id = get_next_watch_serial ();
+  watch->callback = callback;
+  watch->user_data = user_data;
+  watch->notify = notify;
+  watch->timeout_msec = timeout_msec;
+
+  if (timeout_msec != 0)
+    {
+      GSource *source = g_source_new (&idle_monitor_source_funcs,
+                                      sizeof (GSource));
+      g_source_set_name (source, "[mutter] Idle monitor");
+
+      g_source_set_callback (source, NULL, watch, NULL);
+      if (!monitor->inhibited)
+        {
+          g_source_set_ready_time (source,
+                                   monitor->last_event_time +
+                                   timeout_msec * 1000);
+        }
+      g_source_attach (source, NULL);
+      g_source_unref (source);
+
+      watch->timeout_source = source;
+    }
 
   g_hash_table_insert (monitor->watches,
                        GUINT_TO_POINTER (watch->id),
@@ -314,5 +464,66 @@ meta_idle_monitor_remove_watch (MetaIdleMonitor *monitor,
 gint64
 meta_idle_monitor_get_idletime (MetaIdleMonitor *monitor)
 {
-  return META_IDLE_MONITOR_GET_CLASS (monitor)->get_idletime (monitor);
+  return (g_get_monotonic_time () - monitor->last_event_time) / 1000;
+}
+
+void
+meta_idle_monitor_reset_idletime (MetaIdleMonitor *monitor)
+{
+  GList *node, *watch_ids;
+
+  monitor->last_event_time = g_get_monotonic_time ();
+
+  watch_ids = g_hash_table_get_keys (monitor->watches);
+
+  for (node = watch_ids; node != NULL; node = node->next)
+    {
+      guint watch_id = GPOINTER_TO_UINT (node->data);
+      MetaIdleMonitorWatch *watch;
+
+      watch = g_hash_table_lookup (monitor->watches,
+                                   GUINT_TO_POINTER (watch_id));
+      if (!watch)
+        continue;
+
+      if (watch->timeout_msec == 0)
+        {
+          meta_idle_monitor_watch_fire (watch);
+        }
+      else
+        {
+          if (monitor->inhibited)
+            {
+              g_source_set_ready_time (watch->timeout_source, -1);
+            }
+          else
+            {
+              g_source_set_ready_time (watch->timeout_source,
+                                       monitor->last_event_time +
+                                       watch->timeout_msec * 1000);
+            }
+        }
+    }
+
+  g_list_free (watch_ids);
+}
+
+MetaIdleManager *
+meta_idle_monitor_get_manager (MetaIdleMonitor *monitor)
+{
+  return monitor->idle_manager;
+}
+
+MetaIdleMonitor *
+meta_idle_monitor_new (MetaIdleManager    *idle_manager,
+                       ClutterInputDevice *device)
+{
+  MetaIdleMonitor *monitor;
+
+  monitor = g_object_new (META_TYPE_IDLE_MONITOR,
+                          "device", device,
+                          NULL);
+  monitor->idle_manager = idle_manager;
+
+  return monitor;
 }

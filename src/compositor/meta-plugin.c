@@ -20,48 +20,44 @@
  */
 
 /**
- * SECTION:meta-plugin
- * @title: MetaPlugin
- * @short_description: Entry point for plugins
+ * MetaPlugin:
  *
+ * Entry point for plugins
  */
 
-#include <meta/meta-plugin.h>
-#include "meta-plugin-manager.h"
-#include <meta/screen.h>
-#include <meta/display.h>
-#include <meta/util.h>
+#include "config.h"
+
+#include "meta/meta-plugin.h"
 
 #include <string.h>
 #include <X11/Xlib.h>
 #include <X11/extensions/Xfixes.h>
 #include <X11/extensions/shape.h>
-#include <clutter/x11/clutter-x11.h>
 
-#include "compositor-private.h"
-#include "meta-window-actor-private.h"
-#include "meta-monitor-manager-private.h"
+#include "backends/meta-monitor-manager-private.h"
+#include "backends/x11/meta-clutter-backend-x11.h"
+#include "compositor/compositor-private.h"
+#include "compositor/meta-window-actor-private.h"
+#include "compositor/meta-plugin-manager.h"
+#include "meta/display.h"
+#include "meta/util.h"
 
-G_DEFINE_ABSTRACT_TYPE (MetaPlugin, meta_plugin, G_TYPE_OBJECT);
 
-#define META_PLUGIN_GET_PRIVATE(obj) \
-(G_TYPE_INSTANCE_GET_PRIVATE ((obj), META_TYPE_PLUGIN, MetaPluginPrivate))
-
-struct _MetaPluginPrivate
+typedef struct _MetaPluginPrivate
 {
   MetaCompositor *compositor;
-};
+} MetaPluginPrivate;
+
+G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (MetaPlugin, meta_plugin, G_TYPE_OBJECT);
 
 static void
 meta_plugin_class_init (MetaPluginClass *klass)
 {
-  g_type_class_add_private (klass, sizeof (MetaPluginPrivate));
 }
 
 static void
 meta_plugin_init (MetaPlugin *self)
 {
-  self->priv = META_PLUGIN_GET_PRIVATE (self);
 }
 
 const MetaPluginInfo *
@@ -90,7 +86,7 @@ _meta_plugin_xevent_filter (MetaPlugin *plugin,
 void
 meta_plugin_switch_workspace_completed (MetaPlugin *plugin)
 {
-  MetaPluginPrivate *priv = META_PLUGIN (plugin)->priv;
+  MetaPluginPrivate *priv = meta_plugin_get_instance_private (plugin);
 
   meta_switch_workspace_completed (priv->compositor);
 }
@@ -139,77 +135,26 @@ meta_plugin_destroy_completed (MetaPlugin      *plugin,
 }
 
 /**
- * meta_plugin_begin_modal:
- * @plugin: a #MetaPlugin
- * @options: flags that modify the behavior of the modal grab
- * @timestamp: the timestamp used for establishing grabs
- *
- * This function is used to grab the keyboard and mouse for the exclusive
- * use of the plugin. Correct operation requires that both the keyboard
- * and mouse are grabbed, or thing will break. (In particular, other
- * passive X grabs in Meta can trigger but not be handled by the normal
- * keybinding handling code.) However, the plugin can establish the keyboard
- * and/or mouse grabs ahead of time and pass in the
- * %META_MODAL_POINTER_ALREADY_GRABBED and/or %META_MODAL_KEYBOARD_ALREADY_GRABBED
- * options. This facility is provided for two reasons: first to allow using
- * this function to establish modality after a passive grab, and second to
- * allow using obscure features of XGrabPointer() and XGrabKeyboard() without
- * having to add them to this API.
- *
- * Return value: whether we successfully grabbed the keyboard and
- *  mouse and made the plugin modal.
- */
-gboolean
-meta_plugin_begin_modal (MetaPlugin       *plugin,
-                         MetaModalOptions  options,
-                         guint32           timestamp)
-{
-  MetaPluginPrivate *priv = META_PLUGIN (plugin)->priv;
-
-  return meta_begin_modal_for_plugin (priv->compositor, plugin,
-                                      options, timestamp);
-}
-
-/**
- * meta_plugin_end_modal:
- * @plugin: a #MetaPlugin
- * @timestamp: the time used for releasing grabs
- *
- * Ends the modal operation begun with meta_plugin_begin_modal(). This
- * ungrabs both the mouse and keyboard even when
- * %META_MODAL_POINTER_ALREADY_GRABBED or
- * %META_MODAL_KEYBOARD_ALREADY_GRABBED were provided as options
- * when beginnning the modal operation.
- */
-void
-meta_plugin_end_modal (MetaPlugin *plugin,
-                       guint32     timestamp)
-{
-  MetaPluginPrivate *priv = META_PLUGIN (plugin)->priv;
-
-  meta_end_modal_for_plugin (priv->compositor, plugin, timestamp);
-}
-
-/**
- * meta_plugin_get_screen:
+ * meta_plugin_get_display:
  * @plugin: a #MetaPlugin
  *
- * Gets the #MetaScreen corresponding to a plugin.
+ * Gets the #MetaDisplay corresponding to a plugin.
  *
- * Return value: (transfer none): the #MetaScreen for the plugin
+ * Return value: (transfer none): the #MetaDisplay for the plugin
  */
-MetaScreen *
-meta_plugin_get_screen (MetaPlugin *plugin)
+MetaDisplay *
+meta_plugin_get_display (MetaPlugin *plugin)
 {
-  MetaPluginPrivate *priv = META_PLUGIN (plugin)->priv;
+  MetaPluginPrivate *priv = meta_plugin_get_instance_private (plugin);
+  MetaDisplay *display = meta_compositor_get_display (priv->compositor);
 
-  return priv->compositor->display->screen;
+  return display;
 }
 
 void
 _meta_plugin_set_compositor (MetaPlugin *plugin, MetaCompositor *compositor)
 {
-  MetaPluginPrivate *priv = META_PLUGIN (plugin)->priv;
+  MetaPluginPrivate *priv = meta_plugin_get_instance_private (plugin);
 
   priv->compositor = compositor;
 }
@@ -218,8 +163,10 @@ void
 meta_plugin_complete_display_change (MetaPlugin *plugin,
                                      gboolean    ok)
 {
-  MetaMonitorManager *manager;
+  MetaPluginPrivate *priv = meta_plugin_get_instance_private (plugin);
+  MetaBackend *backend = meta_compositor_get_backend (priv->compositor);
+  MetaMonitorManager *monitor_manager =
+    meta_backend_get_monitor_manager (backend);
 
-  manager = meta_monitor_manager_get ();
-  meta_monitor_manager_confirm_configuration (manager, ok);
+  meta_monitor_manager_confirm_configuration (monitor_manager, ok);
 }

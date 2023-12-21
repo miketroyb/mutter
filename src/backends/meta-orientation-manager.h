@@ -14,13 +14,14 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_ORIENTATION_MANAGER_H
-#define META_ORIENTATION_MANAGER_H
+#pragma once
+
+#include <glib-object.h>
+
+#include "core/util-private.h"
 
 typedef enum
 {
@@ -30,11 +31,16 @@ typedef enum
   META_ORIENTATION_LEFT_UP,
   META_ORIENTATION_RIGHT_UP
 } MetaOrientation;
+#define META_N_ORIENTATIONS (META_ORIENTATION_RIGHT_UP + 1)
 
 #define META_TYPE_ORIENTATION_MANAGER (meta_orientation_manager_get_type ())
+
+META_EXPORT_TEST
 G_DECLARE_FINAL_TYPE (MetaOrientationManager, meta_orientation_manager,
                       META, ORIENTATION_MANAGER, GObject)
 
+META_EXPORT_TEST
 MetaOrientation meta_orientation_manager_get_orientation (MetaOrientationManager *self);
 
-#endif  /* META_ORIENTATION_MANAGER_H */
+META_EXPORT_TEST
+gboolean meta_orientation_manager_has_accelerometer (MetaOrientationManager *self);

@@ -20,14 +20,10 @@
  *         from gnome-desktop/libgnome-desktop/gnome-idle-monitor.c
  */
 
-#ifndef META_IDLE_MONITOR_PRIVATE_H
-#define META_IDLE_MONITOR_PRIVATE_H
+#pragma once
 
-#include <meta/meta-idle-monitor.h>
-#include "display-private.h"
-
-#include <X11/Xlib.h>
-#include <X11/extensions/sync.h>
+#include "core/display-private.h"
+#include "meta/meta-idle-monitor.h"
 
 typedef struct
 {
@@ -38,28 +34,17 @@ typedef struct
   GDestroyNotify            notify;
   guint64                   timeout_msec;
   int                       idle_source_id;
+  GSource                  *timeout_source;
 } MetaIdleMonitorWatch;
-
-struct _MetaIdleMonitor
-{
-  GObject parent_instance;
-
-  GHashTable *watches;
-  int device_id;
-};
 
 struct _MetaIdleMonitorClass
 {
   GObjectClass parent_class;
-
-  gint64 (*get_idletime) (MetaIdleMonitor *monitor);
-  MetaIdleMonitorWatch * (*make_watch) (MetaIdleMonitor           *monitor,
-                                        guint64                    timeout_msec,
-                                        MetaIdleMonitorWatchFunc   callback,
-                                        gpointer                   user_data,
-                                        GDestroyNotify             notify);
 };
 
-void _meta_idle_monitor_watch_fire (MetaIdleMonitorWatch *watch);
+void meta_idle_monitor_reset_idletime (MetaIdleMonitor *monitor);
 
-#endif /* META_IDLE_MONITOR_PRIVATE_H */
+MetaIdleManager * meta_idle_monitor_get_manager (MetaIdleMonitor *monitor);
+
+MetaIdleMonitor * meta_idle_monitor_new (MetaIdleManager    *idle_manager,
+                                         ClutterInputDevice *device);

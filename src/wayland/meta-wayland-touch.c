@@ -14,9 +14,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
@@ -25,14 +23,9 @@
 
 #include <glib.h>
 #include <string.h>
-#include <clutter/evdev/clutter-evdev.h>
 
-#include "meta-surface-actor-wayland.h"
-#include "meta-wayland-private.h"
-
-#ifdef HAVE_NATIVE_BACKEND
-#include "backends/native/meta-backend-native.h"
-#endif
+#include "compositor/meta-surface-actor-wayland.h"
+#include "wayland/meta-wayland-private.h"
 
 G_DEFINE_TYPE (MetaWaylandTouch, meta_wayland_touch,
                META_TYPE_WAYLAND_INPUT_DEVICE)
@@ -58,6 +51,17 @@ struct _MetaWaylandTouchInfo
   guint updated : 1;
   guint begin_delivered : 1;
 };
+
+static MetaBackend *
+backend_from_touch (MetaWaylandTouch *touch)
+{
+  MetaWaylandInputDevice *input_device = META_WAYLAND_INPUT_DEVICE (touch);
+  MetaWaylandSeat *seat = meta_wayland_input_device_get_seat (input_device);
+  MetaWaylandCompositor *compositor = meta_wayland_seat_get_compositor (seat);
+  MetaContext *context = meta_wayland_compositor_get_context (compositor);
+
+  return meta_context_get_backend (context);
+}
 
 static void
 move_resources (struct wl_list *destination, struct wl_list *source)
@@ -182,10 +186,13 @@ touch_get_info (MetaWaylandTouch     *touch,
 
   touch_info = g_hash_table_lookup (touch->touches, sequence);
 
-  if (!touch_info && create)
+  if (create)
     {
+      if (touch_info != NULL)
+        g_warning ("Stale touch information for sequence slot %p", sequence);
+
       touch_info = g_new0 (MetaWaylandTouchInfo, 1);
-      touch_info->slot = clutter_evdev_event_sequence_get_slot (sequence);
+      touch_info->slot = clutter_event_sequence_get_slot (sequence);
       g_hash_table_insert (touch->touches, sequence, touch_info);
     }
 
@@ -214,20 +221,29 @@ meta_wayland_touch_update (MetaWaylandTouch   *touch,
 {
   MetaWaylandTouchInfo *touch_info;
   ClutterEventSequence *sequence;
+  ClutterEventType event_type;
 
   sequence = clutter_event_get_event_sequence (event);
+  event_type = clutter_event_type (event);
 
-  if (event->type == CLUTTER_TOUCH_BEGIN)
+  if (event_type == CLUTTER_TOUCH_BEGIN)
     {
       MetaWaylandSurface *surface = NULL;
+      MetaBackend *backend;
+      ClutterStage *stage;
       ClutterActor *actor;
 
-      actor = clutter_event_get_source (event);
+      backend = backend_from_touch (touch);
+      stage = CLUTTER_STAGE (meta_backend_get_stage (backend));
+
+      actor = clutter_stage_get_device_actor (stage,
+                                              clutter_event_get_device (event),
+                                              clutter_event_get_event_sequence (event));
 
       if (META_IS_SURFACE_ACTOR_WAYLAND (actor))
         surface = meta_surface_actor_wayland_get_surface (META_SURFACE_ACTOR_WAYLAND (actor));
 
-      if (!surface)
+      if (!surface || !surface->resource)
         return;
 
       touch_info = touch_get_info (touch, sequence, TRUE);
@@ -240,8 +256,15 @@ meta_wayland_touch_update (MetaWaylandTouch   *touch,
   if (!touch_info)
     return;
 
-  if (event->type == CLUTTER_TOUCH_BEGIN ||
-      event->type == CLUTTER_TOUCH_END)
+  if (event_type != CLUTTER_TOUCH_BEGIN &&
+      !touch_info->begin_delivered)
+    {
+      g_hash_table_remove (touch->touches, sequence);
+      return;
+    }
+
+  if (event_type == CLUTTER_TOUCH_BEGIN ||
+      event_type == CLUTTER_TOUCH_END)
     {
       MetaWaylandInputDevice *input_device = META_WAYLAND_INPUT_DEVICE (touch);
 
@@ -295,7 +318,7 @@ handle_touch_update (MetaWaylandTouch   *touch,
   sequence = clutter_event_get_event_sequence (event);
   touch_info = touch_get_info (touch, sequence, FALSE);
 
-  if (!touch_info || !touch_info->begin_delivered)
+  if (!touch_info)
     return;
 
   l = &touch_info->touch_surface->resource_list;
@@ -324,15 +347,12 @@ handle_touch_end (MetaWaylandTouch   *touch,
   if (!touch_info)
     return;
 
-  if (touch_info->begin_delivered)
+  l = &touch_info->touch_surface->resource_list;
+  wl_resource_for_each (resource, l)
     {
-      l = &touch_info->touch_surface->resource_list;
-      wl_resource_for_each(resource, l)
-        {
-          wl_touch_send_up (resource, touch_info->slot_serial,
-                            clutter_event_get_time (event),
-                            touch_info->slot);
-        }
+      wl_touch_send_up (resource, touch_info->slot_serial,
+                        clutter_event_get_time (event),
+                        touch_info->slot);
     }
 
   g_hash_table_remove (touch->touches, sequence);
@@ -385,26 +405,41 @@ touch_send_frame_event (MetaWaylandTouch *touch)
   g_list_free (surfaces);
 }
 
-static void
-check_send_frame_event (MetaWaylandTouch   *touch,
-                        const ClutterEvent *event)
+static gboolean
+queue_frame_event_cb (MetaWaylandTouch *touch)
 {
-  ClutterEventSequence *sequence;
-  gint32 slot;
+  touch_send_frame_event (touch);
+  touch->queued_frame_id = 0;
 
-  sequence = clutter_event_get_event_sequence (event);
-  slot = clutter_evdev_event_sequence_get_slot (sequence);
-  touch->frame_slots &= ~(1 << slot);
+  return G_SOURCE_REMOVE;
+}
 
-  if (touch->frame_slots == 0)
-    touch_send_frame_event (touch);
+static void
+send_or_queue_frame_event (MetaWaylandTouch *touch)
+{
+  if (clutter_events_pending ())
+    {
+      if (touch->queued_frame_id == 0)
+        {
+          touch->queued_frame_id =
+            g_idle_add_full (CLUTTER_PRIORITY_EVENTS + 1,
+                             (GSourceFunc) queue_frame_event_cb,
+                             touch, NULL);
+        }
+    }
+  else
+    {
+      /* There's no more events */
+      g_clear_handle_id (&touch->queued_frame_id, g_source_remove);
+      touch_send_frame_event (touch);
+    }
 }
 
 gboolean
 meta_wayland_touch_handle_event (MetaWaylandTouch   *touch,
                                  const ClutterEvent *event)
 {
-  switch (event->type)
+  switch (clutter_event_type (event))
     {
     case CLUTTER_TOUCH_BEGIN:
       handle_touch_begin (touch, event);
@@ -418,11 +453,15 @@ meta_wayland_touch_handle_event (MetaWaylandTouch   *touch,
       handle_touch_end (touch, event);
       break;
 
+    case CLUTTER_TOUCH_CANCEL:
+      meta_wayland_touch_cancel (touch);
+      break;
+
     default:
       return FALSE;
     }
 
-  check_send_frame_event (touch, event);
+  send_or_queue_frame_event (touch);
   return FALSE;
 }
 
@@ -477,80 +516,24 @@ meta_wayland_touch_cancel (MetaWaylandTouch *touch)
   g_list_free (surfaces);
 }
 
-#ifdef HAVE_NATIVE_BACKEND
-static gboolean
-evdev_filter_func (struct libinput_event *event,
-                   gpointer               data)
-{
-  MetaWaylandTouch *touch = data;
-
-  switch (libinput_event_get_type (event))
-    {
-    case LIBINPUT_EVENT_TOUCH_DOWN:
-    case LIBINPUT_EVENT_TOUCH_UP:
-    case LIBINPUT_EVENT_TOUCH_MOTION: {
-      struct libinput_event_touch *touch_event;
-      int32_t slot;
-
-      touch_event = libinput_event_get_touch_event (event);
-      slot = libinput_event_touch_get_slot (touch_event);
-
-      /* XXX: Could theoretically overflow, 64 slots should be
-       * enough for most hw/usecases though.
-       */
-      touch->frame_slots |= (1 << slot);
-      break;
-    }
-    case LIBINPUT_EVENT_TOUCH_CANCEL:
-      /* Clutter translates this into individual CLUTTER_TOUCH_CANCEL events,
-       * which are not so useful when sending a global signal as the protocol
-       * requires.
-       */
-      meta_wayland_touch_cancel (touch);
-      break;
-    default:
-      break;
-    }
-
-  return CLUTTER_EVENT_PROPAGATE;
-}
-#endif
-
 void
 meta_wayland_touch_enable (MetaWaylandTouch *touch)
 {
-  ClutterDeviceManager *manager;
-
   touch->touch_surfaces = g_hash_table_new_full (NULL, NULL, NULL,
                                                  (GDestroyNotify) touch_surface_free);
   touch->touches = g_hash_table_new_full (NULL, NULL, NULL,
                                           (GDestroyNotify) touch_info_free);
 
   wl_list_init (&touch->resource_list);
-
-  manager = clutter_device_manager_get_default ();
-  touch->device = clutter_device_manager_get_core_device (manager, CLUTTER_TOUCHSCREEN_DEVICE);
-
-#ifdef HAVE_NATIVE_BACKEND
-  MetaBackend *backend = meta_get_backend ();
-  if (META_IS_BACKEND_NATIVE (backend))
-    clutter_evdev_add_filter (evdev_filter_func, touch, NULL);
-#endif
 }
 
 void
 meta_wayland_touch_disable (MetaWaylandTouch *touch)
 {
-#ifdef HAVE_NATIVE_BACKEND
-  MetaBackend *backend = meta_get_backend ();
-  if (META_IS_BACKEND_NATIVE (backend))
-    clutter_evdev_remove_filter (evdev_filter_func, touch);
-#endif
-
   meta_wayland_touch_cancel (touch);
 
-  g_clear_pointer (&touch->touch_surfaces, (GDestroyNotify) g_hash_table_unref);
-  g_clear_pointer (&touch->touches, (GDestroyNotify) g_hash_table_unref);
+  g_clear_pointer (&touch->touch_surfaces, g_hash_table_unref);
+  g_clear_pointer (&touch->touches, g_hash_table_unref);
 }
 
 void
@@ -559,15 +542,7 @@ meta_wayland_touch_create_new_resource (MetaWaylandTouch   *touch,
                                         struct wl_resource *seat_resource,
                                         uint32_t            id)
 {
-  MetaWaylandSeat *seat = wl_resource_get_user_data (seat_resource);
   struct wl_resource *cr;
-
-  if (!meta_wayland_seat_has_touch (seat))
-    {
-      wl_resource_post_error (seat_resource, WL_DISPLAY_ERROR_INVALID_METHOD,
-                              "Cannot retrieve touch interface without touch capability");
-      return;
-    }
 
   cr = wl_resource_create (client, &wl_touch_interface, wl_resource_get_version (seat_resource), id);
   wl_resource_set_implementation (cr, &touch_interface, touch, unbind_resource);
@@ -594,6 +569,25 @@ meta_wayland_touch_can_popup (MetaWaylandTouch *touch,
   return FALSE;
 }
 
+static gboolean
+touch_can_grab_surface (MetaWaylandTouchInfo *touch_info,
+                        MetaWaylandSurface   *surface)
+{
+  MetaWaylandSurface *subsurface;
+
+  if (touch_info->touch_surface->surface == surface)
+    return TRUE;
+
+  META_WAYLAND_SURFACE_FOREACH_SUBSURFACE (&surface->output_state,
+                                           subsurface)
+    {
+      if (touch_can_grab_surface (touch_info, subsurface))
+        return TRUE;
+    }
+
+  return FALSE;
+}
+
 ClutterEventSequence *
 meta_wayland_touch_find_grab_sequence (MetaWaylandTouch   *touch,
                                        MetaWaylandSurface *surface,
@@ -612,7 +606,7 @@ meta_wayland_touch_find_grab_sequence (MetaWaylandTouch   *touch,
                                  (gpointer*) &touch_info))
     {
       if (touch_info->slot_serial == serial &&
-	  touch_info->touch_surface->surface == surface)
+          touch_can_grab_surface (touch_info, surface))
         return sequence;
     }
 

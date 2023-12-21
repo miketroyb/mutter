@@ -24,19 +24,18 @@
  *      Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
 #include <string.h>
 
 #include <glib-object.h>
 #include <math.h>
 
-#include "clutter-actor-private.h"
-#include "clutter-paint-volume-private.h"
-#include "clutter-private.h"
-#include "clutter-stage-private.h"
+#include "clutter/clutter-actor-private.h"
+#include "clutter/clutter-paint-volume-private.h"
+#include "clutter/clutter-private.h"
+#include "clutter/clutter-stage-private.h"
+#include "clutter/clutter-actor-box-private.h"
 
 G_DEFINE_BOXED_TYPE (ClutterPaintVolume, clutter_paint_volume,
                      clutter_paint_volume_copy,
@@ -50,8 +49,6 @@ G_DEFINE_BOXED_TYPE (ClutterPaintVolume, clutter_paint_volume,
  *
  * Return value: the newly allocated #ClutterPaintVolume. Use
  *   clutter_paint_volume_free() to free the resources it uses
- *
- * Since: 1.6
  */
 ClutterPaintVolume *
 _clutter_paint_volume_new (ClutterActor *actor)
@@ -60,11 +57,11 @@ _clutter_paint_volume_new (ClutterActor *actor)
 
   g_return_val_if_fail (actor != NULL, NULL);
 
-  pv = g_slice_new (ClutterPaintVolume);
+  pv = g_new0 (ClutterPaintVolume, 1);
 
   pv->actor = actor;
 
-  memset (pv->vertices, 0, 8 * sizeof (ClutterVertex));
+  memset (pv->vertices, 0, 8 * sizeof (graphene_point3d_t));
 
   pv->is_static = FALSE;
   pv->is_empty = TRUE;
@@ -79,7 +76,7 @@ _clutter_paint_volume_new (ClutterActor *actor)
  * traversal of a Clutter scene graph and since paint volumes often
  * have a very short life cycle that maps well to stack allocation we
  * allow initializing a static ClutterPaintVolume variable to avoid
- * hammering the slice allocator.
+ * hammering the memory allocator.
  *
  * We were seeing slice allocation take about 1% cumulative CPU time
  * for some very simple clutter tests which although it isn't a *lot*
@@ -97,7 +94,7 @@ _clutter_paint_volume_init_static (ClutterPaintVolume *pv,
 {
   pv->actor = actor;
 
-  memset (pv->vertices, 0, 8 * sizeof (ClutterVertex));
+  memset (pv->vertices, 0, 8 * sizeof (graphene_point3d_t));
 
   pv->is_static = TRUE;
   pv->is_empty = TRUE;
@@ -124,8 +121,6 @@ _clutter_paint_volume_copy_static (const ClutterPaintVolume *src_pv,
  * Copies @pv into a new #ClutterPaintVolume
  *
  * Return value: a newly allocated copy of a #ClutterPaintVolume
- *
- * Since: 1.6
  */
 ClutterPaintVolume *
 clutter_paint_volume_copy (const ClutterPaintVolume *pv)
@@ -134,7 +129,7 @@ clutter_paint_volume_copy (const ClutterPaintVolume *pv)
 
   g_return_val_if_fail (pv != NULL, NULL);
 
-  copy = g_slice_dup (ClutterPaintVolume, pv);
+  copy = g_memdup2 (pv, sizeof (ClutterPaintVolume));
   copy->is_static = FALSE;
 
   return copy;
@@ -154,8 +149,6 @@ _clutter_paint_volume_set_from_volume (ClutterPaintVolume       *pv,
  * @pv: a #ClutterPaintVolume
  *
  * Frees the resources allocated by @pv
- *
- * Since: 1.6
  */
 void
 clutter_paint_volume_free (ClutterPaintVolume *pv)
@@ -165,13 +158,13 @@ clutter_paint_volume_free (ClutterPaintVolume *pv)
   if (G_LIKELY (pv->is_static))
     return;
 
-  g_slice_free (ClutterPaintVolume, pv);
+  g_free (pv);
 }
 
 /**
  * clutter_paint_volume_set_origin:
  * @pv: a #ClutterPaintVolume
- * @origin: a #ClutterVertex
+ * @origin: a #graphene_point3d_t
  *
  * Sets the origin of the paint volume.
  *
@@ -179,12 +172,10 @@ clutter_paint_volume_free (ClutterPaintVolume *pv)
  * corner of an actor's paint volume, in actor coordinates.
  *
  * The default is origin is assumed at: (0, 0, 0)
- *
- * Since: 1.6
  */
 void
-clutter_paint_volume_set_origin (ClutterPaintVolume  *pv,
-                                 const ClutterVertex *origin)
+clutter_paint_volume_set_origin (ClutterPaintVolume       *pv,
+                                 const graphene_point3d_t *origin)
 {
   static const int key_vertices[4] = { 0, 1, 3, 4 };
   float dx, dy, dz;
@@ -211,15 +202,13 @@ clutter_paint_volume_set_origin (ClutterPaintVolume  *pv,
 /**
  * clutter_paint_volume_get_origin:
  * @pv: a #ClutterPaintVolume
- * @vertex: (out): the return location for a #ClutterVertex
+ * @vertex: (out): the return location for a #graphene_point3d_t
  *
  * Retrieves the origin of the #ClutterPaintVolume.
- *
- * Since: 1.6
  */
 void
 clutter_paint_volume_get_origin (const ClutterPaintVolume *pv,
-                                 ClutterVertex            *vertex)
+                                 graphene_point3d_t       *vertex)
 {
   g_return_if_fail (pv != NULL);
   g_return_if_fail (vertex != NULL);
@@ -245,8 +234,6 @@ _clutter_paint_volume_update_is_empty (ClutterPaintVolume *pv)
  *
  * Sets the width of the paint volume. The width is measured along
  * the x axis in the actor coordinates that @pv is associated with.
- *
- * Since: 1.6
  */
 void
 clutter_paint_volume_set_width (ClutterPaintVolume *pv,
@@ -290,13 +277,13 @@ clutter_paint_volume_set_width (ClutterPaintVolume *pv,
  * around the volume. It returns the size of that bounding box as
  * measured along the x-axis.
  *
- * If, for example, clutter_actor_get_transformed_paint_volume()
+ * If, for example, [method@Actor.get_transformed_paint_volume]
  * is used to transform a 2D child actor that is 100px wide, 100px
  * high and 0px deep into container coordinates then the width might
  * not simply be 100px if the child actor has a 3D rotation applied to
  * it.
  * 
- * Remember: if clutter_actor_get_transformed_paint_volume() is
+ * Remember: if [method@Actor.get_transformed_paint_volume] is
  * used then a transformed child volume will be defined relative to the
  * ancestor container actor and so a 2D child actor can have a 3D
  * bounding volume.
@@ -307,8 +294,6 @@ clutter_paint_volume_set_width (ClutterPaintVolume *pv,
  * fitting paint volumes for efficiency.
 
  * Return value: the width, in units of @pv's local coordinate system.
- *
- * Since: 1.6
  */
 gfloat
 clutter_paint_volume_get_width (const ClutterPaintVolume *pv)
@@ -338,8 +323,6 @@ clutter_paint_volume_get_width (const ClutterPaintVolume *pv)
  *
  * Sets the height of the paint volume. The height is measured along
  * the y axis in the actor coordinates that @pv is associated with.
- *
- * Since: 1.6
  */
 void
 clutter_paint_volume_set_height (ClutterPaintVolume *pv,
@@ -382,13 +365,13 @@ clutter_paint_volume_set_height (ClutterPaintVolume *pv,
  * around the volume. It returns the size of that bounding box as
  * measured along the y-axis.
  *
- * If, for example, clutter_actor_get_transformed_paint_volume()
+ * If, for example, [method@Actor.get_transformed_paint_volume]
  * is used to transform a 2D child actor that is 100px wide, 100px
  * high and 0px deep into container coordinates then the height might
  * not simply be 100px if the child actor has a 3D rotation applied to
  * it.
  *
- * Remember: if clutter_actor_get_transformed_paint_volume() is
+ * Remember: if [method@Actor.get_transformed_paint_volume] is
  * used then a transformed child volume will be defined relative to the
  * ancestor container actor and so a 2D child actor
  * can have a 3D bounding volume.
@@ -399,8 +382,6 @@ clutter_paint_volume_set_height (ClutterPaintVolume *pv,
  * volumes for efficiency.
  *
  * Return value: the height, in units of @pv's local coordinate system.
- *
- * Since: 1.6
  */
 gfloat
 clutter_paint_volume_get_height (const ClutterPaintVolume *pv)
@@ -430,8 +411,6 @@ clutter_paint_volume_get_height (const ClutterPaintVolume *pv)
  *
  * Sets the depth of the paint volume. The depth is measured along
  * the z axis in the actor coordinates that @pv is associated with.
- *
- * Since: 1.6
  */
 void
 clutter_paint_volume_set_depth (ClutterPaintVolume *pv,
@@ -475,13 +454,13 @@ clutter_paint_volume_set_depth (ClutterPaintVolume *pv,
  * around the volume. It returns the size of that bounding box as
  * measured along the z-axis.
  *
- * If, for example, clutter_actor_get_transformed_paint_volume()
+ * If, for example, [method@Actor.get_transformed_paint_volume]
  * is used to transform a 2D child actor that is 100px wide, 100px
  * high and 0px deep into container coordinates then the depth might
  * not simply be 0px if the child actor has a 3D rotation applied to
  * it.
  *
- * Remember: if clutter_actor_get_transformed_paint_volume() is
+ * Remember: if [method@Actor.get_transformed_paint_volume] is
  * used then the transformed volume will be defined relative to the
  * container actor and in container coordinates a 2D child actor
  * can have a 3D bounding volume.
@@ -492,8 +471,6 @@ clutter_paint_volume_set_depth (ClutterPaintVolume *pv,
  * volumes for efficiency.
  *
  * Return value: the depth, in units of @pv's local coordinate system.
- *
- * Since: 1.6
  */
 gfloat
 clutter_paint_volume_get_depth (const ClutterPaintVolume *pv)
@@ -526,23 +503,23 @@ clutter_paint_volume_get_depth (const ClutterPaintVolume *pv)
  *
  * There are no guarantees about how precisely the two volumes
  * will be unioned.
- *
- * Since: 1.6
  */
 void
 clutter_paint_volume_union (ClutterPaintVolume *pv,
                             const ClutterPaintVolume *another_pv)
 {
   ClutterPaintVolume aligned_pv;
+  graphene_point3d_t min;
+  graphene_point3d_t max;
+  graphene_box_t another_box;
+  graphene_box_t union_box;
+  graphene_box_t box;
 
   g_return_if_fail (pv != NULL);
   g_return_if_fail (another_pv != NULL);
 
   /* Both volumes have to belong to the same local coordinate space */
   g_return_if_fail (pv->actor == another_pv->actor);
-
-  /* NB: we only have to update vertices 0, 1, 3 and 4
-   * (See the ClutterPaintVolume typedef for more details) */
 
   /* We special case empty volumes because otherwise we'd end up
    * calculating a bounding box that would enclose the origin of
@@ -560,78 +537,34 @@ clutter_paint_volume_union (ClutterPaintVolume *pv,
   if (!pv->is_axis_aligned)
     _clutter_paint_volume_axis_align (pv);
 
-  if (!another_pv->is_axis_aligned)
+  _clutter_paint_volume_complete (pv);
+
+  if (!another_pv->is_axis_aligned || !another_pv->is_complete)
     {
       _clutter_paint_volume_copy_static (another_pv, &aligned_pv);
       _clutter_paint_volume_axis_align (&aligned_pv);
+      _clutter_paint_volume_complete (&aligned_pv);
       another_pv = &aligned_pv;
     }
 
-  /* grow left*/
-  /* left vertices 0, 3, 4, 7 */
-  if (another_pv->vertices[0].x < pv->vertices[0].x)
-    {
-      int min_x = another_pv->vertices[0].x;
-      pv->vertices[0].x = min_x;
-      pv->vertices[3].x = min_x;
-      pv->vertices[4].x = min_x;
-      /* pv->vertices[7].x = min_x; */
-    }
+  if (G_LIKELY (pv->is_2d))
+    graphene_box_init_from_points (&box, 4, pv->vertices);
+  else
+    graphene_box_init_from_points (&box, 8, pv->vertices);
 
-  /* grow right */
-  /* right vertices 1, 2, 5, 6 */
-  if (another_pv->vertices[1].x > pv->vertices[1].x)
-    {
-      int max_x = another_pv->vertices[1].x;
-      pv->vertices[1].x = max_x;
-      /* pv->vertices[2].x = max_x; */
-      /* pv->vertices[5].x = max_x; */
-      /* pv->vertices[6].x = max_x; */
-    }
+  if (G_LIKELY (another_pv->is_2d))
+    graphene_box_init_from_points (&another_box, 4, another_pv->vertices);
+  else
+    graphene_box_init_from_points (&another_box, 8, another_pv->vertices);
 
-  /* grow up */
-  /* top vertices 0, 1, 4, 5 */
-  if (another_pv->vertices[0].y < pv->vertices[0].y)
-    {
-      int min_y = another_pv->vertices[0].y;
-      pv->vertices[0].y = min_y;
-      pv->vertices[1].y = min_y;
-      pv->vertices[4].y = min_y;
-      /* pv->vertices[5].y = min_y; */
-    }
+  graphene_box_union (&box, &another_box, &union_box);
 
-  /* grow down */
-  /* bottom vertices 2, 3, 6, 7 */
-  if (another_pv->vertices[3].y > pv->vertices[3].y)
-    {
-      int may_y = another_pv->vertices[3].y;
-      /* pv->vertices[2].y = may_y; */
-      pv->vertices[3].y = may_y;
-      /* pv->vertices[6].y = may_y; */
-      /* pv->vertices[7].y = may_y; */
-    }
-
-  /* grow forward */
-  /* front vertices 0, 1, 2, 3 */
-  if (another_pv->vertices[0].z < pv->vertices[0].z)
-    {
-      int min_z = another_pv->vertices[0].z;
-      pv->vertices[0].z = min_z;
-      pv->vertices[1].z = min_z;
-      /* pv->vertices[2].z = min_z; */
-      pv->vertices[3].z = min_z;
-    }
-
-  /* grow backward */
-  /* back vertices 4, 5, 6, 7 */
-  if (another_pv->vertices[4].z > pv->vertices[4].z)
-    {
-      int maz_z = another_pv->vertices[4].z;
-      pv->vertices[4].z = maz_z;
-      /* pv->vertices[5].z = maz_z; */
-      /* pv->vertices[6].z = maz_z; */
-      /* pv->vertices[7].z = maz_z; */
-    }
+  graphene_box_get_min (&union_box, &min);
+  graphene_box_get_max (&union_box, &max);
+  graphene_point3d_init (&pv->vertices[0], min.x, min.y, min.z);
+  graphene_point3d_init (&pv->vertices[1], max.x, min.y, min.z);
+  graphene_point3d_init (&pv->vertices[3], min.x, max.y, min.z);
+  graphene_point3d_init (&pv->vertices[4], min.x, min.y, max.z);
 
   if (pv->vertices[4].z == pv->vertices[0].z)
     pv->is_2d = TRUE;
@@ -650,17 +583,15 @@ done:
  *
  * Unions the 2D region represented by @box to a #ClutterPaintVolume.
  *
- * This function is similar to clutter_paint_volume_union(), but it is
+ * This function is similar to [method@PaintVolume.union], but it is
  * specific for 2D regions.
- *
- * Since: 1.10
  */
 void
 clutter_paint_volume_union_box (ClutterPaintVolume    *pv,
                                 const ClutterActorBox *box)
 {
   ClutterPaintVolume volume;
-  ClutterVertex origin;
+  graphene_point3d_t origin;
 
   g_return_if_fail (pv != NULL);
   g_return_if_fail (box != NULL);
@@ -750,15 +681,13 @@ _clutter_paint_volume_complete (ClutterPaintVolume *pv)
  * integer pixel values; if you need them to be rounded to the
  * nearest integer pixel values, you can use the
  * clutter_actor_box_clamp_to_pixel() function.
- *
- * Since: 1.6
  */
 void
 _clutter_paint_volume_get_bounding_box (ClutterPaintVolume *pv,
                                         ClutterActorBox *box)
 {
   gfloat x_min, y_min, x_max, y_max;
-  ClutterVertex *vertices;
+  graphene_point3d_t *vertices;
   int count;
   gint i;
 
@@ -809,8 +738,8 @@ _clutter_paint_volume_get_bounding_box (ClutterPaintVolume *pv,
 
 void
 _clutter_paint_volume_project (ClutterPaintVolume *pv,
-                               const CoglMatrix *modelview,
-                               const CoglMatrix *projection,
+                               const graphene_matrix_t *modelview,
+                               const graphene_matrix_t *projection,
                                const float *viewport)
 {
   int transform_count;
@@ -828,7 +757,7 @@ _clutter_paint_volume_project (ClutterPaintVolume *pv,
     }
 
   /* All the vertices must be up to date, since after the projection
-   * it wont be trivial to derive the other vertices. */
+   * it won't be trivial to derive the other vertices. */
   _clutter_paint_volume_complete (pv);
 
   /* Most actors are 2D so we only have to transform the front 4
@@ -850,7 +779,7 @@ _clutter_paint_volume_project (ClutterPaintVolume *pv,
 
 void
 _clutter_paint_volume_transform (ClutterPaintVolume *pv,
-                                 const CoglMatrix *matrix)
+                                 const graphene_matrix_t *matrix)
 {
   int transform_count;
 
@@ -858,16 +787,16 @@ _clutter_paint_volume_transform (ClutterPaintVolume *pv,
     {
       gfloat w = 1;
       /* Just transform the origin */
-      cogl_matrix_transform_point (matrix,
-                                   &pv->vertices[0].x,
-                                   &pv->vertices[0].y,
-                                   &pv->vertices[0].z,
-                                   &w);
+      cogl_graphene_matrix_project_point (matrix,
+                                          &pv->vertices[0].x,
+                                          &pv->vertices[0].y,
+                                          &pv->vertices[0].z,
+                                          &w);
       return;
     }
 
   /* All the vertices must be up to date, since after the transform
-   * it wont be trivial to derive the other vertices. */
+   * it won't be trivial to derive the other vertices. */
   _clutter_paint_volume_complete (pv);
 
   /* Most actors are 2D so we only have to transform the front 4
@@ -877,13 +806,13 @@ _clutter_paint_volume_transform (ClutterPaintVolume *pv,
   else
     transform_count = 8;
 
-  cogl_matrix_transform_points (matrix,
-                                3,
-                                sizeof (ClutterVertex),
-                                pv->vertices,
-                                sizeof (ClutterVertex),
-                                pv->vertices,
-                                transform_count);
+  cogl_graphene_matrix_transform_points (matrix,
+                                         3,
+                                         sizeof (graphene_point3d_t),
+                                         pv->vertices,
+                                         sizeof (graphene_point3d_t),
+                                         pv->vertices,
+                                         transform_count);
 
   pv->is_axis_aligned = FALSE;
 }
@@ -897,7 +826,7 @@ _clutter_paint_volume_axis_align (ClutterPaintVolume *pv)
 {
   int count;
   int i;
-  ClutterVertex origin;
+  graphene_point3d_t origin;
   float max_x;
   float max_y;
   float max_z;
@@ -1028,24 +957,22 @@ _clutter_actor_set_default_paint_volume (ClutterActor       *self,
  * Sets the #ClutterPaintVolume from the allocation of @actor.
  *
  * This function should be used when overriding the
- * #ClutterActorClass.get_paint_volume() by #ClutterActor sub-classes
+ * [vfunc@Actor.get_paint_volume] by [class@Actor] sub-classes
  * that do not paint outside their allocation.
  *
  * A typical example is:
  *
- * |[
+ * ```c
  * static gboolean
  * my_actor_get_paint_volume (ClutterActor       *self,
  *                            ClutterPaintVolume *volume)
  * {
  *   return clutter_paint_volume_set_from_allocation (volume, self);
  * }
- * ]|
+ * ```
  *
  * Return value: %TRUE if the paint volume was successfully set, and %FALSE
  *   otherwise
- *
- * Since: 1.6
  */
 gboolean
 clutter_paint_volume_set_from_allocation (ClutterPaintVolume *pv,
@@ -1058,9 +985,9 @@ clutter_paint_volume_set_from_allocation (ClutterPaintVolume *pv,
 }
 
 /* Currently paint volumes are defined relative to a given actor, but
- * in some cases it is desireable to be able to change the actor that
+ * in some cases it is desirable to be able to change the actor that
  * a volume relates too (For instance for ClutterClone actors where we
- * need to masquarade the source actors volume as the volume for the
+ * need to masquerade the source actors volume as the volume for the
  * clone). */
 void
 _clutter_paint_volume_set_reference_actor (ClutterPaintVolume *pv,
@@ -1072,14 +999,11 @@ _clutter_paint_volume_set_reference_actor (ClutterPaintVolume *pv,
 }
 
 ClutterCullResult
-_clutter_paint_volume_cull (ClutterPaintVolume *pv,
-                            const ClutterPlane *planes)
+_clutter_paint_volume_cull (ClutterPaintVolume       *pv,
+                            const graphene_frustum_t *frustum)
 {
   int vertex_count;
-  ClutterVertex *vertices = pv->vertices;
-  gboolean partial = FALSE;
-  int i;
-  int j;
+  graphene_box_t box;
 
   if (pv->is_empty)
     return CLUTTER_CULL_RESULT_OUT;
@@ -1096,56 +1020,27 @@ _clutter_paint_volume_cull (ClutterPaintVolume *pv,
   else
     vertex_count = 8;
 
-  for (i = 0; i < 4; i++)
-    {
-      int out = 0;
-      for (j = 0; j < vertex_count; j++)
-        {
-          ClutterVertex p;
-          float distance;
+  graphene_box_init_from_points (&box, vertex_count, pv->vertices);
 
-          /* XXX: for perspective projections this can be optimized
-           * out because all the planes should pass through the origin
-           * so (0,0,0) is a valid v0. */
-          p.x = vertices[j].x - planes[i].v0[0];
-          p.y = vertices[j].y - planes[i].v0[1];
-          p.z = vertices[j].z - planes[i].v0[2];
-
-          distance = (planes[i].n[0] * p.x +
-                      planes[i].n[1] * p.y +
-                      planes[i].n[2] * p.z);
-
-          if (distance < 0)
-            out++;
-        }
-
-      if (out == vertex_count)
-        return CLUTTER_CULL_RESULT_OUT;
-      else if (out != 0)
-        partial = TRUE;
-    }
-
-  if (partial)
-    return CLUTTER_CULL_RESULT_PARTIAL;
-  else
+  if (graphene_frustum_intersects_box (frustum, &box))
     return CLUTTER_CULL_RESULT_IN;
+  else
+    return CLUTTER_CULL_RESULT_OUT;
 }
 
 void
-_clutter_paint_volume_get_stage_paint_box (ClutterPaintVolume *pv,
-                                           ClutterStage *stage,
-                                           ClutterActorBox *box)
+_clutter_paint_volume_get_stage_paint_box (const ClutterPaintVolume *pv,
+                                           ClutterStage             *stage,
+                                           ClutterActorBox          *box)
 {
   ClutterPaintVolume projected_pv;
-  CoglMatrix modelview;
-  CoglMatrix projection;
+  graphene_matrix_t modelview;
+  graphene_matrix_t projection;
   float viewport[4];
-  float width;
-  float height;
 
   _clutter_paint_volume_copy_static (pv, &projected_pv);
 
-  cogl_matrix_init_identity (&modelview);
+  graphene_matrix_init_identity (&modelview);
 
   /* If the paint volume isn't already in eye coordinates... */
   if (pv->actor)
@@ -1166,50 +1061,26 @@ _clutter_paint_volume_get_stage_paint_box (ClutterPaintVolume *pv,
 
   _clutter_paint_volume_get_bounding_box (&projected_pv, box);
 
-  /* The aim here is that for a given rectangle defined with floating point
-   * coordinates we want to determine a stable quantized size in pixels
-   * that doesn't vary due to the original box's sub-pixel position.
-   *
-   * The reason this is important is because effects will use this
-   * API to determine the size of offscreen framebuffers and so for
-   * a fixed-size object that may be animated accross the screen we
-   * want to make sure that the stage paint-box has an equally stable
-   * size so that effects aren't made to continuously re-allocate
-   * a corresponding fbo.
-   *
-   * The other thing we consider is that the calculation of this box is
-   * subject to floating point precision issues that might be slightly
-   * different to the precision issues involved with actually painting the
-   * actor, which might result in painting slightly leaking outside the
-   * user's calculated paint-volume. For this we simply aim to pad out the
-   * paint-volume by at least half a pixel all the way around.
-   */
-  width = box->x2 - box->x1;
-  height = box->y2 - box->y1;
-  width = CLUTTER_NEARBYINT (width);
-  height = CLUTTER_NEARBYINT (height);
-  /* XXX: NB the width/height may now be up to 0.5px too small so we
-   * must also pad by 0.25px all around to account for this. In total we
-   * must padd by at least 0.75px around all sides. */
+  if (pv->is_2d &&
+      (!pv->actor || clutter_actor_get_z_position (pv->actor) == 0))
+    {
+      /* If the volume/actor are perfectly 2D, take the bounding box as
+       * good. We won't need to add any extra room for sub-pixel positioning
+       * in this case.
+       */
+      clutter_paint_volume_free (&projected_pv);
+      clutter_round_to_256ths (&box->x1);
+      clutter_round_to_256ths (&box->y1);
+      clutter_round_to_256ths (&box->x2);
+      clutter_round_to_256ths (&box->y2);
+      box->x1 = floorf (box->x1);
+      box->y1 = floorf (box->y1);
+      box->x2 = ceilf (box->x2);
+      box->y2 = ceilf (box->y2);
+      return;
+    }
 
-  /* XXX: The furthest that we can overshoot the bottom right corner by
-   * here is 1.75px in total if you consider that the 0.75 padding could
-   * just cross an integer boundary and so ceil will effectively add 1.
-   */
-  box->x2 = ceilf (box->x2 + 0.75);
-  box->y2 = ceilf (box->y2 + 0.75);
-
-  /* Now we redefine the top-left relative to the bottom right based on the
-   * rounded width/height determined above + a constant so that the overall
-   * size of the box will be stable and not dependant on the box's
-   * position.
-   *
-   * Adding 3px to the width/height will ensure we cover the maximum of
-   * 1.75px padding on the bottom/right and still ensure we have > 0.75px
-   * padding on the top/left.
-   */
-  box->x1 = box->x2 - width - 3;
-  box->y1 = box->y2 - height - 3;
+  _clutter_actor_box_enlarge_for_effects (box);
 
   clutter_paint_volume_free (&projected_pv);
 }
@@ -1218,7 +1089,7 @@ void
 _clutter_paint_volume_transform_relative (ClutterPaintVolume *pv,
                                           ClutterActor *relative_to_ancestor)
 {
-  CoglMatrix matrix;
+  graphene_matrix_t matrix;
   ClutterActor *actor;
 
   actor = pv->actor;
@@ -1227,10 +1098,32 @@ _clutter_paint_volume_transform_relative (ClutterPaintVolume *pv,
 
   _clutter_paint_volume_set_reference_actor (pv, relative_to_ancestor);
 
-  cogl_matrix_init_identity (&matrix);
+  graphene_matrix_init_identity (&matrix);
   _clutter_actor_apply_relative_transformation_matrix (actor,
                                                        relative_to_ancestor,
                                                       &matrix);
 
   _clutter_paint_volume_transform (pv, &matrix);
+}
+
+void
+clutter_paint_volume_to_box (ClutterPaintVolume *pv,
+                             graphene_box_t     *box)
+{
+  int vertex_count;
+
+  if (pv->is_empty)
+    {
+      graphene_box_init_from_box (box, graphene_box_empty ());
+      return;
+    }
+
+  _clutter_paint_volume_complete (pv);
+
+  if (G_LIKELY (pv->is_2d))
+    vertex_count = 4;
+  else
+    vertex_count = 8;
+
+  graphene_box_init_from_points (box, vertex_count, pv->vertices);
 }

@@ -3,7 +3,8 @@
  *
  * A Low Level GPU Graphics and Utilities API
  *
- * Copyright (C) 2011 Intel Corporation.
+ * Copyright (C) 2007,2008,2009,2011 Intel Corporation.
+ * Copyright (C) 2019 DisplayLink (UK) Ltd.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -31,32 +32,19 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifndef __COGL_FRAMEBUFFER_H
-#define __COGL_FRAMEBUFFER_H
+#pragma once
 
-/* We forward declare the CoglFramebuffer type here to avoid some circular
- * dependency issues with the following headers.
- */
-#if defined(__COGL_H_INSIDE__) && !defined(COGL_ENABLE_MUTTER_API) && \
-  !defined(COGL_GIR_SCANNING)
-/* For the public C api we typedef interface types as void to avoid needing
- * lots of casting in code and instead we will rely on runtime type checking
- * for these objects. */
-typedef void CoglFramebuffer;
-#else
-typedef struct _CoglFramebuffer CoglFramebuffer;
-#define COGL_FRAMEBUFFER(X) ((CoglFramebuffer *)(X))
-#endif
+#include "cogl/cogl-pipeline.h"
+#include "cogl/cogl-indices.h"
+#include "cogl/cogl-bitmap.h"
+#include "cogl/cogl-texture.h"
 
-#include <cogl/cogl-pipeline.h>
-#include <cogl/cogl-indices.h>
-#include <cogl/cogl-bitmap.h>
-#include <cogl/cogl-quaternion.h>
-#include <cogl/cogl-euler.h>
-#include <cogl/cogl-texture.h>
 #include <glib-object.h>
+#include <cairo.h>
 
-COGL_BEGIN_DECLS
+#include <graphene.h>
+
+G_BEGIN_DECLS
 
 /**
  * SECTION:cogl-framebuffer
@@ -96,17 +84,27 @@ COGL_BEGIN_DECLS
  * configuration.
  */
 
-/**
- * cogl_framebuffer_get_gtype:
- *
- * Returns: a #GType that can be used with the GLib type system.
- */
-GType cogl_framebuffer_get_gtype (void);
+typedef struct _CoglFramebufferDriverConfig CoglFramebufferDriverConfig;
+
+#define COGL_TYPE_FRAMEBUFFER (cogl_framebuffer_get_type ())
+COGL_EXPORT
+G_DECLARE_DERIVABLE_TYPE (CoglFramebuffer, cogl_framebuffer,
+                          COGL, FRAMEBUFFER, GObject)
+
+struct _CoglFramebufferClass
+{
+  /*< private >*/
+  GObjectClass parent_class;
+
+  gboolean (* allocate) (CoglFramebuffer  *framebuffer,
+                         GError          **error);
+  gboolean (* is_y_flipped) (CoglFramebuffer *framebuffer);
+};
 
 /**
  * cogl_framebuffer_allocate:
  * @framebuffer: A #CoglFramebuffer
- * @error: A pointer to a #CoglError for returning exceptions.
+ * @error: A pointer to a #GError for returning exceptions.
  *
  * Explicitly allocates a configured #CoglFramebuffer allowing developers to
  * check and handle any errors that might arise from an unsupported
@@ -120,12 +118,10 @@ GType cogl_framebuffer_get_gtype (void);
  * automatic allocation.</note>
  *
  * Return value: %TRUE if there were no error allocating the framebuffer, else %FALSE.
- * Since: 1.8
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_framebuffer_allocate (CoglFramebuffer *framebuffer,
-                           CoglError **error);
+                           GError **error);
 
 /**
  * cogl_framebuffer_get_width:
@@ -134,10 +130,8 @@ cogl_framebuffer_allocate (CoglFramebuffer *framebuffer,
  * Queries the current width of the given @framebuffer.
  *
  * Return value: The width of @framebuffer.
- * Since: 1.8
- * Stability: unstable
  */
-int
+COGL_EXPORT int
 cogl_framebuffer_get_width (CoglFramebuffer *framebuffer);
 
 /**
@@ -147,10 +141,8 @@ cogl_framebuffer_get_width (CoglFramebuffer *framebuffer);
  * Queries the current height of the given @framebuffer.
  *
  * Return value: The height of @framebuffer.
- * Since: 1.8
- * Stability: unstable
  */
-int
+COGL_EXPORT int
 cogl_framebuffer_get_height (CoglFramebuffer *framebuffer);
 
 /**
@@ -179,10 +171,8 @@ cogl_framebuffer_get_height (CoglFramebuffer *framebuffer);
  * drivers only allow the use of integer values. In the future floating
  * point values will be exposed via a checkable feature.</note>
  *
- * Since: 1.8
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_set_viewport (CoglFramebuffer *framebuffer,
                                float x,
                                float y,
@@ -197,10 +187,8 @@ cogl_framebuffer_set_viewport (CoglFramebuffer *framebuffer,
  * or the default value which is 0.
  *
  * Return value: The x coordinate of the viewport origin.
- * Since: 1.8
- * Stability: unstable
  */
-float
+COGL_EXPORT float
 cogl_framebuffer_get_viewport_x (CoglFramebuffer *framebuffer);
 
 /**
@@ -211,10 +199,8 @@ cogl_framebuffer_get_viewport_x (CoglFramebuffer *framebuffer);
  * or the default value which is 0.
  *
  * Return value: The y coordinate of the viewport origin.
- * Since: 1.8
- * Stability: unstable
  */
-float
+COGL_EXPORT float
 cogl_framebuffer_get_viewport_y (CoglFramebuffer *framebuffer);
 
 /**
@@ -225,10 +211,8 @@ cogl_framebuffer_get_viewport_y (CoglFramebuffer *framebuffer);
  * or the default value which is the width of the framebuffer.
  *
  * Return value: The width of the viewport.
- * Since: 1.8
- * Stability: unstable
  */
-float
+COGL_EXPORT float
 cogl_framebuffer_get_viewport_width (CoglFramebuffer *framebuffer);
 
 /**
@@ -239,10 +223,8 @@ cogl_framebuffer_get_viewport_width (CoglFramebuffer *framebuffer);
  * or the default value which is the height of the framebuffer.
  *
  * Return value: The height of the viewport.
- * Since: 1.8
- * Stability: unstable
  */
-float
+COGL_EXPORT float
 cogl_framebuffer_get_viewport_height (CoglFramebuffer *framebuffer);
 
 /**
@@ -257,10 +239,8 @@ cogl_framebuffer_get_viewport_height (CoglFramebuffer *framebuffer);
  * framebuffer_width and framebuffer_height.  The values are written into the
  * given @viewport array.
  *
- * Since: 1.8
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_get_viewport4fv (CoglFramebuffer *framebuffer,
                                   float *viewport);
 
@@ -270,10 +250,8 @@ cogl_framebuffer_get_viewport4fv (CoglFramebuffer *framebuffer,
  *
  * Copies the current model-view matrix onto the matrix stack. The matrix
  * can later be restored with cogl_framebuffer_pop_matrix().
- *
- * Since: 1.10
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_push_matrix (CoglFramebuffer *framebuffer);
 
 /**
@@ -281,10 +259,8 @@ cogl_framebuffer_push_matrix (CoglFramebuffer *framebuffer);
  * @framebuffer: A #CoglFramebuffer pointer
  *
  * Restores the model-view matrix on the top of the matrix stack.
- *
- * Since: 1.10
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_pop_matrix (CoglFramebuffer *framebuffer);
 
 /**
@@ -292,11 +268,8 @@ cogl_framebuffer_pop_matrix (CoglFramebuffer *framebuffer);
  * @framebuffer: A #CoglFramebuffer pointer
  *
  * Resets the current model-view matrix to the identity matrix.
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_identity_matrix (CoglFramebuffer *framebuffer);
 
 /**
@@ -308,11 +281,8 @@ cogl_framebuffer_identity_matrix (CoglFramebuffer *framebuffer);
  *
  * Multiplies the current model-view matrix by one that scales the x,
  * y and z axes by the given values.
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_scale (CoglFramebuffer *framebuffer,
                         float x,
                         float y,
@@ -327,11 +297,8 @@ cogl_framebuffer_scale (CoglFramebuffer *framebuffer,
  *
  * Multiplies the current model-view matrix by one that translates the
  * model along all three axes according to the given values.
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_translate (CoglFramebuffer *framebuffer,
                             float x,
                             float y,
@@ -350,11 +317,8 @@ cogl_framebuffer_translate (CoglFramebuffer *framebuffer,
  * rotation follows the right-hand thumb rule so for example rotating
  * by 10 degrees about the axis-vector (0, 0, 1) causes a small
  * counter-clockwise rotation.
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_rotate (CoglFramebuffer *framebuffer,
                          float angle,
                          float x,
@@ -362,34 +326,16 @@ cogl_framebuffer_rotate (CoglFramebuffer *framebuffer,
                          float z);
 
 /**
- * cogl_framebuffer_rotate_quaternion:
- * @framebuffer: A #CoglFramebuffer pointer
- * @quaternion: A #CoglQuaternion
- *
- * Multiplies the current model-view matrix by one that rotates
- * according to the rotation described by @quaternion.
- *
- * Since: 2.0
- * Stability: unstable
- */
-void
-cogl_framebuffer_rotate_quaternion (CoglFramebuffer *framebuffer,
-                                    const CoglQuaternion *quaternion);
-
-/**
  * cogl_framebuffer_rotate_euler:
  * @framebuffer: A #CoglFramebuffer pointer
- * @euler: A #CoglEuler
+ * @euler: A #graphene_euler_t
  *
  * Multiplies the current model-view matrix by one that rotates
  * according to the rotation described by @euler.
- *
- * Since: 2.0
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_rotate_euler (CoglFramebuffer *framebuffer,
-                               const CoglEuler *euler);
+                               const graphene_euler_t *euler);
 
 /**
  * cogl_framebuffer_transform:
@@ -397,13 +343,10 @@ cogl_framebuffer_rotate_euler (CoglFramebuffer *framebuffer,
  * @matrix: the matrix to multiply with the current model-view
  *
  * Multiplies the current model-view matrix by the given matrix.
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
-cogl_framebuffer_transform (CoglFramebuffer *framebuffer,
-                            const CoglMatrix *matrix);
+COGL_EXPORT void
+cogl_framebuffer_transform (CoglFramebuffer         *framebuffer,
+                            const graphene_matrix_t *matrix);
 
 /**
  * cogl_framebuffer_get_modelview_matrix:
@@ -411,13 +354,10 @@ cogl_framebuffer_transform (CoglFramebuffer *framebuffer,
  * @matrix: (out): return location for the model-view matrix
  *
  * Stores the current model-view matrix in @matrix.
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
-cogl_framebuffer_get_modelview_matrix (CoglFramebuffer *framebuffer,
-                                       CoglMatrix *matrix);
+COGL_EXPORT void
+cogl_framebuffer_get_modelview_matrix (CoglFramebuffer   *framebuffer,
+                                       graphene_matrix_t *matrix);
 
 /**
  * cogl_framebuffer_set_modelview_matrix:
@@ -425,13 +365,10 @@ cogl_framebuffer_get_modelview_matrix (CoglFramebuffer *framebuffer,
  * @matrix: the new model-view matrix
  *
  * Sets @matrix as the new model-view matrix.
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
-cogl_framebuffer_set_modelview_matrix (CoglFramebuffer *framebuffer,
-                                       const CoglMatrix *matrix);
+COGL_EXPORT void
+cogl_framebuffer_set_modelview_matrix (CoglFramebuffer         *framebuffer,
+                                       const graphene_matrix_t *matrix);
 
 /**
  * cogl_framebuffer_perspective:
@@ -447,13 +384,10 @@ cogl_framebuffer_set_modelview_matrix (CoglFramebuffer *framebuffer,
  *
  * <note>You should be careful not to have to great a @z_far / @z_near
  * ratio since that will reduce the effectiveness of depth testing
- * since there wont be enough precision to identify the depth of
+ * since there won't be enough precision to identify the depth of
  * objects near to each other.</note>
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_perspective (CoglFramebuffer *framebuffer,
                               float fov_y,
                               float aspect,
@@ -477,11 +411,8 @@ cogl_framebuffer_perspective (CoglFramebuffer *framebuffer,
  * Replaces the current projection matrix with a perspective matrix
  * for a given viewing frustum defined by 4 side clip planes that
  * all cross through the origin and 2 near and far clip planes.
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_frustum (CoglFramebuffer *framebuffer,
                           float left,
                           float right,
@@ -506,11 +437,8 @@ cogl_framebuffer_frustum (CoglFramebuffer *framebuffer,
  *
  * Replaces the current projection matrix with an orthographic projection
  * matrix.
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_orthographic (CoglFramebuffer *framebuffer,
                                float x_1,
                                float y_1,
@@ -525,13 +453,10 @@ cogl_framebuffer_orthographic (CoglFramebuffer *framebuffer,
  * @matrix: (out): return location for the projection matrix
  *
  * Stores the current projection matrix in @matrix.
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
-cogl_framebuffer_get_projection_matrix (CoglFramebuffer *framebuffer,
-                                        CoglMatrix *matrix);
+COGL_EXPORT void
+cogl_framebuffer_get_projection_matrix (CoglFramebuffer   *framebuffer,
+                                        graphene_matrix_t *matrix);
 
 /**
  * cogl_framebuffer_set_projection_matrix:
@@ -539,40 +464,10 @@ cogl_framebuffer_get_projection_matrix (CoglFramebuffer *framebuffer,
  * @matrix: the new projection matrix
  *
  * Sets @matrix as the new projection matrix.
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
-cogl_framebuffer_set_projection_matrix (CoglFramebuffer *framebuffer,
-                                        const CoglMatrix *matrix);
-
-/**
- * cogl_framebuffer_push_scissor_clip:
- * @framebuffer: A #CoglFramebuffer pointer
- * @x: left edge of the clip rectangle in window coordinates
- * @y: top edge of the clip rectangle in window coordinates
- * @width: width of the clip rectangle
- * @height: height of the clip rectangle
- *
- * Specifies a rectangular clipping area for all subsequent drawing
- * operations. Any drawing commands that extend outside the rectangle
- * will be clipped so that only the portion inside the rectangle will
- * be displayed. The rectangle dimensions are not transformed by the
- * current model-view matrix.
- *
- * The rectangle is intersected with the current clip region. To undo
- * the effect of this function, call cogl_framebuffer_pop_clip().
- *
- * Since: 1.10
- * Stability: unstable
- */
-void
-cogl_framebuffer_push_scissor_clip (CoglFramebuffer *framebuffer,
-                                    int x,
-                                    int y,
-                                    int width,
-                                    int height);
+COGL_EXPORT void
+cogl_framebuffer_set_projection_matrix (CoglFramebuffer         *framebuffer,
+                                        const graphene_matrix_t *matrix);
 
 /**
  * cogl_framebuffer_push_rectangle_clip:
@@ -590,11 +485,8 @@ cogl_framebuffer_push_scissor_clip (CoglFramebuffer *framebuffer,
  *
  * The rectangle is intersected with the current clip region. To undo
  * the effect of this function, call cogl_framebuffer_pop_clip().
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_push_rectangle_clip (CoglFramebuffer *framebuffer,
                                       float x_1,
                                       float y_1,
@@ -602,7 +494,7 @@ cogl_framebuffer_push_rectangle_clip (CoglFramebuffer *framebuffer,
                                       float y_2);
 
 /**
- * cogl_framebuffer_push_primitive_clip:
+ * cogl_framebuffer_push_primitive_clip: (skip)
  * @framebuffer: A #CoglFramebuffer pointer
  * @primitive: A #CoglPrimitive describing a flat 2D shape
  * @bounds_x1: x coordinate for the top-left corner of the primitives
@@ -626,11 +518,8 @@ cogl_framebuffer_push_rectangle_clip (CoglFramebuffer *framebuffer,
  * the silhouette is intersected with the previous clipping area.  To
  * restore the previous clipping area, call
  * cogl_framebuffer_pop_clip().
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_push_primitive_clip (CoglFramebuffer *framebuffer,
                                       CoglPrimitive *primitive,
                                       float bounds_x1,
@@ -638,18 +527,19 @@ cogl_framebuffer_push_primitive_clip (CoglFramebuffer *framebuffer,
                                       float bounds_x2,
                                       float bounds_y2);
 
+COGL_EXPORT void
+cogl_framebuffer_push_region_clip (CoglFramebuffer *framebuffer,
+                                   cairo_region_t  *region);
+
 /**
  * cogl_framebuffer_pop_clip:
  * @framebuffer: A #CoglFramebuffer pointer
  *
  * Reverts the clipping region to the state before the last call to
- * cogl_framebuffer_push_scissor_clip(), cogl_framebuffer_push_rectangle_clip()
- * cogl_framebuffer_push_path_clip(), or cogl_framebuffer_push_primitive_clip().
- *
- * Since: 1.10
- * Stability: unstable
+ * cogl_framebuffer_push_rectangle_clip(), or
+ * cogl_framebuffer_push_primitive_clip().
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_pop_clip (CoglFramebuffer *framebuffer);
 
 /**
@@ -660,10 +550,8 @@ cogl_framebuffer_pop_clip (CoglFramebuffer *framebuffer);
  *
  * Return value: the number of bits
  *
- * Since: 1.8
- * Stability: unstable
  */
-int
+COGL_EXPORT int
 cogl_framebuffer_get_red_bits (CoglFramebuffer *framebuffer);
 
 /**
@@ -674,10 +562,8 @@ cogl_framebuffer_get_red_bits (CoglFramebuffer *framebuffer);
  *
  * Return value: the number of bits
  *
- * Since: 1.8
- * Stability: unstable
  */
-int
+COGL_EXPORT int
 cogl_framebuffer_get_green_bits (CoglFramebuffer *framebuffer);
 
 /**
@@ -688,10 +574,8 @@ cogl_framebuffer_get_green_bits (CoglFramebuffer *framebuffer);
  *
  * Return value: the number of bits
  *
- * Since: 1.8
- * Stability: unstable
  */
-int
+COGL_EXPORT int
 cogl_framebuffer_get_blue_bits (CoglFramebuffer *framebuffer);
 
 /**
@@ -702,10 +586,8 @@ cogl_framebuffer_get_blue_bits (CoglFramebuffer *framebuffer);
  *
  * Return value: the number of bits
  *
- * Since: 1.8
- * Stability: unstable
  */
-int
+COGL_EXPORT int
 cogl_framebuffer_get_alpha_bits (CoglFramebuffer *framebuffer);
 
 /**
@@ -715,11 +597,8 @@ cogl_framebuffer_get_alpha_bits (CoglFramebuffer *framebuffer);
  * Retrieves the number of depth bits of @framebuffer
  *
  * Return value: the number of bits
- *
- * Since: 2.0
- * Stability: unstable
  */
-int
+COGL_EXPORT int
 cogl_framebuffer_get_depth_bits (CoglFramebuffer *framebuffer);
 
 /*
@@ -732,11 +611,8 @@ cogl_framebuffer_get_depth_bits (CoglFramebuffer *framebuffer);
  *
  * Return value: %TRUE if @framebuffer has separate left and
  * right buffers.
- *
- * Since: 1.20
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_framebuffer_get_is_stereo (CoglFramebuffer *framebuffer);
 
 /**
@@ -751,10 +627,8 @@ cogl_framebuffer_get_is_stereo (CoglFramebuffer *framebuffer);
  * the user's request for dithering.</note>
  *
  * Return value: %TRUE if dithering has been requested or %FALSE if not.
- * Since: 1.8
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_framebuffer_get_dither_enabled (CoglFramebuffer *framebuffer);
 
 /**
@@ -776,12 +650,10 @@ cogl_framebuffer_get_dither_enabled (CoglFramebuffer *framebuffer);
  *
  * Dithering is enabled by default.
  *
- * Since: 1.8
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_set_dither_enabled (CoglFramebuffer *framebuffer,
-                                     CoglBool dither_enabled);
+                                     gboolean dither_enabled);
 
 /**
  * cogl_framebuffer_get_depth_write_enabled:
@@ -791,10 +663,8 @@ cogl_framebuffer_set_dither_enabled (CoglFramebuffer *framebuffer,
  * can be controlled via cogl_framebuffer_set_depth_write_enabled().
  *
  * Return value: %TRUE if depth writing is enabled or %FALSE if not.
- * Since: 1.18
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_framebuffer_get_depth_write_enabled (CoglFramebuffer *framebuffer);
 
 /**
@@ -808,45 +678,10 @@ cogl_framebuffer_get_depth_write_enabled (CoglFramebuffer *framebuffer);
  * information will be written to this buffer during rendering.
  *
  * Depth buffer writing is enabled by default.
- *
- * Since: 1.18
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_set_depth_write_enabled (CoglFramebuffer *framebuffer,
-                                          CoglBool depth_write_enabled);
-
-/**
- * cogl_framebuffer_get_color_mask:
- * @framebuffer: a pointer to a #CoglFramebuffer
- *
- * Gets the current #CoglColorMask of which channels would be written to the
- * current framebuffer. Each bit set in the mask means that the
- * corresponding color would be written.
- *
- * Returns: A #CoglColorMask
- * Since: 1.8
- * Stability: unstable
- */
-CoglColorMask
-cogl_framebuffer_get_color_mask (CoglFramebuffer *framebuffer);
-
-/**
- * cogl_framebuffer_set_color_mask:
- * @framebuffer: a pointer to a #CoglFramebuffer
- * @color_mask: A #CoglColorMask of which color channels to write to
- *              the current framebuffer.
- *
- * Defines a bit mask of which color channels should be written to the
- * given @framebuffer. If a bit is set in @color_mask that means that
- * color will be written.
- *
- * Since: 1.8
- * Stability: unstable
- */
-void
-cogl_framebuffer_set_color_mask (CoglFramebuffer *framebuffer,
-                                 CoglColorMask color_mask);
+                                          gboolean depth_write_enabled);
 
 /**
  * cogl_framebuffer_get_stereo_mode:
@@ -856,10 +691,8 @@ cogl_framebuffer_set_color_mask (CoglFramebuffer *framebuffer,
  * should be drawn to. See cogl_framebuffer_set_stereo_mode().
  *
  * Returns: A #CoglStereoMode
- * Since: 1.20
- * Stability: unstable
  */
-CoglStereoMode
+COGL_EXPORT CoglStereoMode
 cogl_framebuffer_get_stereo_mode (CoglFramebuffer *framebuffer);
 
 /**
@@ -875,72 +708,10 @@ cogl_framebuffer_get_stereo_mode (CoglFramebuffer *framebuffer);
  * and the framebuffer must have been created with stereo
  * enabled. (See cogl_onscreen_template_set_stereo_enabled(),
  * cogl_framebuffer_get_is_stereo().)
- *
- * Since: 1.20
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_set_stereo_mode (CoglFramebuffer *framebuffer,
 				  CoglStereoMode stereo_mode);
-
-/**
- * cogl_framebuffer_set_depth_texture_enabled:
- * @framebuffer: A #CoglFramebuffer
- * @enabled: TRUE or FALSE
- *
- * If @enabled is #TRUE, the depth buffer used when rendering to @framebuffer
- * is available as a texture. You can retrieve the texture with
- * cogl_framebuffer_get_depth_texture().
- *
- * <note>It's possible that your GPU does not support depth textures. You
- * should check the %COGL_FEATURE_ID_DEPTH_TEXTURE feature before using this
- * function.</note>
- * <note>It's not valid to call this function after the framebuffer has been
- * allocated as the creation of the depth texture is done at allocation time.
- * </note>
- *
- * Since: 1.14
- * Stability: unstable
- */
-void
-cogl_framebuffer_set_depth_texture_enabled (CoglFramebuffer *framebuffer,
-                                            CoglBool enabled);
-
-/**
- * cogl_framebuffer_get_depth_texture_enabled:
- * @framebuffer: A #CoglFramebuffer
- *
- * Queries whether texture based depth buffer has been enabled via
- * cogl_framebuffer_set_depth_texture_enabled().
- *
- * Return value: %TRUE if a depth texture has been enabled, else
- *               %FALSE.
- *
- * Since: 1.14
- * Stability: unstable
- */
-CoglBool
-cogl_framebuffer_get_depth_texture_enabled (CoglFramebuffer *framebuffer);
-
-/**
- * cogl_framebuffer_get_depth_texture:
- * @framebuffer: A #CoglFramebuffer
- *
- * Retrieves the depth buffer of @framebuffer as a #CoglTexture. You need to
- * call cogl_framebuffer_get_depth_texture(fb, TRUE); before using this
- * function.
- *
- * <note>Calling this function implicitely allocates the framebuffer.</note>
- * <note>The texture returned stays valid as long as the framebuffer stays
- * valid.</note>
- *
- * Returns: (transfer none): the depth texture
- *
- * Since: 1.14
- * Stability: unstable
- */
-CoglTexture *
-cogl_framebuffer_get_depth_texture (CoglFramebuffer *framebuffer);
 
 /**
  * cogl_framebuffer_set_samples_per_pixel:
@@ -980,10 +751,8 @@ cogl_framebuffer_get_depth_texture (CoglFramebuffer *framebuffer);
  * framebuffer has changed this can lead to redundant work being
  * done.</note>
  *
- * Since: 1.8
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_set_samples_per_pixel (CoglFramebuffer *framebuffer,
                                         int samples_per_pixel);
 
@@ -1007,11 +776,8 @@ cogl_framebuffer_set_samples_per_pixel (CoglFramebuffer *framebuffer,
  * Returns: The number of point samples made per pixel when
  *          rasterizing geometry or 0 if single-sample rendering
  *          has been chosen.
- *
- * Since: 1.10
- * Stability: unstable
  */
-int
+COGL_EXPORT int
 cogl_framebuffer_get_samples_per_pixel (CoglFramebuffer *framebuffer);
 
 
@@ -1040,10 +806,8 @@ cogl_framebuffer_get_samples_per_pixel (CoglFramebuffer *framebuffer);
  * should consider using cogl_framebuffer_resolve_samples_region()
  * instead to avoid resolving redundant pixels.
  *
- * Since: 1.8
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_resolve_samples (CoglFramebuffer *framebuffer);
 
 /**
@@ -1076,10 +840,8 @@ cogl_framebuffer_resolve_samples (CoglFramebuffer *framebuffer);
  * and if you have rendered to a larger region then it's possible that
  * other samples may be implicitly resolved.
  *
- * Since: 1.8
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_resolve_samples_region (CoglFramebuffer *framebuffer,
                                          int x,
                                          int y,
@@ -1096,10 +858,8 @@ cogl_framebuffer_resolve_samples_region (CoglFramebuffer *framebuffer,
  *
  * Return value: (transfer none): The #CoglContext that the given
  *               @framebuffer was instantiated within.
- * Since: 1.8
- * Stability: unstable
  */
-CoglContext *
+COGL_EXPORT CoglContext *
 cogl_framebuffer_get_context (CoglFramebuffer *framebuffer);
 
 /**
@@ -1113,10 +873,8 @@ cogl_framebuffer_get_context (CoglFramebuffer *framebuffer);
  * Clears all the auxiliary buffers identified in the @buffers mask, and if
  * that includes the color buffer then the specified @color is used.
  *
- * Since: 1.8
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_clear (CoglFramebuffer *framebuffer,
                         unsigned long buffers,
                         const CoglColor *color);
@@ -1138,270 +896,14 @@ cogl_framebuffer_clear (CoglFramebuffer *framebuffer,
  * Clears all the auxiliary buffers identified in the @buffers mask, and if
  * that includes the color buffer then the specified @color is used.
  *
- * Since: 1.8
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_clear4f (CoglFramebuffer *framebuffer,
                           unsigned long buffers,
                           float red,
                           float green,
                           float blue,
                           float alpha);
-
-/**
- * cogl_framebuffer_draw_primitive:
- * @framebuffer: A destination #CoglFramebuffer
- * @pipeline: A #CoglPipeline state object
- * @primitive: A #CoglPrimitive geometry object
- *
- * Draws the given @primitive geometry to the specified destination
- * @framebuffer using the graphics processing state described by @pipeline.
- *
- * This drawing api doesn't support high-level meta texture types such
- * as #CoglTexture2DSliced so it is the user's responsibility to
- * ensure that only low-level textures that can be directly sampled by
- * a GPU such as #CoglTexture2D, #CoglTextureRectangle or #CoglTexture3D
- * are associated with layers of the given @pipeline.
- *
- * <note>This api doesn't support any of the legacy global state options such
- * as cogl_set_depth_test_enabled(), cogl_set_backface_culling_enabled() or
- * cogl_program_use()</note>
- *
- * Stability: unstable
- * Since: 1.10
- * Deprecated: 1.16: Use #CoglPrimitive<!-- -->s and
- *                   cogl_primitive_draw() instead
- */
-COGL_DEPRECATED_IN_1_16_FOR (cogl_primitive_draw)
-void
-cogl_framebuffer_draw_primitive (CoglFramebuffer *framebuffer,
-                                 CoglPipeline *pipeline,
-                                 CoglPrimitive *primitive);
-
-/**
- * cogl_framebuffer_vdraw_attributes:
- * @framebuffer: A destination #CoglFramebuffer
- * @pipeline: A #CoglPipeline state object
- * @mode: The #CoglVerticesMode defining the topology of vertices
- * @first_vertex: The vertex offset within the given attributes to draw from
- * @n_vertices: The number of vertices to draw from the given attributes
- * @...: A set of vertex #CoglAttribute<!-- -->s defining vertex geometry
- *
- * First defines a geometry primitive by grouping a set of vertex attributes;
- * specifying a @first_vertex; a number of vertices (@n_vertices) and
- * specifying  what kind of topology the vertices have via @mode.
- *
- * Then the function draws the given @primitive geometry to the specified
- * destination @framebuffer using the graphics processing pipeline described by
- * @pipeline.
- *
- * The list of #CoglAttribute<!-- -->s define the attributes of the vertices to
- * be drawn, such as positions, colors and normals and should be %NULL
- * terminated.
- *
- * This drawing api doesn't support high-level meta texture types such
- * as #CoglTexture2DSliced so it is the user's responsibility to
- * ensure that only low-level textures that can be directly sampled by
- * a GPU such as #CoglTexture2D, #CoglTextureRectangle or #CoglTexture3D
- * are associated with layers of the given @pipeline.
- *
- * Stability: unstable
- * Since: 1.10
- * Deprecated: 1.16: Use #CoglPrimitive<!-- -->s and
- *                   cogl_primitive_draw() instead
- */
-COGL_DEPRECATED_IN_1_16_FOR (cogl_primitive_draw)
-void
-cogl_framebuffer_vdraw_attributes (CoglFramebuffer *framebuffer,
-                                   CoglPipeline *pipeline,
-                                   CoglVerticesMode mode,
-                                   int first_vertex,
-                                   int n_vertices,
-                                   ...) COGL_GNUC_NULL_TERMINATED;
-
-/**
- * cogl_framebuffer_draw_attributes:
- * @framebuffer: A destination #CoglFramebuffer
- * @pipeline: A #CoglPipeline state object
- * @mode: The #CoglVerticesMode defining the topology of vertices
- * @first_vertex: The vertex offset within the given attributes to draw from
- * @n_vertices: The number of vertices to draw from the given attributes
- * @attributes: An array of pointers to #CoglAttribute<-- -->s defining vertex
- *              geometry
- * @n_attributes: The number of attributes in the @attributes array.
- *
- * First defines a geometry primitive by grouping a set of vertex @attributes;
- * specifying a @first_vertex; a number of vertices (@n_vertices) and
- * specifying  what kind of topology the vertices have via @mode.
- *
- * Then the function draws the given @primitive geometry to the specified
- * destination @framebuffer using the graphics processing pipeline described by
- * @pipeline.
- *
- * The list of #CoglAttribute<!-- -->s define the attributes of the vertices to
- * be drawn, such as positions, colors and normals and the number of attributes
- * is given as @n_attributes.
- *
- * This drawing api doesn't support high-level meta texture types such
- * as #CoglTexture2DSliced so it is the user's responsibility to
- * ensure that only low-level textures that can be directly sampled by
- * a GPU such as #CoglTexture2D, #CoglTextureRectangle or #CoglTexture3D
- * are associated with layers of the given @pipeline.
- *
- * <note>This api doesn't support any of the legacy global state options such
- * as cogl_set_depth_test_enabled(), cogl_set_backface_culling_enabled() or
- * cogl_program_use()</note>
- *
- * Stability: unstable
- * Since: 1.10
- * Deprecated: 1.16: Use #CoglPrimitive<!-- -->s and
- *                   cogl_primitive_draw() instead
- */
-COGL_DEPRECATED_IN_1_16_FOR (cogl_primitive_draw)
-void
-cogl_framebuffer_draw_attributes (CoglFramebuffer *framebuffer,
-                                  CoglPipeline *pipeline,
-                                  CoglVerticesMode mode,
-                                  int first_vertex,
-                                  int n_vertices,
-                                  CoglAttribute **attributes,
-                                  int n_attributes);
-
-/**
- * cogl_framebuffer_vdraw_indexed_attributes:
- * @framebuffer: A destination #CoglFramebuffer
- * @pipeline: A #CoglPipeline state object
- * @mode: The #CoglVerticesMode defining the topology of vertices
- * @first_vertex: The vertex offset within the given attributes to draw from
- * @n_vertices: The number of vertices to draw from the given attributes
- * @indices: The array of indices used by the GPU to lookup attribute
- *           data for each vertex.
- * @...: A set of vertex #CoglAttribute<!-- -->s defining vertex geometry
- *
- * Behaves the same as cogl_framebuffer_vdraw_attributes() except that
- * instead of reading vertex data sequentially from the specified
- * attributes the @indices provide an indirection for how the data
- * should be indexed allowing a random access order to be
- * specified.
- *
- * For example an indices array of [0, 1, 2, 0, 2, 3] could be used
- * used to draw two triangles (@mode = %COGL_VERTICES_MODE_TRIANGLES +
- * @n_vertices = 6) but only provide attribute data for the 4 corners
- * of a rectangle. When the GPU needs to read in each of the 6
- * vertices it will read the @indices array for each vertex in
- * sequence and use the index to look up the vertex attribute data. So
- * here you can see that first and fourth vertex will point to the
- * same data and third and fifth vertex will also point to shared
- * data.
- *
- * Drawing with indices can be a good way of minimizing the size of a
- * mesh by allowing you to avoid data for duplicate vertices because
- * multiple entries in the index array can refer back to a single
- * shared vertex.
- *
- * <note>The @indices array must be at least as long as @first_vertex
- * + @n_vertices otherwise the GPU will overrun the indices array when
- * looking up vertex data.</note>
- *
- * Since it's very common to want to draw a run of rectangles using
- * indices to avoid duplicating vertex data you can use
- * cogl_get_rectangle_indices() to get a set of indices that can be
- * shared.
- *
- * This drawing api doesn't support high-level meta texture types such
- * as #CoglTexture2DSliced so it is the user's responsibility to
- * ensure that only low-level textures that can be directly sampled by
- * a GPU such as #CoglTexture2D, #CoglTextureRectangle or
- * #CoglTexture3D are associated with layers of the given @pipeline.
- *
- * <note>This api doesn't support any of the legacy global state
- * options such as cogl_set_depth_test_enabled(),
- * cogl_set_backface_culling_enabled() or cogl_program_use()</note>
- *
- * Stability: unstable
- * Since: 1.10
- * Deprecated: 1.16: Use #CoglPrimitive<!-- -->s and
- *                   cogl_primitive_draw() instead
- */
-COGL_DEPRECATED_IN_1_16_FOR (cogl_primitive_draw)
-void
-cogl_framebuffer_vdraw_indexed_attributes (CoglFramebuffer *framebuffer,
-                                           CoglPipeline *pipeline,
-                                           CoglVerticesMode mode,
-                                           int first_vertex,
-                                           int n_vertices,
-                                           CoglIndices *indices,
-                                           ...) COGL_GNUC_NULL_TERMINATED;
-
-/**
- * cogl_framebuffer_draw_indexed_attributes:
- * @framebuffer: A destination #CoglFramebuffer
- * @pipeline: A #CoglPipeline state object
- * @mode: The #CoglVerticesMode defining the topology of vertices
- * @first_vertex: The vertex offset within the given attributes to draw from
- * @n_vertices: The number of vertices to draw from the given attributes
- * @indices: The array of indices used by the GPU to lookup attribute
- *           data for each vertex.
- * @attributes: An array of pointers to #CoglAttribute<-- -->s defining vertex
- *              geometry
- * @n_attributes: The number of attributes in the @attributes array.
- *
- * Behaves the same as cogl_framebuffer_draw_attributes() except that
- * instead of reading vertex data sequentially from the specified
- * @attributes the @indices provide an indirection for how the data
- * should be indexed allowing a random access order to be
- * specified.
- *
- * For example an indices array of [0, 1, 2, 0, 2, 3] could be used
- * used to draw two triangles (@mode = %COGL_VERTICES_MODE_TRIANGLES +
- * @n_vertices = 6) but only provide attribute data for the 4 corners
- * of a rectangle. When the GPU needs to read in each of the 6
- * vertices it will read the @indices array for each vertex in
- * sequence and use the index to look up the vertex attribute data. So
- * here you can see that first and fourth vertex will point to the
- * same data and third and fifth vertex will also point to shared
- * data.
- *
- * Drawing with indices can be a good way of minimizing the size of a
- * mesh by allowing you to avoid data for duplicate vertices because
- * multiple entries in the index array can refer back to a single
- * shared vertex.
- *
- * <note>The @indices array must be at least as long as @first_vertex
- * + @n_vertices otherwise the GPU will overrun the indices array when
- * looking up vertex data.</note>
- *
- * Since it's very common to want to draw a run of rectangles using
- * indices to avoid duplicating vertex data you can use
- * cogl_get_rectangle_indices() to get a set of indices that can be
- * shared.
- *
- * This drawing api doesn't support high-level meta texture types such
- * as #CoglTexture2DSliced so it is the user's responsibility to
- * ensure that only low-level textures that can be directly sampled by
- * a GPU such as #CoglTexture2D, #CoglTextureRectangle or
- * #CoglTexture3D are associated with layers of the given @pipeline.
- *
- * <note>This api doesn't support any of the legacy global state
- * options such as cogl_set_depth_test_enabled(),
- * cogl_set_backface_culling_enabled() or cogl_program_use()</note>
- *
- * Stability: unstable
- * Since: 1.10
- * Deprecated: 1.16: Use #CoglPrimitive<!-- -->s and
- *                   cogl_primitive_draw() instead
- */
-COGL_DEPRECATED_IN_1_16_FOR (cogl_primitive_draw)
-void
-cogl_framebuffer_draw_indexed_attributes (CoglFramebuffer *framebuffer,
-                                          CoglPipeline *pipeline,
-                                          CoglVerticesMode mode,
-                                          int first_vertex,
-                                          int n_vertices,
-                                          CoglIndices *indices,
-                                          CoglAttribute **attributes,
-                                          int n_attributes);
 
 /**
  * cogl_framebuffer_draw_rectangle:
@@ -1423,11 +925,8 @@ cogl_framebuffer_draw_indexed_attributes (CoglFramebuffer *framebuffer,
  * <note>If you want to describe a rectangle with a texture mapped on
  * it then you can use
  * cogl_framebuffer_draw_textured_rectangle().</note>
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_draw_rectangle (CoglFramebuffer *framebuffer,
                                  CoglPipeline *pipeline,
                                  float x_1,
@@ -1474,16 +973,8 @@ cogl_framebuffer_draw_rectangle (CoglFramebuffer *framebuffer,
  * (0, 0) corresponds to the top left and (1, 1) corresponds to the
  * bottom right. To map an entire texture across the rectangle pass
  * in @s_1=0, @t_1=0, @s_2=1, @t_2=1.
- *
- * <note>Even if you have associated a #CoglTextureRectangle texture
- * with one of your @pipeline layers which normally implies working
- * with non-normalized texture coordinates this api should still be
- * passed normalized texture coordinates.</note>
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_draw_textured_rectangle (CoglFramebuffer *framebuffer,
                                           CoglPipeline *pipeline,
                                           float x_1,
@@ -1532,9 +1023,7 @@ cogl_framebuffer_draw_textured_rectangle (CoglFramebuffer *framebuffer,
  * <note>This api can not currently handle multiple high-level meta
  * texture layers. The first layer may be a high level meta texture
  * such as #CoglTexture2DSliced but all other layers much be low
- * level textures such as #CoglTexture2D and additionally they
- * should be textures that can be sampled using normalized coordinates
- * (so not #CoglTextureRectangle textures).</note>
+ * level textures such as #CoglTexture2D.
  *
  * The top left texture coordinate for layer 0 of any pipeline will be
  * (tex_coords[0], tex_coords[1]) and the bottom right coordinate will
@@ -1548,20 +1037,12 @@ cogl_framebuffer_draw_textured_rectangle (CoglFramebuffer *framebuffer,
  * in tex_coords[0]=0, tex_coords[1]=0, tex_coords[2]=1,
  * tex_coords[3]=1.
  *
- * <note>Even if you have associated a #CoglTextureRectangle texture
- * which normally implies working with non-normalized texture
- * coordinates this api should still be passed normalized texture
- * coordinates.</note>
- *
  * The first pair of coordinates are for the first layer (with the
  * smallest layer index) and if you supply less texture coordinates
  * than there are layers in the current source material then default
  * texture coordinates (0.0, 0.0, 1.0, 1.0) are generated.
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_draw_multitextured_rectangle (CoglFramebuffer *framebuffer,
                                                CoglPipeline *pipeline,
                                                float x_1,
@@ -1601,11 +1082,8 @@ cogl_framebuffer_draw_multitextured_rectangle (CoglFramebuffer *framebuffer,
  * cogl_framebuffer_draw_textured_rectangle() separately for multiple
  * rectangles if all of the rectangles will be drawn together with the
  * same @pipeline state.
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_draw_rectangles (CoglFramebuffer *framebuffer,
                                   CoglPipeline *pipeline,
                                   const float *coordinates,
@@ -1655,16 +1133,8 @@ cogl_framebuffer_draw_rectangles (CoglFramebuffer *framebuffer,
  * bottom right. To map an entire texture across the rectangle pass
  * in tex_coords[0]=0, tex_coords[1]=0, tex_coords[2]=1,
  * tex_coords[3]=1.
- *
- * <note>Even if you have associated a #CoglTextureRectangle texture
- * which normally implies working with non-normalized texture
- * coordinates this api should still be passed normalized texture
- * coordinates.</note>
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_draw_textured_rectangles (CoglFramebuffer *framebuffer,
                                            CoglPipeline *pipeline,
                                            const float *coordinates,
@@ -1696,10 +1166,8 @@ cogl_framebuffer_draw_textured_rectangles (CoglFramebuffer *framebuffer,
  * a #CoglOffscreen framebuffer since they are single-buffered.
  *
  *
- * Since: 1.8
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_discard_buffers (CoglFramebuffer *framebuffer,
                                   unsigned long buffers);
 
@@ -1716,11 +1184,8 @@ cogl_framebuffer_discard_buffers (CoglFramebuffer *framebuffer,
  * One example might be for benchmarking purposes to be sure timing
  * measurements reflect the time that the GPU is busy for not just the time it
  * takes to queue rendering commands.
- *
- * Stability: unstable
- * Since: 1.10
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_finish (CoglFramebuffer *framebuffer);
 
 /**
@@ -1728,7 +1193,7 @@ cogl_framebuffer_finish (CoglFramebuffer *framebuffer);
  * @framebuffer: A #CoglFramebuffer
  * @x: The x position to read from
  * @y: The y position to read from
- * @source: Identifies which auxillary buffer you want to read
+ * @source: Identifies which auxiliary buffer you want to read
  *          (only COGL_READ_PIXELS_COLOR_BUFFER supported currently)
  * @bitmap: The bitmap to store the results in.
  *
@@ -1746,10 +1211,8 @@ cogl_framebuffer_finish (CoglFramebuffer *framebuffer);
  * Return value: %TRUE if the read succeeded or %FALSE otherwise. The
  *  function is only likely to fail if the bitmap points to a pixel
  *  buffer and it could not be mapped.
- * Since: 1.10
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_framebuffer_read_pixels_into_bitmap (CoglFramebuffer *framebuffer,
                                           int x,
                                           int y,
@@ -1792,10 +1255,8 @@ cogl_framebuffer_read_pixels_into_bitmap (CoglFramebuffer *framebuffer,
  * ]|
  *
  * Return value: %TRUE if the read succeeded or %FALSE otherwise.
- * Since: 1.10
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_framebuffer_read_pixels (CoglFramebuffer *framebuffer,
                               int x,
                               int y,
@@ -1804,20 +1265,7 @@ cogl_framebuffer_read_pixels (CoglFramebuffer *framebuffer,
                               CoglPixelFormat format,
                               uint8_t *pixels);
 
-/**
- * cogl_get_draw_framebuffer:
- *
- * Gets the current #CoglFramebuffer as set using
- * cogl_push_framebuffer()
- *
- * Return value: (transfer none): The current #CoglFramebuffer
- * Stability: unstable
- * Since: 1.8
- */
-CoglFramebuffer *
-cogl_get_draw_framebuffer (void);
-
-uint32_t
+COGL_EXPORT uint32_t
 cogl_framebuffer_error_quark (void);
 
 /**
@@ -1827,7 +1275,8 @@ cogl_framebuffer_error_quark (void);
  */
 #define COGL_FRAMEBUFFER_ERROR (cogl_framebuffer_error_quark ())
 
-typedef enum { /*< prefix=COGL_FRAMEBUFFER_ERROR >*/
+typedef enum /*< prefix=COGL_FRAMEBUFFER_ERROR >*/
+{
   COGL_FRAMEBUFFER_ERROR_ALLOCATE
 } CoglFramebufferError;
 
@@ -1839,12 +1288,96 @@ typedef enum { /*< prefix=COGL_FRAMEBUFFER_ERROR >*/
  *
  * Return value: %TRUE if the object references a #CoglFramebuffer
  *   and %FALSE otherwise.
- * Since: 1.10
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_is_framebuffer (void *object);
 
-COGL_END_DECLS
+/**
+ * cogl_blit_framebuffer:
+ * @framebuffer: The source #CoglFramebuffer
+ * @dst: The destination #CoglFramebuffer
+ * @src_x: Source x position
+ * @src_y: Source y position
+ * @dst_x: Destination x position
+ * @dst_y: Destination y position
+ * @width: Width of region to copy
+ * @height: Height of region to copy
+ * @error: optional error object
+ *
+ * @return FALSE for an immediately detected error, TRUE otherwise.
+ *
+ * This blits a region of the color buffer of the source buffer
+ * to the destination buffer. This function should only be
+ * called if the COGL_FEATURE_ID_BLIT_FRAMEBUFFER feature is
+ * advertised.
+ *
+ * The source and destination rectangles are defined in offscreen
+ * framebuffer orientation. When copying between an offscreen and
+ * onscreen framebuffers, the image is y-flipped accordingly.
+ *
+ * The two buffers must have the same value types (e.g. floating-point,
+ * unsigned int, signed int, or fixed-point), but color formats do not
+ * need to match. This limitation comes from OpenGL ES 3.0 definition
+ * of glBlitFramebuffer.
+ *
+ * Note that this function differs a lot from the glBlitFramebuffer
+ * function provided by the GL_EXT_framebuffer_blit extension. Notably
+ * it doesn't support having different sizes for the source and
+ * destination rectangle. This doesn't seem
+ * like a particularly useful feature. If the application wanted to
+ * scale the results it may make more sense to draw a primitive
+ * instead.
+ *
+ * The GL function is documented to be affected by the scissor. This
+ * function therefore ensure that an empty clip stack is flushed
+ * before performing the blit which means the scissor is effectively
+ * ignored.
+ *
+ * The function also doesn't support specifying the buffers to copy
+ * and instead only the color buffer is copied. When copying the depth
+ * or stencil buffers the extension on GLES2.0 only supports copying
+ * the full buffer which would be awkward to document with this
+ * API. If we wanted to support that feature it may be better to have
+ * a separate function to copy the entire buffer for a given mask.
+ *
+ * The @c error argument is optional, it can be NULL. If it is not NULL
+ * and this function returns FALSE, an error object with a code from
+ * COGL_SYSTEM_ERROR will be created.
+ */
+COGL_EXPORT gboolean
+cogl_blit_framebuffer (CoglFramebuffer *framebuffer,
+                       CoglFramebuffer *dst,
+                       int src_x,
+                       int src_y,
+                       int dst_x,
+                       int dst_y,
+                       int width,
+                       int height,
+                       GError **error);
 
-#endif /* __COGL_FRAMEBUFFER_H */
+/**
+ * cogl_framebuffer_flush:
+ * @framebuffer: A #CoglFramebuffer pointer
+ *
+ * Flushes @framebuffer to ensure the current batch of commands is
+ * submitted to the GPU.
+ *
+ * Unlike cogl_framebuffer_finish(), this does not block the CPU.
+ */
+COGL_EXPORT void
+cogl_framebuffer_flush (CoglFramebuffer *framebuffer);
+
+/**
+ * cogl_framebuffer_create_timestamp_query: (skip)
+ *
+ * Creates a query for the GPU timestamp that will complete upon completion of
+ * all previously submitted GL commands related to this framebuffer. E.g. when
+ * the rendering is finished on this framebuffer.
+ *
+ * This function should only be called if the COGL_FEATURE_ID_TIMESTAMP_QUERY
+ * feature is advertised.
+ */
+COGL_EXPORT CoglTimestampQuery *
+cogl_framebuffer_create_timestamp_query (CoglFramebuffer *framebuffer);
+
+G_END_DECLS

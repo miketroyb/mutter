@@ -14,21 +14,18 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jonas Ådahl <jadahl@gmail.com>
  */
 
-#ifndef META_WAYLAND_POINTER_CONSTRAINTS_H
-#define META_WAYLAND_POINTER_CONSTRAINTS_H
-
-#include "meta-wayland-types.h"
-#include "meta/window.h"
+#pragma once
 
 #include <wayland-server.h>
+
+#include "meta/window.h"
+#include "wayland/meta-wayland-types.h"
 
 #define META_TYPE_WAYLAND_POINTER_CONSTRAINT (meta_wayland_pointer_constraint_get_type ())
 G_DECLARE_FINAL_TYPE (MetaWaylandPointerConstraint,
@@ -38,10 +35,8 @@ G_DECLARE_FINAL_TYPE (MetaWaylandPointerConstraint,
 
 void meta_wayland_pointer_constraints_init (MetaWaylandCompositor *compositor);
 
-MetaWaylandSeat * meta_wayland_pointer_constraint_get_seat (MetaWaylandPointerConstraint *constraint);
-
 cairo_region_t * meta_wayland_pointer_constraint_calculate_effective_region (MetaWaylandPointerConstraint *constraint);
 
 MetaWaylandSurface * meta_wayland_pointer_constraint_get_surface (MetaWaylandPointerConstraint *constraint);
 
-#endif /* META_WAYLAND_POINTER_CONSTRAINTS_H */
+MetaWaylandCompositor * meta_wayland_pointer_constraint_get_compositor (MetaWaylandPointerConstraint *constraint);

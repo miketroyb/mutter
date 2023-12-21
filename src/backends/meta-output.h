@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2017 Red Hat
+ * Copyright (C) 2020 NVIDIA CORPORATION
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -12,31 +13,65 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_OUTPUT_H
-#define META_OUTPUT_H
+#pragma once
 
 #include <glib-object.h>
 
+#include "backends/edid.h"
+#include "backends/meta-backend-types.h"
 #include "backends/meta-gpu.h"
+#include "core/util-private.h"
+
+typedef enum _MetaOutputColorspace
+{
+  META_OUTPUT_COLORSPACE_UNKNOWN = 0,
+  META_OUTPUT_COLORSPACE_DEFAULT,
+  META_OUTPUT_COLORSPACE_BT2020,
+} MetaOutputColorspace;
+
+typedef enum
+{
+  META_OUTPUT_HDR_METADATA_EOTF_TRADITIONAL_GAMMA_SDR,
+  META_OUTPUT_HDR_METADATA_EOTF_TRADITIONAL_GAMMA_HDR,
+  META_OUTPUT_HDR_METADATA_EOTF_PQ,
+  META_OUTPUT_HDR_METADATA_EOTF_HLG,
+} MetaOutputHdrMetadataEOTF;
+
+typedef struct _MetaOutputHdrMetadata
+{
+  gboolean active;
+  MetaOutputHdrMetadataEOTF eotf;
+  struct {
+    double x;
+    double y;
+  } mastering_display_primaries[3];
+  struct {
+    double x;
+    double y;
+  } mastering_display_white_point;
+  double mastering_display_max_luminance;
+  double mastering_display_min_luminance;
+  double max_cll;
+  double max_fall;
+} MetaOutputHdrMetadata;
 
 struct _MetaTileInfo
 {
-  guint32 group_id;
-  guint32 flags;
-  guint32 max_h_tiles;
-  guint32 max_v_tiles;
-  guint32 loc_h_tile;
-  guint32 loc_v_tile;
-  guint32 tile_w;
-  guint32 tile_h;
+  uint32_t group_id;
+  uint32_t flags;
+  uint32_t max_h_tiles;
+  uint32_t max_v_tiles;
+  uint32_t loc_h_tile;
+  uint32_t loc_v_tile;
+  uint32_t tile_w;
+  uint32_t tile_h;
 };
 
-/* This matches the values in drm_mode.h */
+/* The first 17 matches the values in drm_mode.h, the ones starting with
+ * 1000 do not. */
 typedef enum
 {
   META_CONNECTOR_TYPE_Unknown = 0,
@@ -56,23 +91,36 @@ typedef enum
   META_CONNECTOR_TYPE_eDP = 14,
   META_CONNECTOR_TYPE_VIRTUAL = 15,
   META_CONNECTOR_TYPE_DSI = 16,
+  META_CONNECTOR_TYPE_DPI = 17,
+  META_CONNECTOR_TYPE_WRITEBACK = 18,
+  META_CONNECTOR_TYPE_SPI = 19,
+  META_CONNECTOR_TYPE_USB = 20,
+
+  META_CONNECTOR_TYPE_META = 1000,
 } MetaConnectorType;
 
-struct _MetaOutput
+typedef enum
 {
-  GObject parent;
+  META_PRIVACY_SCREEN_UNAVAILABLE = 0,
+  META_PRIVACY_SCREEN_ENABLED = 1 << 0,
+  META_PRIVACY_SCREEN_DISABLED = 1 << 1,
+  META_PRIVACY_SCREEN_LOCKED = 1 << 2,
+} MetaPrivacyScreenState;
 
-  MetaGpu *gpu;
+typedef struct _MetaOutputInfo
+{
+  grefcount ref_count;
 
-  /* The CRTC driving this output, NULL if the output is not enabled */
-  MetaCrtc *crtc;
+  gboolean is_virtual;
 
-  /* The low-level ID of this output, used to apply back configuration */
-  glong winsys_id;
   char *name;
   char *vendor;
   char *product;
   char *serial;
+
+  char *edid_checksum_md5;
+  MetaEdidInfo *edid_info;
+
   int width_mm;
   int height_mm;
   CoglSubpixelOrder subpixel_order;
@@ -90,36 +138,155 @@ struct _MetaOutput
   MetaOutput **possible_clones;
   unsigned int n_possible_clones;
 
-  int backlight;
   int backlight_min;
   int backlight_max;
 
-  /* Used when changing configuration */
-  gboolean is_dirty;
-
-  gboolean is_primary;
-  gboolean is_presentation;
-
-  gboolean is_underscanning;
   gboolean supports_underscanning;
+  gboolean supports_color_transform;
 
-  gpointer driver_private;
-  GDestroyNotify driver_notify;
+  unsigned int max_bpc_min;
+  unsigned int max_bpc_max;
 
   /*
    * Get a new preferred mode on hotplug events, to handle dynamic guest
    * resizing.
    */
   gboolean hotplug_mode_update;
-  gint suggested_x;
-  gint suggested_y;
+  int suggested_x;
+  int suggested_y;
 
   MetaTileInfo tile_info;
-};
+} MetaOutputInfo;
+
+gboolean
+meta_tile_info_equal (MetaTileInfo *a,
+                      MetaTileInfo *b);
+
+const char * meta_output_colorspace_get_name (MetaOutputColorspace color_space);
+
+#define META_TYPE_OUTPUT_INFO (meta_output_info_get_type ())
+META_EXPORT_TEST
+GType meta_output_info_get_type (void);
+
+META_EXPORT_TEST
+MetaOutputInfo * meta_output_info_new (void);
+
+META_EXPORT_TEST
+MetaOutputInfo * meta_output_info_ref (MetaOutputInfo *output_info);
+
+META_EXPORT_TEST
+void meta_output_info_unref (MetaOutputInfo *output_info);
+
+META_EXPORT_TEST
+void meta_output_info_parse_edid (MetaOutputInfo *output_info,
+                                  GBytes         *edid);
+
+gboolean meta_output_info_is_color_space_supported (const MetaOutputInfo *output_info,
+                                                    MetaOutputColorspace  color_space);
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (MetaOutputInfo, meta_output_info_unref)
 
 #define META_TYPE_OUTPUT (meta_output_get_type ())
-G_DECLARE_FINAL_TYPE (MetaOutput, meta_output, META, OUTPUT, GObject)
+META_EXPORT_TEST
+G_DECLARE_DERIVABLE_TYPE (MetaOutput, meta_output, META, OUTPUT, GObject)
 
+struct _MetaOutputClass
+{
+  GObjectClass parent_class;
+
+  MetaPrivacyScreenState (* get_privacy_screen_state) (MetaOutput *output);
+  gboolean (* set_privacy_screen_enabled) (MetaOutput  *output,
+                                           gboolean     enabled,
+                                           GError     **error);
+  gboolean (* is_color_space_supported) (MetaOutput           *output,
+                                         MetaOutputColorspace  color_space);
+  gboolean (* is_hdr_metadata_supported) (MetaOutput *output);
+};
+
+META_EXPORT_TEST
+uint64_t meta_output_get_id (MetaOutput *output);
+
+META_EXPORT_TEST
 MetaGpu * meta_output_get_gpu (MetaOutput *output);
 
-#endif /* META_OUTPUT_H */
+META_EXPORT_TEST
+MetaMonitor * meta_output_get_monitor (MetaOutput *output);
+
+void meta_output_set_monitor (MetaOutput  *output,
+                              MetaMonitor *monitor);
+
+void meta_output_unset_monitor (MetaOutput *output);
+
+const char * meta_output_get_name (MetaOutput *output);
+
+META_EXPORT_TEST
+gboolean meta_output_is_primary (MetaOutput *output);
+
+META_EXPORT_TEST
+gboolean meta_output_is_presentation (MetaOutput *output);
+
+META_EXPORT_TEST
+gboolean meta_output_is_underscanning (MetaOutput *output);
+
+META_EXPORT_TEST
+gboolean meta_output_get_max_bpc (MetaOutput   *output,
+                                  unsigned int *max_bpc);
+
+void meta_output_set_backlight (MetaOutput *output,
+                                int         backlight);
+
+int meta_output_get_backlight (MetaOutput *output);
+
+MetaPrivacyScreenState meta_output_get_privacy_screen_state (MetaOutput *output);
+
+gboolean meta_output_is_privacy_screen_supported (MetaOutput *output);
+
+gboolean meta_output_is_privacy_screen_enabled (MetaOutput *output);
+
+gboolean meta_output_set_privacy_screen_enabled (MetaOutput  *output,
+                                                 gboolean     enabled,
+                                                 GError     **error);
+
+gboolean meta_output_is_color_space_supported (MetaOutput *output,
+                                               MetaOutputColorspace color_space);
+
+void meta_output_set_color_space (MetaOutput           *output,
+                                  MetaOutputColorspace  color_space);
+
+MetaOutputColorspace meta_output_peek_color_space (MetaOutput *output);
+
+gboolean meta_output_is_hdr_metadata_supported (MetaOutput                *output,
+                                                MetaOutputHdrMetadataEOTF  eotf);
+
+void meta_output_set_hdr_metadata (MetaOutput            *output,
+                                   MetaOutputHdrMetadata *metadata);
+
+MetaOutputHdrMetadata * meta_output_peek_hdr_metadata (MetaOutput *output);
+
+void meta_output_add_possible_clone (MetaOutput *output,
+                                     MetaOutput *possible_clone);
+
+META_EXPORT_TEST
+const MetaOutputInfo * meta_output_get_info (MetaOutput *output);
+
+META_EXPORT_TEST
+void meta_output_assign_crtc (MetaOutput                 *output,
+                              MetaCrtc                   *crtc,
+                              const MetaOutputAssignment *output_assignment);
+
+META_EXPORT_TEST
+void meta_output_unassign_crtc (MetaOutput *output);
+
+META_EXPORT_TEST
+MetaCrtc * meta_output_get_assigned_crtc (MetaOutput *output);
+
+MetaMonitorTransform meta_output_logical_to_crtc_transform (MetaOutput           *output,
+                                                            MetaMonitorTransform  transform);
+
+MetaMonitorTransform meta_output_crtc_to_logical_transform (MetaOutput           *output,
+                                                            MetaMonitorTransform  transform);
+
+void meta_output_update_modes (MetaOutput    *output,
+                               MetaCrtcMode  *preferred_mode,
+                               MetaCrtcMode **modes,
+                               int            n_modes);

@@ -25,44 +25,24 @@
  *   Colin Walters <walters@verbum.org>
  */
 
-#ifndef __CLUTTER_CLICK_ACTION_H__
-#define __CLUTTER_CLICK_ACTION_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-action.h>
-#include <clutter/clutter-event.h>
+#include "clutter/clutter-action.h"
+#include "clutter/clutter-event.h"
 
 G_BEGIN_DECLS
 
-#define CLUTTER_TYPE_CLICK_ACTION               (clutter_click_action_get_type ())
-#define CLUTTER_CLICK_ACTION(obj)               (G_TYPE_CHECK_INSTANCE_CAST ((obj), CLUTTER_TYPE_CLICK_ACTION, ClutterClickAction))
-#define CLUTTER_IS_CLICK_ACTION(obj)            (G_TYPE_CHECK_INSTANCE_TYPE ((obj), CLUTTER_TYPE_CLICK_ACTION))
-#define CLUTTER_CLICK_ACTION_CLASS(klass)       (G_TYPE_CHECK_CLASS_CAST ((klass), CLUTTER_TYPE_CLICK_ACTION, ClutterClickActionClass))
-#define CLUTTER_IS_CLICK_ACTION_CLASS(klass)    (G_TYPE_CHECK_CLASS_TYPE ((klass), CLUTTER_TYPE_CLICK_ACTION))
-#define CLUTTER_CLICK_ACTION_GET_CLASS(obj)     (G_TYPE_INSTANCE_GET_CLASS ((obj), CLUTTER_TYPE_CLICK_ACTION, ClutterClickActionClass))
+#define CLUTTER_TYPE_CLICK_ACTION (clutter_click_action_get_type ())
 
-typedef struct _ClutterClickAction              ClutterClickAction;
-typedef struct _ClutterClickActionPrivate       ClutterClickActionPrivate;
-typedef struct _ClutterClickActionClass         ClutterClickActionClass;
+CLUTTER_EXPORT
+G_DECLARE_DERIVABLE_TYPE (ClutterClickAction, clutter_click_action,
+                          CLUTTER, CLICK_ACTION, ClutterAction);
 
-/**
- * ClutterClickAction:
- *
- * The #ClutterClickAction structure contains
- * only private data and should be accessed using the provided API
- *
- * Since: 1.4
- */
-struct _ClutterClickAction
-{
-  /*< private >*/
-  ClutterAction parent_instance;
-
-  ClutterClickActionPrivate *priv;
-};
+typedef struct _ClutterClickActionPrivate ClutterClickActionPrivate;
 
 /**
  * ClutterClickActionClass:
@@ -71,8 +51,6 @@ struct _ClutterClickAction
  *
  * The #ClutterClickActionClass structure
  * contains only private data
- *
- * Since: 1.4
  */
 struct _ClutterClickActionClass
 {
@@ -86,35 +64,21 @@ struct _ClutterClickActionClass
   gboolean (* long_press) (ClutterClickAction    *action,
                            ClutterActor          *actor,
                            ClutterLongPressState  state);
-
-  /*< private >*/
-  void (* _clutter_click_action1) (void);
-  void (* _clutter_click_action2) (void);
-  void (* _clutter_click_action3) (void);
-  void (* _clutter_click_action4) (void);
-  void (* _clutter_click_action5) (void);
-  void (* _clutter_click_action6) (void);
-  void (* _clutter_click_action7) (void);
 };
 
-CLUTTER_AVAILABLE_IN_1_4
-GType clutter_click_action_get_type (void) G_GNUC_CONST;
-
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 ClutterAction *        clutter_click_action_new        (void);
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 guint                  clutter_click_action_get_button (ClutterClickAction *action);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 ClutterModifierType    clutter_click_action_get_state  (ClutterClickAction *action);
-CLUTTER_AVAILABLE_IN_1_8
+CLUTTER_EXPORT
 void                   clutter_click_action_get_coords (ClutterClickAction *action,
                                                         gfloat             *press_x,
                                                         gfloat             *press_y);
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void                   clutter_click_action_release    (ClutterClickAction *action);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_CLICK_ACTION_H__ */

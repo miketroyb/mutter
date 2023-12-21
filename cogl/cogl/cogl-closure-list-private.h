@@ -27,11 +27,10 @@
  *
  */
 
-#ifndef _COGL_CLOSURE_LIST_PRIVATE_H_
-#define _COGL_CLOSURE_LIST_PRIVATE_H_
+#pragma once
 
-#include "cogl-object.h"
-#include "cogl-list.h"
+#include "cogl/cogl-object.h"
+#include "cogl/cogl-list.h"
 
 /*
  * This implements a list of callbacks that can be used a bit like
@@ -65,7 +64,7 @@ typedef struct _CoglClosure
  * Removes the given closure from the callback list it is connected to
  * and destroys it. If the closure was created with a destroy function
  * then it will be invoked. */
-void
+COGL_EXPORT void
 _cogl_closure_disconnect (CoglClosure *closure);
 
 void
@@ -114,5 +113,3 @@ _cogl_closure_list_add (CoglList *list,
         _cb (_c->user_data);                            \
       }                                                 \
   } G_STMT_END
-
-#endif /* _COGL_CLOSURE_LIST_PRIVATE_H_ */

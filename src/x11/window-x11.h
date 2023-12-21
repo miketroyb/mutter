@@ -20,28 +20,32 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_WINDOW_X11_H
-#define META_WINDOW_X11_H
+#pragma once
 
-#include <meta/window.h>
-#include <meta/compositor.h>
 #include <X11/Xlib.h>
+
+#include "core/window-private.h"
+#include "meta/compositor.h"
+#include "meta/window.h"
+#include "x11/meta-sync-counter.h"
 
 G_BEGIN_DECLS
 
-#define META_TYPE_WINDOW_X11            (meta_window_x11_get_type())
-#define META_WINDOW_X11(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), META_TYPE_WINDOW_X11, MetaWindowX11))
-#define META_WINDOW_X11_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  META_TYPE_WINDOW_X11, MetaWindowX11Class))
-#define META_IS_WINDOW_X11(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), META_TYPE_WINDOW_X11))
-#define META_IS_WINDOW_X11_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  META_TYPE_WINDOW_X11))
-#define META_WINDOW_X11_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  META_TYPE_WINDOW_X11, MetaWindowX11Class))
+#define META_TYPE_WINDOW_X11 (meta_window_x11_get_type())
+META_EXPORT_TEST
+G_DECLARE_DERIVABLE_TYPE (MetaWindowX11, meta_window_x11,
+                          META, WINDOW_X11, MetaWindow)
 
-GType meta_window_x11_get_type (void);
+struct _MetaWindowX11Class
+{
+  MetaWindowClass parent_class;
 
-typedef struct _MetaWindowX11      MetaWindowX11;
-typedef struct _MetaWindowX11Class MetaWindowX11Class;
-
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (MetaWindowX11, g_object_unref)
+  void (*freeze_commits) (MetaWindow *window);
+  void (*thaw_commits)   (MetaWindow *window);
+  gboolean (*always_update_shape) (MetaWindow *window);
+  void (*process_property_notify) (MetaWindow     *window,
+                                   XPropertyEvent *event);
+};
 
 MetaWindow * meta_window_x11_new           (MetaDisplay        *display,
                                             Window              xwindow,
@@ -50,12 +54,16 @@ MetaWindow * meta_window_x11_new           (MetaDisplay        *display,
 
 void meta_window_x11_set_net_wm_state            (MetaWindow *window);
 void meta_window_x11_set_wm_state                (MetaWindow *window);
+void meta_window_x11_set_wm_take_focus           (MetaWindow *window,
+                                                  gboolean    take_focus);
+void meta_window_x11_set_wm_ping                 (MetaWindow *window,
+                                                  gboolean    ping);
+void meta_window_x11_set_wm_delete_window        (MetaWindow *window,
+                                                  gboolean    delete_window);
 void meta_window_x11_set_allowed_actions_hint    (MetaWindow *window);
 
 void meta_window_x11_create_sync_request_alarm   (MetaWindow *window);
 void meta_window_x11_destroy_sync_request_alarm  (MetaWindow *window);
-void meta_window_x11_update_sync_request_counter (MetaWindow *window,
-                                                  gint64      new_counter_value);
 
 void meta_window_x11_update_input_region         (MetaWindow *window);
 void meta_window_x11_update_shape_region         (MetaWindow *window);
@@ -64,14 +72,40 @@ void meta_window_x11_recalc_window_type          (MetaWindow *window);
 
 gboolean meta_window_x11_configure_request       (MetaWindow *window,
                                                   XEvent     *event);
-gboolean meta_window_x11_property_notify         (MetaWindow *window,
-                                                  XEvent     *event);
+void meta_window_x11_property_notify         (MetaWindow *window,
+                                              XEvent     *event);
 gboolean meta_window_x11_client_message          (MetaWindow *window,
                                                   XEvent     *event);
 
 void     meta_window_x11_configure_notify        (MetaWindow      *window,
                                                   XConfigureEvent *event);
 
+META_EXPORT_TEST
 Window   meta_window_x11_get_toplevel_xwindow    (MetaWindow *window);
 
-#endif
+void     meta_window_x11_freeze_commits          (MetaWindow *window);
+void     meta_window_x11_thaw_commits            (MetaWindow *window);
+
+void     meta_window_x11_set_thaw_after_paint    (MetaWindow *window,
+                                                  gboolean    thaw_after_paint);
+gboolean meta_window_x11_should_thaw_after_paint (MetaWindow *window);
+gboolean meta_window_x11_always_update_shape     (MetaWindow *window);
+
+void meta_window_x11_surface_rect_to_frame_rect  (MetaWindow   *window,
+                                                  MtkRectangle *surface_rect,
+                                                  MtkRectangle *frame_rect);
+void meta_window_x11_surface_rect_to_client_rect (MetaWindow   *window,
+                                                  MtkRectangle *surface_rect,
+                                                  MtkRectangle *client_rect);
+
+MtkRectangle meta_window_x11_get_client_rect    (MetaWindowX11 *window_x11);
+
+gboolean meta_window_x11_can_unredirect          (MetaWindowX11 *window_x11);
+
+MetaSyncCounter * meta_window_x11_get_sync_counter (MetaWindow *window);
+
+gboolean meta_window_x11_is_awaiting_sync_response (MetaWindow *window);
+
+void meta_window_x11_check_update_resize (MetaWindow *window);
+
+gboolean meta_window_x11_has_alpha_channel (MetaWindow *window);

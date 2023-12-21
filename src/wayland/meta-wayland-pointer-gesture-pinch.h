@@ -19,14 +19,13 @@
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#ifndef META_WAYLAND_POINTER_GESTURE_PINCH_H
-#define META_WAYLAND_POINTER_GESTURE_PINCH_H
+#pragma once
 
-#include <wayland-server.h>
-#include <clutter/clutter.h>
 #include <glib.h>
+#include <wayland-server.h>
 
-#include "meta-wayland-types.h"
+#include "clutter/clutter.h"
+#include "wayland/meta-wayland-types.h"
 
 gboolean meta_wayland_pointer_gesture_pinch_handle_event (MetaWaylandPointer *pointer,
                                                           const ClutterEvent *event);
@@ -36,4 +35,5 @@ void meta_wayland_pointer_gesture_pinch_create_new_resource (MetaWaylandPointer 
                                                              struct wl_resource *gestures_resource,
                                                              uint32_t            id);
 
-#endif /* META_WAYLAND_POINTER_GESTURE_PINCH_H */
+void meta_wayland_pointer_gesture_pinch_cancel (MetaWaylandPointer *pointer,
+                                                uint32_t            serial);

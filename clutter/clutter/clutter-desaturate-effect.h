@@ -22,14 +22,13 @@
  *   Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_DESATURATE_EFFECT_H__
-#define __CLUTTER_DESATURATE_EFFECT_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-effect.h>
+#include "clutter/clutter-effect.h"
 
 G_BEGIN_DECLS
 
@@ -37,29 +36,19 @@ G_BEGIN_DECLS
 #define CLUTTER_DESATURATE_EFFECT(obj)          (G_TYPE_CHECK_INSTANCE_CAST ((obj), CLUTTER_TYPE_DESATURATE_EFFECT, ClutterDesaturateEffect))
 #define CLUTTER_IS_DESATURATE_EFFECT(obj)       (G_TYPE_CHECK_INSTANCE_TYPE ((obj), CLUTTER_TYPE_DESATURATE_EFFECT))
 
-/**
- * ClutterDesaturateEffect:
- *
- * #ClutterDesaturateEffect is an opaque structure
- * whose members cannot be directly accessed
- *
- * Since: 1.4
- */
 typedef struct _ClutterDesaturateEffect         ClutterDesaturateEffect;
 typedef struct _ClutterDesaturateEffectClass    ClutterDesaturateEffectClass;
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 GType clutter_desaturate_effect_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 ClutterEffect *clutter_desaturate_effect_new        (gdouble                  factor);
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void           clutter_desaturate_effect_set_factor (ClutterDesaturateEffect *effect,
                                                      gdouble                  factor);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 gdouble        clutter_desaturate_effect_get_factor (ClutterDesaturateEffect *effect);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_DESATURATE_EFFECT_H__ */

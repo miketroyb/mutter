@@ -19,10 +19,9 @@
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#ifndef META_INPUT_SETTINGS_X11_H
-#define META_INPUT_SETTINGS_X11_H
+#pragma once
 
-#include "meta-input-settings-private.h"
+#include "backends/meta-input-settings-private.h"
 
 #define META_TYPE_INPUT_SETTINGS_X11             (meta_input_settings_x11_get_type ())
 #define META_INPUT_SETTINGS_X11(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), META_TYPE_INPUT_SETTINGS_X11, MetaInputSettingsX11))
@@ -45,5 +44,3 @@ struct _MetaInputSettingsX11Class
 };
 
 GType meta_input_settings_x11_get_type (void) G_GNUC_CONST;
-
-#endif /* META_INPUT_SETTINGS_X11_H */

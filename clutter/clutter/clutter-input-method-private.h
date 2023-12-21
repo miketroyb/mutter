@@ -12,22 +12,19 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#ifndef __CLUTTER_INPUT_METHOD_PRIVATE_H__
-#define __CLUTTER_INPUT_METHOD_PRIVATE_H__
+#pragma once
 
 ClutterInputFocus * clutter_input_method_get_focus (ClutterInputMethod *method);
 
 void clutter_input_method_reset               (ClutterInputMethod *method);
 
-void clutter_input_method_set_cursor_location (ClutterInputMethod *method,
-                                               const ClutterRect  *rect);
+void clutter_input_method_set_cursor_location (ClutterInputMethod    *method,
+                                               const graphene_rect_t *rect);
 void clutter_input_method_set_surrounding     (ClutterInputMethod *method,
                                                const gchar        *text,
                                                guint               cursor,
@@ -42,5 +39,3 @@ gboolean clutter_input_method_filter_key_event (ClutterInputMethod    *method,
                                                 const ClutterKeyEvent *key);
 
 void clutter_input_method_toggle_input_panel (ClutterInputMethod *method);
-
-#endif /* __CLUTTER_INPUT_METHOD_PRIVATE_H__ */

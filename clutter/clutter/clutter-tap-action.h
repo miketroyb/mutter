@@ -31,14 +31,13 @@
  *   Chris Lord <chris@linux.intel.com>
  */
 
-#ifndef __CLUTTER_TAP_ACTION_H__
-#define __CLUTTER_TAP_ACTION_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-gesture-action.h>
+#include "clutter/clutter-gesture-action.h"
 
 G_BEGIN_DECLS
 
@@ -53,14 +52,6 @@ typedef struct _ClutterTapAction              ClutterTapAction;
 typedef struct _ClutterTapActionPrivate       ClutterTapActionPrivate;
 typedef struct _ClutterTapActionClass         ClutterTapActionClass;
 
-/**
- * ClutterTapAction:
- *
- * The #ClutterTapAction structure contains
- * only private data and should be accessed using the provided API
- *
- * Since: 1.14
- */
 struct _ClutterTapAction
 {
   /*< private >*/
@@ -82,21 +73,11 @@ struct _ClutterTapActionClass
   /*< public >*/
   gboolean (* tap)               (ClutterTapAction    *action,
                                   ClutterActor        *actor);
-
-  /*< private >*/
-  void (* _clutter_tap_action1) (void);
-  void (* _clutter_tap_action2) (void);
-  void (* _clutter_tap_action3) (void);
-  void (* _clutter_tap_action4) (void);
-  void (* _clutter_tap_action5) (void);
-  void (* _clutter_tap_action6) (void);
 };
 
-CLUTTER_AVAILABLE_IN_1_14
+CLUTTER_EXPORT
 GType clutter_tap_action_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_14
+CLUTTER_EXPORT
 ClutterAction * clutter_tap_action_new   (void);
 G_END_DECLS
-
-#endif /* __CLUTTER_TAP_ACTION_H__ */

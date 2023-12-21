@@ -30,19 +30,18 @@
  *
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
 
-#ifndef __COGL_DISPLAY_H__
-#define __COGL_DISPLAY_H__
-
-#include <cogl/cogl-renderer.h>
-#include <cogl/cogl-onscreen-template.h>
+#include "cogl/cogl-renderer.h"
+#include "cogl/cogl-onscreen-template.h"
 
 #include <glib-object.h>
 
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 /**
  * SECTION:cogl-display
@@ -75,6 +74,7 @@ typedef struct _CoglDisplay	      CoglDisplay;
  *
  * Returns: a #GType that can be used with the GLib type system.
  */
+COGL_EXPORT
 GType cogl_display_get_gtype (void);
 
 /**
@@ -114,10 +114,8 @@ GType cogl_display_get_gtype (void);
  *
  * Return value: (transfer full): A newly allocated #CoglDisplay
  *               object in a mutable configuration mode.
- * Since: 1.10
- * Stability: unstable
  */
-CoglDisplay *
+COGL_EXPORT CoglDisplay *
 cogl_display_new (CoglRenderer *renderer,
                   CoglOnscreenTemplate *onscreen_template);
 
@@ -129,10 +127,8 @@ cogl_display_new (CoglRenderer *renderer,
  *
  * Return value: (transfer none): The associated #CoglRenderer
  *
- * Since: 1.10
- * Stability: unstable
  */
-CoglRenderer *
+COGL_EXPORT CoglRenderer *
 cogl_display_get_renderer (CoglDisplay *display);
 
 /**
@@ -147,18 +143,15 @@ cogl_display_get_renderer (CoglDisplay *display);
  * final setup of the display may constrain how onscreen framebuffers may be
  * allocated. If Cogl knows how an application wants to allocate onscreen
  * framebuffers then it can try to make sure to setup the display accordingly.
- *
- * Since: 1.16
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_display_set_onscreen_template (CoglDisplay *display,
                                     CoglOnscreenTemplate *onscreen_template);
 
 /**
  * cogl_display_setup:
  * @display: a #CoglDisplay
- * @error: return location for a #CoglError
+ * @error: return location for a #GError
  *
  * Explicitly sets up the given @display object. Use of this api is
  * optional since Cogl will internally setup the display if not done
@@ -183,12 +176,10 @@ cogl_display_set_onscreen_template (CoglDisplay *display,
  *
  * Return value: Returns %TRUE if there was no error, else it returns
  *               %FALSE and returns an exception via @error.
- * Since: 1.10
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_display_setup (CoglDisplay *display,
-                    CoglError **error);
+                    GError **error);
 
 /**
  * cogl_is_display:
@@ -198,13 +189,8 @@ cogl_display_setup (CoglDisplay *display,
  *
  * Return value: %TRUE if the object references a #CoglDisplay
  *   and %FALSE otherwise.
- * Since: 1.10
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_is_display (void *object);
 
-COGL_END_DECLS
-
-#endif /* __COGL_DISPLAY_H__ */
-
+G_END_DECLS

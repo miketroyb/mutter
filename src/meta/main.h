@@ -19,22 +19,18 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_MAIN_H
-#define META_MAIN_H
+#pragma once
 
 #include <glib.h>
 
-GOptionContext *meta_get_option_context     (void);
-void            meta_init                   (void);
-int             meta_run                    (void);
-void            meta_register_with_session  (void);
-gboolean        meta_activate_session       (void);  /* Actually defined in meta-backend.c */
-gboolean        meta_get_replace_current_wm (void);  /* Actually defined in util.c */
+#include <meta/common.h>
+#include <meta/meta-context.h>
 
-void            meta_set_wm_name              (const char *wm_name);
-void            meta_set_gnome_wm_keybindings (const char *wm_keybindings);
+META_EXPORT
+void            meta_restart                (const char  *message,
+                                             MetaContext *context);
 
-void            meta_restart                (const char *message);
+META_EXPORT
 gboolean        meta_is_restart             (void);
 
 /**
@@ -49,9 +45,5 @@ typedef enum
 } MetaExitCode;
 
 /* exit immediately */
+META_EXPORT
 void meta_exit (MetaExitCode code) G_GNUC_NORETURN;
-
-/* g_main_loop_quit() then fall out of main() */
-void meta_quit (MetaExitCode code);
-
-#endif

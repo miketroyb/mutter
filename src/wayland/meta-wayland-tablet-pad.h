@@ -19,15 +19,13 @@
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#ifndef META_WAYLAND_TABLET_PAD_H
-#define META_WAYLAND_TABLET_PAD_H
-
-#include <wayland-server.h>
+#pragma once
 
 #include <glib.h>
+#include <wayland-server.h>
 
-#include "meta-wayland-types.h"
-#include "meta-cursor-renderer.h"
+#include "backends/meta-cursor-renderer.h"
+#include "wayland/meta-wayland-types.h"
 
 struct _MetaWaylandTabletPad
 {
@@ -75,8 +73,9 @@ gboolean     meta_wayland_tablet_pad_handle_event        (MetaWaylandTabletPad *
 void         meta_wayland_tablet_pad_set_focus           (MetaWaylandTabletPad *pad,
                                                           MetaWaylandSurface   *surface);
 
-gchar *      meta_wayland_tablet_pad_get_label           (MetaWaylandTabletPad *pad,
-							  MetaPadActionType     type,
-							  guint                 action);
+char * meta_wayland_tablet_pad_get_button_label (MetaWaylandTabletPad *pad,
+                                                 int                   button);
 
-#endif /* META_WAYLAND_TABLET_PAD_H */
+char * meta_wayland_tablet_pad_get_feature_label (MetaWaylandTabletPad *pad,
+                                                  MetaPadFeatureType    feature,
+                                                  int                   action);

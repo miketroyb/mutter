@@ -14,14 +14,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#ifndef META_RENDERER_X11_NESTED_H
-#define META_RENDERER_X11_NESTED_H
+#pragma once
 
 #include "backends/x11/meta-renderer-x11.h"
 
@@ -29,9 +26,3 @@
 G_DECLARE_FINAL_TYPE (MetaRendererX11Nested, meta_renderer_x11_nested,
                       META, RENDERER_X11_NESTED,
                       MetaRendererX11)
-
-void meta_renderer_x11_nested_ensure_legacy_view (MetaRendererX11Nested *renderer_x11_nested,
-                                                  int                    width,
-                                                  int                    height);
-
-#endif /* META_RENDERER_X11_NESTED_H */

@@ -28,15 +28,15 @@
  *
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
 
-#ifndef __COGL_GSOURCE_H__
-#define __COGL_GSOURCE_H__
-
 #include <glib.h>
-#include <cogl/cogl-context.h>
+
+#include "cogl/cogl-context.h"
 
 G_BEGIN_DECLS
 
@@ -63,11 +63,8 @@ G_BEGIN_DECLS
  * cogl_glib_renderer_source_new()</note>
  *
  * Return value: a new #GSource
- *
- * Stability: unstable
- * Since: 1.10
  */
-GSource *
+COGL_EXPORT GSource *
 cogl_glib_source_new (CoglContext *context,
                       int priority);
 
@@ -84,14 +81,9 @@ cogl_glib_source_new (CoglContext *context,
  * g_source_attach().
  *
  * Return value: a new #GSource
- *
- * Stability: unstable
- * Since: 1.16
  */
-GSource *
+COGL_EXPORT GSource *
 cogl_glib_renderer_source_new (CoglRenderer *renderer,
                                int priority);
 
 G_END_DECLS
-
-#endif /* __COGL_GSOURCE_H__ */

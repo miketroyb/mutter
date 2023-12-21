@@ -28,13 +28,12 @@
  *
  */
 
-#ifndef __COGL_TEXTURE_2D_SLICED_PRIVATE_H
-#define __COGL_TEXTURE_2D_SLICED_PRIVATE_H
+#pragma once
 
-#include "cogl-bitmap-private.h"
-#include "cogl-pipeline-private.h"
-#include "cogl-texture-private.h"
-#include "cogl-texture-2d-sliced.h"
+#include "cogl/cogl-bitmap-private.h"
+#include "cogl/cogl-pipeline-private.h"
+#include "cogl/cogl-texture-private.h"
+#include "cogl/cogl-texture-2d-sliced.h"
 
 #include <glib.h>
 
@@ -50,18 +49,6 @@ struct _CoglTexture2DSliced
 };
 
 CoglTexture2DSliced *
-_cogl_texture_2d_sliced_new_from_foreign (CoglContext *context,
-                                          unsigned int gl_handle,
-                                          unsigned int gl_target,
-                                          int width,
-                                          int height,
-                                          int x_pot_waste,
-                                          int y_pot_waste,
-                                          CoglPixelFormat format);
-
-CoglTexture2DSliced *
 _cogl_texture_2d_sliced_new_from_bitmap (CoglBitmap *bmp,
                                          int max_waste,
-                                         CoglBool can_convert_in_place);
-
-#endif /* __COGL_TEXTURE_2D_SLICED_PRIVATE_H */
+                                         gboolean can_convert_in_place);

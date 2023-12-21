@@ -28,14 +28,13 @@
  *
  */
 
-#ifndef __COGL_WINSYS_EGL_PRIVATE_H
-#define __COGL_WINSYS_EGL_PRIVATE_H
+#pragma once
 
-#include "cogl-defines.h"
-#include "cogl-winsys-private.h"
-#include "cogl-context.h"
-#include "cogl-context-private.h"
-#include "cogl-framebuffer-private.h"
+#include "cogl/cogl-defines.h"
+#include "cogl/cogl-context.h"
+#include "cogl/cogl-context-private.h"
+#include "cogl/cogl-framebuffer-private.h"
+#include "cogl/winsys/cogl-winsys-private.h"
 
 /* XXX: depending on what version of Mesa you have then
  * eglQueryWaylandBuffer may take a wl_buffer or wl_resource argument
@@ -60,37 +59,37 @@ struct wl_resource;
 
 typedef struct _CoglWinsysEGLVtable
 {
-  CoglBool
+  gboolean
   (* display_setup) (CoglDisplay *display,
-                     CoglError **error);
+                     GError **error);
   void
   (* display_destroy) (CoglDisplay *display);
 
-  CoglBool
+  gboolean
   (* context_created) (CoglDisplay *display,
-                       CoglError **error);
+                       GError **error);
 
   void
   (* cleanup_context) (CoglDisplay *display);
 
-  CoglBool
-  (* context_init) (CoglContext *context, CoglError **error);
+  gboolean
+  (* context_init) (CoglContext *context, GError **error);
 
   void
   (* context_deinit) (CoglContext *context);
 
-  CoglBool
-  (* onscreen_init) (CoglOnscreen *onscreen,
-                     EGLConfig config,
-                     CoglError **error);
-  void
-  (* onscreen_deinit) (CoglOnscreen *onscreen);
-
   int
-  (* add_config_attributes) (CoglDisplay *display,
-                             CoglFramebufferConfig *config,
-                             EGLint *attributes);
+  (* add_config_attributes) (CoglDisplay                 *display,
+                             const CoglFramebufferConfig *config,
+                             EGLint                      *attributes);
+  gboolean
+  (* choose_config) (CoglDisplay *display,
+                     EGLint *attributes,
+                     EGLConfig *out_config,
+                     GError **error);
 } CoglWinsysEGLVtable;
+
+#define MAX_EGL_CONFIG_ATTRIBS 30
 
 typedef enum _CoglEGLWinsysFeature
 {
@@ -100,7 +99,8 @@ typedef enum _CoglEGLWinsysFeature
   COGL_EGL_WINSYS_FEATURE_CREATE_CONTEXT                =1L<<3,
   COGL_EGL_WINSYS_FEATURE_BUFFER_AGE                    =1L<<4,
   COGL_EGL_WINSYS_FEATURE_FENCE_SYNC                    =1L<<5,
-  COGL_EGL_WINSYS_FEATURE_SURFACELESS_CONTEXT           =1L<<6
+  COGL_EGL_WINSYS_FEATURE_SURFACELESS_CONTEXT           =1L<<6,
+  COGL_EGL_WINSYS_FEATURE_CONTEXT_PRIORITY              =1L<<7,
 } CoglEGLWinsysFeature;
 
 typedef struct _CoglRendererEGL
@@ -127,7 +127,7 @@ typedef struct _CoglRendererEGL
 
 #define COGL_WINSYS_FEATURE_END()
 
-#include "cogl-winsys-egl-feature-functions.h"
+#include "cogl/winsys/cogl-winsys-egl-feature-functions.h"
 
 #undef COGL_WINSYS_FEATURE_BEGIN
 #undef COGL_WINSYS_FEATURE_FUNCTION
@@ -141,7 +141,7 @@ typedef struct _CoglDisplayEGL
   EGLSurface egl_surface;
 
   EGLConfig egl_config;
-  CoglBool found_egl_config;
+  gboolean found_egl_config;
 
   EGLSurface current_read_surface;
   EGLSurface current_draw_surface;
@@ -157,24 +157,17 @@ typedef struct _CoglContextEGL
   EGLSurface saved_read_surface;
 } CoglContextEGL;
 
-typedef struct _CoglOnscreenEGL
-{
-  EGLSurface egl_surface;
-
-  CoglBool pending_resize_notify;
-
-  /* Platform specific data */
-  void *platform;
-} CoglOnscreenEGL;
-
-const CoglWinsysVtable *
+COGL_EXPORT const CoglWinsysVtable *
 _cogl_winsys_egl_get_vtable (void);
 
-EGLBoolean
+COGL_EXPORT EGLBoolean
 _cogl_winsys_egl_make_current (CoglDisplay *display,
                                EGLSurface draw,
                                EGLSurface read,
                                EGLContext context);
+
+COGL_EXPORT EGLBoolean
+_cogl_winsys_egl_ensure_current (CoglDisplay *display);
 
 #ifdef EGL_KHR_image_base
 EGLImageKHR
@@ -189,15 +182,18 @@ _cogl_egl_destroy_image (CoglContext *ctx,
 #endif
 
 #ifdef EGL_WL_bind_wayland_display
-CoglBool
+gboolean
 _cogl_egl_query_wayland_buffer (CoglContext *ctx,
                                 struct wl_resource *buffer,
                                 int attribute,
                                 int *value);
 #endif
 
-CoglBool
+COGL_EXPORT gboolean
 _cogl_winsys_egl_renderer_connect_common (CoglRenderer *renderer,
-                                          CoglError **error);
+                                          GError **error);
 
-#endif /* __COGL_WINSYS_EGL_PRIVATE_H */
+void
+cogl_display_egl_determine_attributes (CoglDisplay                 *display,
+                                       const CoglFramebufferConfig *config,
+                                       EGLint                      *attributes);

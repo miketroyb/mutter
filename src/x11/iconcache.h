@@ -19,10 +19,9 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_ICON_CACHE_H
-#define META_ICON_CACHE_H
+#pragma once
 
-#include "screen-private.h"
+#include "x11/meta-x11-display-private.h"
 
 typedef struct _MetaIconCache MetaIconCache;
 
@@ -50,13 +49,13 @@ struct _MetaIconCache
   guint net_wm_icon_dirty : 1;
 };
 
-void           meta_icon_cache_init                 (MetaIconCache *icon_cache);
-void           meta_icon_cache_property_changed     (MetaIconCache *icon_cache,
-                                                     MetaDisplay   *display,
-                                                     Atom           atom);
-gboolean       meta_icon_cache_get_icon_invalidated (MetaIconCache *icon_cache);
+void           meta_icon_cache_init                 (MetaIconCache  *icon_cache);
+void           meta_icon_cache_property_changed     (MetaIconCache  *icon_cache,
+                                                     MetaX11Display *x11_display,
+                                                     Atom            atom);
+gboolean       meta_icon_cache_get_icon_invalidated (MetaIconCache  *icon_cache);
 
-gboolean meta_read_icons         (MetaScreen       *screen,
+gboolean meta_read_icons         (MetaX11Display   *x11_display,
                                   Window            xwindow,
                                   MetaIconCache    *icon_cache,
                                   Pixmap            wm_hints_pixmap,
@@ -67,9 +66,3 @@ gboolean meta_read_icons         (MetaScreen       *screen,
                                   cairo_surface_t **mini_iconp,
                                   int               ideal_mini_width,
                                   int               ideal_mini_height);
-
-#endif
-
-
-
-

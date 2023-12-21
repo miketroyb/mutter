@@ -23,8 +23,9 @@
  */
 
 /**
- * SECTION:clutter-effect
- * @short_description: Base class for actor effects
+ * ClutterEffect:
+ * 
+ * Base class for actor effects
  *
  * The #ClutterEffect class provides a default type and API for creating
  * effects for generic actors.
@@ -42,7 +43,7 @@
  * #ClutterEffectClass.paint() method. The implementation of the function should look
  * something like this:
  *
- * |[
+ * ```c
  * void effect_paint (ClutterEffect *effect, ClutterEffectPaintFlags flags)
  * {
  *   // Set up initialisation of the paint such as binding a
@@ -58,7 +59,7 @@
  *
  *   // perform any cleanup of state, such as popping the CoglOffscreen
  * }
- * ]|
+ * ```
  *
  * The effect can optionally avoid calling clutter_actor_continue_paint() to skip any
  * further stages of the paint sequence. This is useful for example if the effect
@@ -79,7 +80,7 @@
  * will paint the first material using cogl_rectangle(), before continuing and then it
  * will paint paint the second material after.
  *
- *  |[
+ * ```c
  *  typedef struct {
  *    ClutterEffect parent_instance;
  *
@@ -100,13 +101,13 @@
  *    // Clear the previous state //
  *    if (self->rect_1)
  *      {
- *        cogl_handle_unref (self->rect_1);
+ *        cogl_object_unref (self->rect_1);
  *        self->rect_1 = NULL;
  *      }
  *
  *    if (self->rect_2)
  *      {
- *        cogl_handle_unref (self->rect_2);
+ *        cogl_object_unref (self->rect_2);
  *        self->rect_2 = NULL;
  *      }
  *
@@ -149,113 +150,143 @@
  *  static void
  *  my_effect_class_init (MyEffectClass *klass)
  *  {
- *    ClutterActorMetaClas *meta_class = CLUTTER_ACTOR_META_CLASS (klass);
+ *    ClutterActorMetaClass *meta_class = CLUTTER_ACTOR_META_CLASS (klass);
  *
  *    meta_class->set_actor = my_effect_set_actor;
  *
  *    klass->paint = my_effect_paint;
  *  }
- * ]|
- *
- * #ClutterEffect is available since Clutter 1.4
+ * ```
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
-#include "clutter-effect.h"
+#include "clutter/clutter-effect.h"
 
-#include "clutter-actor-meta-private.h"
-#include "clutter-debug.h"
-#include "clutter-effect-private.h"
-#include "clutter-enum-types.h"
-#include "clutter-marshal.h"
-#include "clutter-private.h"
-#include "clutter-actor-private.h"
+#include "clutter/clutter-actor-meta-private.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-effect-private.h"
+#include "clutter/clutter-enum-types.h"
+#include "clutter/clutter-marshal.h"
+#include "clutter/clutter-paint-node-private.h"
+#include "clutter/clutter-paint-nodes.h"
+#include "clutter/clutter-private.h"
+#include "clutter/clutter-actor-private.h"
 
 G_DEFINE_ABSTRACT_TYPE (ClutterEffect,
                         clutter_effect,
                         CLUTTER_TYPE_ACTOR_META);
 
 static gboolean
-clutter_effect_real_pre_paint (ClutterEffect *effect)
+clutter_effect_real_pre_paint (ClutterEffect       *effect,
+                               ClutterPaintNode    *node,
+                               ClutterPaintContext *paint_context)
 {
   return TRUE;
 }
 
 static void
-clutter_effect_real_post_paint (ClutterEffect *effect)
+clutter_effect_real_post_paint (ClutterEffect       *effect,
+                                ClutterPaintNode    *node,
+                                ClutterPaintContext *paint_context)
 {
 }
 
 static gboolean
-clutter_effect_real_get_paint_volume (ClutterEffect      *effect,
-                                      ClutterPaintVolume *volume)
+clutter_effect_real_modify_paint_volume (ClutterEffect      *effect,
+                                         ClutterPaintVolume *volume)
 {
   return TRUE;
 }
 
 static void
+add_actor_node (ClutterEffect    *effect,
+                ClutterPaintNode *node)
+{
+  ClutterPaintNode *actor_node;
+  ClutterActor *actor;
+
+  actor = clutter_actor_meta_get_actor (CLUTTER_ACTOR_META (effect));
+
+  actor_node = clutter_actor_node_new (actor, -1);
+  clutter_paint_node_add_child (node, actor_node);
+  clutter_paint_node_unref (actor_node);
+}
+
+static void
+clutter_effect_real_paint_node (ClutterEffect           *effect,
+                                ClutterPaintNode        *node,
+                                ClutterPaintContext     *paint_context,
+                                ClutterEffectPaintFlags  flags)
+{
+  add_actor_node (effect, node);
+}
+
+static void
 clutter_effect_real_paint (ClutterEffect           *effect,
+                           ClutterPaintNode        *node,
+                           ClutterPaintContext     *paint_context,
                            ClutterEffectPaintFlags  flags)
 {
-  ClutterActorMeta *actor_meta = CLUTTER_ACTOR_META (effect);
-  ClutterActor *actor;
+  ClutterEffectClass *effect_class = CLUTTER_EFFECT_GET_CLASS (effect);
   gboolean pre_paint_succeeded;
 
   /* The default implementation provides a compatibility wrapper for
      effects that haven't migrated to use the 'paint' virtual yet. This
      just calls the old pre and post virtuals before chaining on */
 
-  pre_paint_succeeded = _clutter_effect_pre_paint (effect);
-
-  actor = clutter_actor_meta_get_actor (actor_meta);
-  clutter_actor_continue_paint (actor);
+  pre_paint_succeeded = effect_class->pre_paint (effect, node,paint_context);
 
   if (pre_paint_succeeded)
-    _clutter_effect_post_paint (effect);
+    {
+      effect_class->paint_node (effect, node, paint_context, flags);
+      effect_class->post_paint (effect, node, paint_context);
+    }
+  else
+    {
+      /* Just paint the actor as fallback */
+      add_actor_node (effect, node);
+    }
 }
 
 static void
-clutter_effect_real_pick (ClutterEffect           *effect,
-                          ClutterEffectPaintFlags  flags)
+clutter_effect_real_pick (ClutterEffect      *effect,
+                          ClutterPickContext *pick_context)
 {
   ClutterActorMeta *actor_meta = CLUTTER_ACTOR_META (effect);
   ClutterActor *actor;
 
   actor = clutter_actor_meta_get_actor (actor_meta);
-  clutter_actor_continue_paint (actor);
+  clutter_actor_continue_pick (actor, pick_context);
 }
 
 static void
-clutter_effect_notify (GObject    *gobject,
-                       GParamSpec *pspec)
+clutter_effect_set_enabled (ClutterActorMeta *meta,
+                            gboolean          is_enabled)
 {
-  if (strcmp (pspec->name, "enabled") == 0)
-    {
-      ClutterActorMeta *meta = CLUTTER_ACTOR_META (gobject);
-      ClutterActor *actor = clutter_actor_meta_get_actor (meta);
+  ClutterActorMetaClass *parent_class =
+    CLUTTER_ACTOR_META_CLASS (clutter_effect_parent_class);
+  ClutterActor *actor;
 
-      if (actor != NULL)
-        clutter_actor_queue_redraw (actor);
-    }
+  actor = clutter_actor_meta_get_actor (meta);
+  if (actor)
+    clutter_actor_queue_redraw (actor);
 
-  if (G_OBJECT_CLASS (clutter_effect_parent_class)->notify != NULL)
-    G_OBJECT_CLASS (clutter_effect_parent_class)->notify (gobject, pspec);
+  parent_class->set_enabled (meta, is_enabled);
 }
 
 static void
 clutter_effect_class_init (ClutterEffectClass *klass)
 {
-  GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+  ClutterActorMetaClass *actor_meta_class = CLUTTER_ACTOR_META_CLASS (klass);
 
-  gobject_class->notify = clutter_effect_notify;
+  actor_meta_class->set_enabled = clutter_effect_set_enabled;
 
   klass->pre_paint = clutter_effect_real_pre_paint;
   klass->post_paint = clutter_effect_real_post_paint;
-  klass->get_paint_volume = clutter_effect_real_get_paint_volume;
+  klass->modify_paint_volume = clutter_effect_real_modify_paint_volume;
   klass->paint = clutter_effect_real_paint;
+  klass->paint_node = clutter_effect_real_paint_node;
   klass->pick = clutter_effect_real_pick;
 }
 
@@ -264,48 +295,46 @@ clutter_effect_init (ClutterEffect *self)
 {
 }
 
-gboolean
-_clutter_effect_pre_paint (ClutterEffect *effect)
-{
-  g_return_val_if_fail (CLUTTER_IS_EFFECT (effect), FALSE);
-
-  return CLUTTER_EFFECT_GET_CLASS (effect)->pre_paint (effect);
-}
-
-void
-_clutter_effect_post_paint (ClutterEffect *effect)
-{
-  g_return_if_fail (CLUTTER_IS_EFFECT (effect));
-
-  CLUTTER_EFFECT_GET_CLASS (effect)->post_paint (effect);
-}
-
 void
 _clutter_effect_paint (ClutterEffect           *effect,
+                       ClutterPaintNode        *node,
+                       ClutterPaintContext     *paint_context,
                        ClutterEffectPaintFlags  flags)
 {
   g_return_if_fail (CLUTTER_IS_EFFECT (effect));
 
-  CLUTTER_EFFECT_GET_CLASS (effect)->paint (effect, flags);
+  CLUTTER_EFFECT_GET_CLASS (effect)->paint (effect,
+                                            node,
+                                            paint_context,
+                                            flags);
 }
 
 void
-_clutter_effect_pick (ClutterEffect           *effect,
-                      ClutterEffectPaintFlags  flags)
+_clutter_effect_pick (ClutterEffect      *effect,
+                      ClutterPickContext *pick_context)
 {
   g_return_if_fail (CLUTTER_IS_EFFECT (effect));
 
-  CLUTTER_EFFECT_GET_CLASS (effect)->pick (effect, flags);
+  CLUTTER_EFFECT_GET_CLASS (effect)->pick (effect, pick_context);
 }
 
 gboolean
-_clutter_effect_get_paint_volume (ClutterEffect      *effect,
-                                  ClutterPaintVolume *volume)
+_clutter_effect_modify_paint_volume (ClutterEffect      *effect,
+                                     ClutterPaintVolume *volume)
 {
   g_return_val_if_fail (CLUTTER_IS_EFFECT (effect), FALSE);
   g_return_val_if_fail (volume != NULL, FALSE);
 
-  return CLUTTER_EFFECT_GET_CLASS (effect)->get_paint_volume (effect, volume);
+  return CLUTTER_EFFECT_GET_CLASS (effect)->modify_paint_volume (effect,
+                                                                 volume);
+}
+
+gboolean
+_clutter_effect_has_custom_paint_volume (ClutterEffect *effect)
+{
+  g_return_val_if_fail (CLUTTER_IS_EFFECT (effect), FALSE);
+
+  return CLUTTER_EFFECT_GET_CLASS (effect)->modify_paint_volume != clutter_effect_real_modify_paint_volume;
 }
 
 /**
@@ -338,7 +367,7 @@ _clutter_effect_get_paint_volume (ClutterEffect      *effect,
  * the actor itself so the %CLUTTER_EFFECT_PAINT_ACTOR_DIRTY would still
  * not be set. The effect can detect this case by keeping track of the
  * last modelview matrix that was used to render the actor and
- * veryifying that it remains the same in the next paint.
+ * verifying that it remains the same in the next paint.
  *
  * Any other effects that are layered on top of the passed in effect
  * will still be passed the %CLUTTER_EFFECT_PAINT_ACTOR_DIRTY flag. If
@@ -347,8 +376,6 @@ _clutter_effect_get_paint_volume (ClutterEffect      *effect,
  * one then that will override this call. In that case this effect
  * will instead be called with the %CLUTTER_EFFECT_PAINT_ACTOR_DIRTY
  * flag set.
- *
- * Since: 1.8
  */
 void
 clutter_effect_queue_repaint (ClutterEffect *effect)
@@ -362,7 +389,6 @@ clutter_effect_queue_repaint (ClutterEffect *effect)
   /* If the effect has no actor then nothing needs to be done */
   if (actor != NULL)
     _clutter_actor_queue_redraw_full (actor,
-                                      0, /* flags */
                                       NULL, /* clip volume */
                                       effect /* effect */);
 }

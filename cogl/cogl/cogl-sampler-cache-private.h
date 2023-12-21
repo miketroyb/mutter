@@ -28,11 +28,10 @@
  *
  */
 
-#ifndef __COGL_SAMPLER_CACHE_PRIVATE_H
-#define __COGL_SAMPLER_CACHE_PRIVATE_H
+#pragma once
 
-#include "cogl-context.h"
-#include "cogl-gl-header.h"
+#include "cogl/cogl-context.h"
+#include "cogl/cogl-gl-header.h"
 
 /* These aren't defined in the GLES headers */
 #ifndef GL_CLAMP_TO_BORDER
@@ -68,7 +67,6 @@ typedef struct _CoglSamplerCacheEntry
 
   CoglSamplerCacheWrapMode wrap_mode_s;
   CoglSamplerCacheWrapMode wrap_mode_t;
-  CoglSamplerCacheWrapMode wrap_mode_p;
 } CoglSamplerCacheEntry;
 
 CoglSamplerCache *
@@ -81,8 +79,7 @@ const CoglSamplerCacheEntry *
 _cogl_sampler_cache_update_wrap_modes (CoglSamplerCache *cache,
                                        const CoglSamplerCacheEntry *old_entry,
                                        CoglSamplerCacheWrapMode wrap_mode_s,
-                                       CoglSamplerCacheWrapMode wrap_mode_t,
-                                       CoglSamplerCacheWrapMode wrap_mode_p);
+                                       CoglSamplerCacheWrapMode wrap_mode_t);
 
 const CoglSamplerCacheEntry *
 _cogl_sampler_cache_update_filters (CoglSamplerCache *cache,
@@ -92,5 +89,3 @@ _cogl_sampler_cache_update_filters (CoglSamplerCache *cache,
 
 void
 _cogl_sampler_cache_free (CoglSamplerCache *cache);
-
-#endif /* __COGL_SAMPLER_CACHE_PRIVATE_H */

@@ -19,15 +19,13 @@
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#ifndef META_WAYLAND_TABLET_PAD_GROUP_H
-#define META_WAYLAND_TABLET_PAD_GROUP_H
-
-#include <wayland-server.h>
+#pragma once
 
 #include <glib.h>
+#include <wayland-server.h>
 
 #include "clutter/clutter.h"
-#include "meta-wayland-types.h"
+#include "wayland/meta-wayland-types.h"
 
 struct _MetaWaylandTabletPadGroup
 {
@@ -52,10 +50,6 @@ struct wl_resource *
                                                                 struct wl_client          *client,
                                                                 struct wl_resource        *pad_resource,
                                                                 uint32_t                   id);
-struct wl_resource *
-             meta_wayland_tablet_pad_group_lookup_resource     (MetaWaylandTabletPadGroup *group,
-                                                                struct wl_client          *client);
-
 void         meta_wayland_tablet_pad_group_notify              (MetaWaylandTabletPadGroup *group,
                                                                 struct wl_resource        *resource);
 
@@ -70,5 +64,3 @@ gboolean     meta_wayland_tablet_pad_group_has_button            (MetaWaylandTab
                                                                   guint                      button);
 gboolean     meta_wayland_tablet_pad_group_is_mode_switch_button (MetaWaylandTabletPadGroup *group,
                                                                   guint                      button);
-
-#endif /* META_WAYLAND_TABLET_PAD_GROUP_H */

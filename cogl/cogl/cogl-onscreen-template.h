@@ -30,18 +30,17 @@
  *
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
 
-#ifndef __COGL_ONSCREEN_TEMPLATE_H__
-#define __COGL_ONSCREEN_TEMPLATE_H__
-
-#include <cogl/cogl-swap-chain.h>
+#include "cogl/cogl-swap-chain.h"
 
 #include <glib-object.h>
 
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 typedef struct _CoglOnscreenTemplate	      CoglOnscreenTemplate;
 
@@ -52,9 +51,10 @@ typedef struct _CoglOnscreenTemplate	      CoglOnscreenTemplate;
  *
  * Returns: a #GType that can be used with the GLib type system.
  */
+COGL_EXPORT
 GType cogl_onscreen_template_get_gtype (void);
 
-CoglOnscreenTemplate *
+COGL_EXPORT CoglOnscreenTemplate *
 cogl_onscreen_template_new (CoglSwapChain *swap_chain);
 
 /**
@@ -76,31 +76,11 @@ cogl_onscreen_template_new (CoglSwapChain *swap_chain);
  * being redundant to use the cogl_framebuffer_resolve_samples() and
  * cogl_framebuffer_resolve_samples_region() apis with single-sample
  * rendering.</note>
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_onscreen_template_set_samples_per_pixel (
                                           CoglOnscreenTemplate *onscreen_template,
                                           int n);
-
-/**
- * cogl_onscreen_template_set_swap_throttled:
- * @onscreen_template: A #CoglOnscreenTemplate template framebuffer
- * @throttled: Whether throttling should be enabled
- *
- * Requests that any future #CoglOnscreen framebuffers derived from this
- * template should enable or disable swap throttling according to the given
- * @throttled argument.
- *
- * Since: 1.10
- * Stability: unstable
- */
-void
-cogl_onscreen_template_set_swap_throttled (
-                                          CoglOnscreenTemplate *onscreen_template,
-                                          CoglBool throttled);
 
 /**
  * cogl_onscreen_template_set_stereo_enabled:
@@ -112,14 +92,11 @@ cogl_onscreen_template_set_swap_throttled (
  * buffers, for use with stereo display. If the display system
  * does not support stereo, then creation of the framebuffer will
  * fail.
- *
- * Since: 1.20
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_onscreen_template_set_stereo_enabled (
 					   CoglOnscreenTemplate *onscreen_template,
-					   CoglBool enabled);
+					   gboolean enabled);
 /**
  * cogl_is_onscreen_template:
  * @object: A #CoglObject pointer
@@ -128,12 +105,8 @@ cogl_onscreen_template_set_stereo_enabled (
  *
  * Return value: %TRUE if the object references a #CoglOnscreenTemplate
  *   and %FALSE otherwise.
- * Since: 1.10
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_is_onscreen_template (void *object);
 
-COGL_END_DECLS
-
-#endif /* __COGL_ONSCREEN_TEMPLATE_H__ */
+G_END_DECLS

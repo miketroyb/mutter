@@ -28,27 +28,20 @@
  *
  */
 
-#ifndef __COGL_DISPLAY_PRIVATE_H
-#define __COGL_DISPLAY_PRIVATE_H
+#pragma once
 
-#include "cogl-object-private.h"
-#include "cogl-display.h"
-#include "cogl-renderer.h"
-#include "cogl-onscreen-template.h"
+#include "cogl/cogl-object-private.h"
+#include "cogl/cogl-display.h"
+#include "cogl/cogl-renderer.h"
+#include "cogl/cogl-onscreen-template.h"
 
 struct _CoglDisplay
 {
   CoglObject _parent;
 
-  CoglBool setup;
+  gboolean setup;
   CoglRenderer *renderer;
   CoglOnscreenTemplate *onscreen_template;
 
-#ifdef COGL_HAS_WAYLAND_EGL_SERVER_SUPPORT
-  struct wl_display *wayland_compositor_display;
-#endif
-
   void *winsys;
 };
-
-#endif /* __COGL_DISPLAY_PRIVATE_H */

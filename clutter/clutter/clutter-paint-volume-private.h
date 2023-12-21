@@ -19,11 +19,10 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __CLUTTER_PAINT_VOLUME_PRIVATE_H__
-#define __CLUTTER_PAINT_VOLUME_PRIVATE_H__
+#pragma once
 
-#include <clutter/clutter-types.h>
-#include <clutter/clutter-private.h>
+#include "clutter/clutter-types.h"
+#include "clutter/clutter-private.h"
 
 G_BEGIN_DECLS
 
@@ -58,11 +57,11 @@ struct _ClutterPaintVolume
    * elements 4, 5, 6 and 7 most of the time for 2D actors when
    * calculating the projected paint box.
    */
-  ClutterVertex vertices[8];
+  graphene_point3d_t vertices[8];
 
   /* As an optimization for internally managed PaintVolumes we allow
    * initializing ClutterPaintVolume variables allocated on the stack
-   * so we can avoid hammering the slice allocator. */
+   * so we can avoid hammering the memory allocator. */
   guint is_static:1;
 
   /* A newly initialized PaintVolume is considered empty as it is
@@ -85,8 +84,8 @@ struct _ClutterPaintVolume
    * TRUE) */
   guint is_2d:1;
 
-  /* Set to TRUE initialy but cleared if the paint volume is
-   * transfomed by a matrix. */
+  /* Set to TRUE initially but cleared if the paint volume is
+   * transformed by a matrix. */
   guint is_axis_aligned:1;
 
 
@@ -111,28 +110,29 @@ void                _clutter_paint_volume_set_from_volume      (ClutterPaintVolu
                                                                 const ClutterPaintVolume *src);
 
 void                _clutter_paint_volume_complete             (ClutterPaintVolume *pv);
-void                _clutter_paint_volume_transform            (ClutterPaintVolume *pv,
-                                                                const CoglMatrix *matrix);
-void                _clutter_paint_volume_project              (ClutterPaintVolume *pv,
-                                                                const CoglMatrix   *modelview,
-                                                                const CoglMatrix   *projection,
-                                                                const float        *viewport);
+void                _clutter_paint_volume_transform            (ClutterPaintVolume      *pv,
+                                                                const graphene_matrix_t *matrix);
+void                _clutter_paint_volume_project              (ClutterPaintVolume      *pv,
+                                                                const graphene_matrix_t *modelview,
+                                                                const graphene_matrix_t *projection,
+                                                                const float             *viewport);
 void                _clutter_paint_volume_get_bounding_box     (ClutterPaintVolume *pv,
                                                                 ClutterActorBox    *box);
 void                _clutter_paint_volume_axis_align           (ClutterPaintVolume *pv);
 void                _clutter_paint_volume_set_reference_actor  (ClutterPaintVolume *pv,
                                                                 ClutterActor *actor);
 
-ClutterCullResult   _clutter_paint_volume_cull                 (ClutterPaintVolume *pv,
-                                                                const ClutterPlane       *planes);
+ClutterCullResult   _clutter_paint_volume_cull                 (ClutterPaintVolume       *pv,
+                                                                const graphene_frustum_t *frustum);
 
-void                _clutter_paint_volume_get_stage_paint_box  (ClutterPaintVolume *pv,
-                                                                ClutterStage *stage,
-                                                                ClutterActorBox *box);
+void                _clutter_paint_volume_get_stage_paint_box  (const ClutterPaintVolume *pv,
+                                                                ClutterStage             *stage,
+                                                                ClutterActorBox          *box);
 
 void                _clutter_paint_volume_transform_relative   (ClutterPaintVolume *pv,
                                                                 ClutterActor *relative_to_ancestor);
 
-G_END_DECLS
+void                clutter_paint_volume_to_box                (ClutterPaintVolume *pv,
+                                                                graphene_box_t     *box);
 
-#endif /* __CLUTTER_PAINT_VOLUME_PRIVATE_H__ */
+G_END_DECLS

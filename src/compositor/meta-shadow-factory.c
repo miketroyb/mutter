@@ -16,21 +16,15 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * SECTION:meta-shadow-factory
- * @title: MetaShadowFactory
- * @short_description: Create and cache shadow textures for abritrary window shapes
- */
+#include "config.h"
 
-#include <config.h>
 #include <math.h>
 #include <string.h>
 
-#include <meta/meta-shadow-factory.h>
-#include <meta/util.h>
-
-#include "cogl-utils.h"
-#include "region-utils.h"
+#include "compositor/cogl-utils.h"
+#include "compositor/region-utils.h"
+#include "meta/meta-shadow-factory.h"
+#include "meta/util.h"
 
 /* This file implements blurring the shape of a window to produce a
  * shadow texture. The details are discussed below; a quick summary
@@ -106,11 +100,6 @@ struct _MetaShadowFactory
   GHashTable *shadow_classes;
 };
 
-struct _MetaShadowFactoryClass
-{
-  GObjectClass parent_class;
-};
-
 enum
 {
   CHANGED,
@@ -133,7 +122,7 @@ MetaShadowClassInfo default_shadow_classes[] = {
   { "popup-menu",    { 1, -1, 0, 0, 128 }, { 1, -1, 0, 0, 128 } },
   { "dropdown-menu", { 1, -1, 0, 0, 128 }, { 1, -1, 0, 0, 128 } },
 
-  { "attached",      { 0, -1, 0, 0, 0 }, { 0, -1, 0, 0, 0 } }
+  { "attached",      { 10, -1, 0, 3, 128 }, { 8, -1, 0, 2, 64 } }
 };
 
 G_DEFINE_TYPE (MetaShadowFactory, meta_shadow_factory, G_TYPE_OBJECT);
@@ -181,7 +170,7 @@ meta_shadow_unref (MetaShadow *shadow)
       cogl_object_unref (shadow->texture);
       cogl_object_unref (shadow->pipeline);
 
-      g_slice_free (MetaShadow, shadow);
+      g_free (shadow);
     }
 }
 
@@ -198,19 +187,21 @@ meta_shadow_unref (MetaShadow *shadow)
  *   drawing.
  *
  * Paints the shadow at the given position, for the specified actual
- * size of the region. (Since a #MetaShadow can be shared between
- * different sizes with the same extracted #MetaWindowShape the
- * size needs to be passed in here.)
+ * size of the region. 
+ *
+ * Since a #MetaShadow can be shared between different sizes with 
+ * the same extracted [struct@Meta.WindowShape] the size needs to be passed in here.
  */
 void
-meta_shadow_paint (MetaShadow     *shadow,
-                   int             window_x,
-                   int             window_y,
-                   int             window_width,
-                   int             window_height,
-                   guint8          opacity,
-                   cairo_region_t *clip,
-                   gboolean        clip_strictly)
+meta_shadow_paint (MetaShadow      *shadow,
+                   CoglFramebuffer *framebuffer,
+                   int              window_x,
+                   int              window_y,
+                   int              window_width,
+                   int              window_height,
+                   guint8           opacity,
+                   cairo_region_t  *clip,
+                   gboolean         clip_strictly)
 {
   float texture_width = cogl_texture_get_width (shadow->texture);
   float texture_height = cogl_texture_get_height (shadow->texture);
@@ -221,10 +212,11 @@ meta_shadow_paint (MetaShadow     *shadow,
   int dest_y[4];
   int n_x, n_y;
 
+  if (clip && cairo_region_is_empty (clip))
+    return;
+
   cogl_pipeline_set_color4ub (shadow->pipeline,
                               opacity, opacity, opacity, opacity);
-
-  cogl_set_source (shadow->pipeline);
 
   if (shadow->scale_width)
     {
@@ -278,7 +270,7 @@ meta_shadow_paint (MetaShadow     *shadow,
 
   for (j = 0; j < n_y; j++)
     {
-      cairo_rectangle_int_t dest_rect;
+      MtkRectangle dest_rect;
       dest_rect.y = dest_y[j];
       dest_rect.height = dest_y[j + 1] - dest_y[j];
 
@@ -300,6 +292,9 @@ meta_shadow_paint (MetaShadow     *shadow,
           else
             overlap = CAIRO_REGION_OVERLAP_IN;
 
+          if (overlap == CAIRO_REGION_OVERLAP_OUT)
+            continue;
+
           /* There's quite a bit of overhead from allocating a new
            * region in order to find an exact intersection and
            * generating more geometry - we make the assumption that
@@ -309,10 +304,12 @@ meta_shadow_paint (MetaShadow     *shadow,
           if (overlap == CAIRO_REGION_OVERLAP_IN ||
               (overlap == CAIRO_REGION_OVERLAP_PART && !clip_strictly))
             {
-              cogl_rectangle_with_texture_coords (dest_x[i], dest_y[j],
-                                                  dest_x[i + 1], dest_y[j + 1],
-                                                  src_x[i], src_y[j],
-                                                  src_x[i + 1], src_y[j + 1]);
+              cogl_framebuffer_draw_textured_rectangle (framebuffer,
+                                                        shadow->pipeline,
+                                                        dest_x[i], dest_y[j],
+                                                        dest_x[i + 1], dest_y[j + 1],
+                                                        src_x[i], src_y[j],
+                                                        src_x[i + 1], src_y[j + 1]);
             }
           else if (overlap == CAIRO_REGION_OVERLAP_PART)
             {
@@ -325,7 +322,7 @@ meta_shadow_paint (MetaShadow     *shadow,
               n_rectangles = cairo_region_num_rectangles (intersection);
               for (k = 0; k < n_rectangles; k++)
                 {
-                  cairo_rectangle_int_t rect;
+                  MtkRectangle rect;
                   float src_x1, src_x2, src_y1, src_y2;
 
                   cairo_region_get_rectangle (intersection, k, &rect);
@@ -343,9 +340,11 @@ meta_shadow_paint (MetaShadow     *shadow,
                   src_y2 = (src_y[j] * (dest_rect.y + dest_rect.height - (rect.y + rect.height)) +
                             src_y[j + 1] * (rect.y + rect.height - dest_rect.y)) / dest_rect.height;
 
-                  cogl_rectangle_with_texture_coords (rect.x, rect.y,
-                                                      rect.x + rect.width, rect.y + rect.height,
-                                                      src_x1, src_y1, src_x2, src_y2);
+                  cogl_framebuffer_draw_textured_rectangle (framebuffer,
+                                                            shadow->pipeline,
+                                                            rect.x, rect.y,
+                                                            rect.x + rect.width, rect.y + rect.height,
+                                                            src_x1, src_y1, src_x2, src_y2);
                 }
 
               cairo_region_destroy (intersection);
@@ -366,12 +365,12 @@ meta_shadow_paint (MetaShadow     *shadow,
  * meta_shadow_paint()
  */
 void
-meta_shadow_get_bounds  (MetaShadow            *shadow,
-                         int                    window_x,
-                         int                    window_y,
-                         int                    window_width,
-                         int                    window_height,
-                         cairo_rectangle_int_t *bounds)
+meta_shadow_get_bounds  (MetaShadow   *shadow,
+                         int           window_x,
+                         int           window_y,
+                         int           window_width,
+                         int           window_height,
+                         MtkRectangle *bounds)
 {
   bounds->x = window_x - shadow->outer_border_left;
   bounds->y = window_y - shadow->outer_border_top;
@@ -383,7 +382,7 @@ static void
 meta_shadow_class_info_free (MetaShadowClassInfo *class_info)
 {
   g_free ((char *)class_info->name);
-  g_slice_free (MetaShadowClassInfo, class_info);
+  g_free (class_info);
 }
 
 static void
@@ -401,7 +400,7 @@ meta_shadow_factory_init (MetaShadowFactory *factory)
 
   for (i = 0; i < G_N_ELEMENTS (default_shadow_classes); i++)
     {
-      MetaShadowClassInfo *class_info = g_slice_new (MetaShadowClassInfo);
+      MetaShadowClassInfo *class_info = g_new0 (MetaShadowClassInfo, 1);
 
       *class_info = default_shadow_classes[i];
       class_info->name = g_strdup (class_info->name);
@@ -583,7 +582,7 @@ blur_rows (cairo_region_t   *convolve_region,
   n_rectangles = cairo_region_num_rectangles (convolve_region);
   for (i = 0; i < n_rectangles; i++)
     {
-      cairo_rectangle_int_t rect;
+      MtkRectangle rect;
 
       cairo_region_get_rectangle (convolve_region, i, &rect);
 
@@ -708,10 +707,10 @@ make_shadow (MetaShadow     *shadow,
 {
   ClutterBackend *backend = clutter_get_default_backend ();
   CoglContext *ctx = clutter_backend_get_cogl_context (backend);
-  CoglError *error = NULL;
+  GError *error = NULL;
   int d = get_box_filter_size (shadow->key.radius);
   int spread = get_shadow_spread (shadow->key.radius);
-  cairo_rectangle_int_t extents;
+  MtkRectangle extents;
   cairo_region_t *row_convolve_region;
   cairo_region_t *column_convolve_region;
   guchar *buffer;
@@ -764,7 +763,7 @@ make_shadow (MetaShadow     *shadow,
   n_rectangles = cairo_region_num_rectangles (region);
   for (k = 0; k < n_rectangles; k++)
     {
-      cairo_rectangle_int_t rect;
+      MtkRectangle rect;
 
       cairo_region_get_rectangle (region, k, &rect);
       for (j = y_offset + rect.y; j < y_offset + rect.y + rect.height; j++)
@@ -810,8 +809,8 @@ make_shadow (MetaShadow     *shadow,
 
   if (error)
     {
-      meta_warning ("Failed to allocate shadow texture: %s\n", error->message);
-      cogl_error_free (error);
+      meta_warning ("Failed to allocate shadow texture: %s", error->message);
+      g_error_free (error);
     }
 
   cairo_region_destroy (row_convolve_region);
@@ -833,7 +832,7 @@ get_shadow_params (MetaShadowFactory *factory,
     {
       if (create)
         {
-          class_info = g_slice_new0 (MetaShadowClassInfo);
+          class_info = g_new0 (MetaShadowClassInfo, 1);
           *class_info = default_shadow_classes[0];
           class_info->name = g_strdup (class_info->name);
 
@@ -950,7 +949,7 @@ meta_shadow_factory_get_shadow (MetaShadowFactory *factory,
         return meta_shadow_ref (shadow);
     }
 
-  shadow = g_slice_new0 (MetaShadow);
+  shadow = g_new0 (MetaShadow, 1);
 
   shadow->ref_count = 1;
   shadow->factory = factory;

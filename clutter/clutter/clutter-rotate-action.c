@@ -23,29 +23,24 @@
  */
 
 /**
- * SECTION:clutter-rotate-action
- * @Title: ClutterRotateAction
- * @Short_Description: Action to rotate an actor
+ * ClutterRotateAction:
+ * 
+ * Action to rotate an actor
  *
- * #ClutterRotateAction is a sub-class of #ClutterGestureAction that implements
+ * #ClutterRotateAction is a sub-class of [class@GestureAction] that implements
  * the logic for recognizing rotate gestures using two touch points.
- *
- * Since: 1.12
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
 #include <math.h>
 
-#include "clutter-rotate-action.h"
+#include "clutter/clutter-rotate-action.h"
 
-#include "clutter-debug.h"
-#include "clutter-enum-types.h"
-#include "clutter-gesture-action-private.h"
-#include "clutter-marshal.h"
-#include "clutter-private.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-enum-types.h"
+#include "clutter/clutter-marshal.h"
+#include "clutter/clutter-private.h"
 
 struct _ClutterRotateActionPrivate
 {
@@ -64,18 +59,6 @@ enum
 static guint rotate_signals[LAST_SIGNAL] = { 0, };
 
 G_DEFINE_TYPE_WITH_PRIVATE (ClutterRotateAction, clutter_rotate_action, CLUTTER_TYPE_GESTURE_ACTION)
-
-static gboolean
-clutter_rotate_action_real_rotate (ClutterRotateAction *action,
-                                   ClutterActor        *actor,
-                                   gdouble              angle)
-{
-  clutter_actor_set_rotation_angle (actor,
-                                    CLUTTER_Z_AXIS,
-                                    action->priv->initial_rotation + angle);
-
-  return TRUE;
-}
 
 static gboolean
 clutter_rotate_action_gesture_begin (ClutterGestureAction  *action,
@@ -189,8 +172,6 @@ clutter_rotate_action_class_init (ClutterRotateActionClass *klass)
   GObjectClass *object_class =
     G_OBJECT_CLASS (klass);
 
-  klass->rotate = clutter_rotate_action_real_rotate;
-
   object_class->constructed = clutter_rotate_action_constructed;
 
   gesture_class->gesture_begin = clutter_rotate_action_gesture_begin;
@@ -204,21 +185,18 @@ clutter_rotate_action_class_init (ClutterRotateActionClass *klass)
    * @angle: the difference of angle of rotation between the initial
    * rotation and the current rotation
    *
-   * The ::rotate signal is emitted when a rotate gesture is
+   * The signal is emitted when a rotate gesture is
    * recognized on the attached actor and when the gesture is
    * cancelled (in this case with an angle value of 0).
    *
    * Return value: %TRUE if the rotation should continue, and %FALSE if
    *   the rotation should be cancelled.
-   *
-   * Since: 1.12
    */
   rotate_signals[ROTATE] =
     g_signal_new (I_("rotate"),
                   G_TYPE_FROM_CLASS (klass),
                   G_SIGNAL_RUN_LAST,
-                  G_STRUCT_OFFSET (ClutterRotateActionClass, rotate),
-                  _clutter_boolean_continue_accumulator, NULL,
+                  0, g_signal_accumulator_true_handled, NULL,
                   _clutter_marshal_BOOLEAN__OBJECT_DOUBLE,
                   G_TYPE_BOOLEAN, 2,
                   CLUTTER_TYPE_ACTOR,
@@ -242,8 +220,6 @@ clutter_rotate_action_init (ClutterRotateAction *self)
  * Creates a new #ClutterRotateAction instance
  *
  * Return value: the newly created #ClutterRotateAction
- *
- * Since: 1.12
  */
 ClutterAction *
 clutter_rotate_action_new (void)

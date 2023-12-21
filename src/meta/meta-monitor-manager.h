@@ -14,13 +14,10 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_MONITOR_MANAGER_H
-#define META_MONITOR_MANAGER_H
+#pragma once
 
 #include <glib-object.h>
 
@@ -33,25 +30,37 @@ typedef enum
   META_MONITOR_SWITCH_CONFIG_UNKNOWN,
 } MetaMonitorSwitchConfigType;
 
+typedef enum _MetaPowerSaveChangeReason
+{
+  META_POWER_SAVE_CHANGE_REASON_MODE_CHANGE,
+  META_POWER_SAVE_CHANGE_REASON_HOTPLUG,
+} MetaPowerSaveChangeReason;
+
 typedef struct _MetaMonitorManagerClass    MetaMonitorManagerClass;
 typedef struct _MetaMonitorManager         MetaMonitorManager;
 
+META_EXPORT
 GType meta_monitor_manager_get_type (void);
 
-MetaMonitorManager *meta_monitor_manager_get  (void);
-
+META_EXPORT
 gint meta_monitor_manager_get_monitor_for_connector (MetaMonitorManager *manager,
                                                      const char         *connector);
 
+META_EXPORT
 gboolean meta_monitor_manager_get_is_builtin_display_on (MetaMonitorManager *manager);
 
+META_EXPORT
 void meta_monitor_manager_switch_config (MetaMonitorManager          *manager,
                                          MetaMonitorSwitchConfigType  config_type);
 
+META_EXPORT
 gboolean meta_monitor_manager_can_switch_config (MetaMonitorManager *manager);
 
+META_EXPORT
 MetaMonitorSwitchConfigType meta_monitor_manager_get_switch_config (MetaMonitorManager *manager);
 
-gint meta_monitor_manager_get_display_configuration_timeout (void);
+META_EXPORT
+int meta_monitor_manager_get_display_configuration_timeout (MetaMonitorManager *manager);
 
-#endif /* META_MONITOR_MANAGER_H */
+META_EXPORT
+gboolean meta_monitor_manager_get_panel_orientation_managed (MetaMonitorManager *manager);

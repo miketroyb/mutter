@@ -28,13 +28,12 @@
  *
  */
 
-#ifndef __COGL_ONSCREEN_PRIVATE_H
-#define __COGL_ONSCREEN_PRIVATE_H
+#pragma once
 
-#include "cogl-onscreen.h"
-#include "cogl-framebuffer-private.h"
-#include "cogl-closure-list-private.h"
-#include "cogl-list.h"
+#include "cogl/cogl-onscreen.h"
+#include "cogl/cogl-framebuffer-private.h"
+#include "cogl/cogl-closure-list-private.h"
+#include "cogl/cogl-list.h"
 
 #include <glib.h>
 
@@ -55,38 +54,7 @@ typedef struct _CoglOnscreenQueuedDirty
   CoglOnscreenDirtyInfo info;
 } CoglOnscreenQueuedDirty;
 
-struct _CoglOnscreen
-{
-  CoglFramebuffer  _parent;
-
-#ifdef COGL_HAS_X11_SUPPORT
-  uint32_t foreign_xid;
-  CoglOnscreenX11MaskCallback foreign_update_mask_callback;
-  void *foreign_update_mask_data;
-#endif
-
-  CoglBool swap_throttled;
-
-  CoglList frame_closures;
-
-  CoglBool resizable;
-  CoglList resize_closures;
-
-  CoglList dirty_closures;
-
-  int64_t frame_counter;
-  int64_t swap_frame_counter; /* frame counter at last all to
-                               * cogl_onscreen_swap_region() or
-                               * cogl_onscreen_swap_buffers() */
-  GQueue pending_frame_infos;
-
-  void *winsys;
-};
-
-CoglOnscreen *
-_cogl_onscreen_new (void);
-
-void
+COGL_EXPORT void
 _cogl_framebuffer_winsys_update_size (CoglFramebuffer *framebuffer,
                                       int width, int height);
 
@@ -95,14 +63,11 @@ _cogl_onscreen_queue_event (CoglOnscreen *onscreen,
                             CoglFrameEvent type,
                             CoglFrameInfo *info);
 
-void
+COGL_EXPORT void
 _cogl_onscreen_notify_frame_sync (CoglOnscreen *onscreen, CoglFrameInfo *info);
 
-void
+COGL_EXPORT void
 _cogl_onscreen_notify_complete (CoglOnscreen *onscreen, CoglFrameInfo *info);
-
-void
-_cogl_onscreen_notify_resize (CoglOnscreen *onscreen);
 
 void
 _cogl_onscreen_queue_dirty (CoglOnscreen *onscreen,
@@ -112,4 +77,24 @@ _cogl_onscreen_queue_dirty (CoglOnscreen *onscreen,
 void
 _cogl_onscreen_queue_full_dirty (CoglOnscreen *onscreen);
 
-#endif /* __COGL_ONSCREEN_PRIVATE_H */
+void
+cogl_onscreen_bind (CoglOnscreen *onscreen);
+
+COGL_EXPORT void
+cogl_onscreen_set_winsys (CoglOnscreen *onscreen,
+                          gpointer      winsys);
+
+COGL_EXPORT gpointer
+cogl_onscreen_get_winsys (CoglOnscreen *onscreen);
+
+COGL_EXPORT CoglFrameInfo *
+cogl_onscreen_peek_head_frame_info (CoglOnscreen *onscreen);
+
+COGL_EXPORT CoglFrameInfo *
+cogl_onscreen_peek_tail_frame_info (CoglOnscreen *onscreen);
+
+COGL_EXPORT CoglFrameInfo *
+cogl_onscreen_pop_head_frame_info (CoglOnscreen *onscreen);
+
+COGL_EXPORT unsigned int
+cogl_onscreen_count_pending_frames (CoglOnscreen *onscreen);

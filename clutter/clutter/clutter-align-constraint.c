@@ -23,29 +23,25 @@
  */
 
 /**
- * SECTION:clutter-align-constraint
- * @Title: ClutterAlignConstraint
- * @Short_Description: A constraint aligning the position of an actor
+ * ClutterAlignConstraint:
+ * 
+ * A constraint aligning the position of an actor
  *
- * #ClutterAlignConstraint is a #ClutterConstraint that aligns the position
- * of the #ClutterActor to which it is applied to the size of another
- * #ClutterActor using an alignment factor
- *
- * #ClutterAlignConstraint is available since Clutter 1.4
+ * #ClutterAlignConstraint is a [class@Constraint] that aligns the position
+ * of the [class@Actor] to which it is applied to the size of another
+ * [class@Actor] using an alignment factor
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
-#include "clutter-align-constraint.h"
+#include "clutter/clutter-align-constraint.h"
 
-#include "clutter-actor-meta-private.h"
-#include "clutter-actor-private.h"
-#include "clutter-constraint.h"
-#include "clutter-debug.h"
-#include "clutter-enum-types.h"
-#include "clutter-private.h"
+#include "clutter/clutter-actor-meta-private.h"
+#include "clutter/clutter-actor-private.h"
+#include "clutter/clutter-constraint.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-enum-types.h"
+#include "clutter/clutter-private.h"
 
 #include <math.h>
 
@@ -60,6 +56,7 @@ struct _ClutterAlignConstraint
   ClutterActor *actor;
   ClutterActor *source;
   ClutterAlignAxis align_axis;
+  graphene_point_t pivot;
   gfloat factor;
 };
 
@@ -74,6 +71,7 @@ enum
 
   PROP_SOURCE,
   PROP_ALIGN_AXIS,
+  PROP_PIVOT_POINT,
   PROP_FACTOR,
 
   PROP_LAST
@@ -86,13 +84,11 @@ G_DEFINE_TYPE (ClutterAlignConstraint,
                CLUTTER_TYPE_CONSTRAINT);
 
 static void
-source_position_changed (ClutterActor           *actor,
-                         const ClutterActorBox  *allocation,
-                         ClutterAllocationFlags  flags,
-                         ClutterAlignConstraint *align)
+source_queue_relayout (ClutterActor           *actor,
+                       ClutterAlignConstraint *align)
 {
   if (align->actor != NULL)
-    clutter_actor_queue_relayout (align->actor);
+    _clutter_actor_queue_only_relayout (align->actor);
 }
 
 static void
@@ -137,35 +133,41 @@ clutter_align_constraint_update_allocation (ClutterConstraint *constraint,
   ClutterAlignConstraint *align = CLUTTER_ALIGN_CONSTRAINT (constraint);
   gfloat source_width, source_height;
   gfloat actor_width, actor_height;
-  gfloat source_x, source_y;
+  gfloat offset_x_start, offset_y_start;
+  gfloat pivot_x, pivot_y;
 
   if (align->source == NULL)
     return;
 
   clutter_actor_box_get_size (allocation, &actor_width, &actor_height);
 
-  clutter_actor_get_position (align->source, &source_x, &source_y);
   clutter_actor_get_size (align->source, &source_width, &source_height);
+
+  pivot_x = align->pivot.x == -1.f
+    ? align->factor
+    : align->pivot.x;
+  pivot_y = align->pivot.y == -1.f
+    ? align->factor
+    : align->pivot.y;
+
+  offset_x_start = pivot_x * -actor_width;
+  offset_y_start = pivot_y * -actor_height;
 
   switch (align->align_axis)
     {
     case CLUTTER_ALIGN_X_AXIS:
-      allocation->x1 = ((source_width - actor_width) * align->factor)
-                     + source_x;
+      allocation->x1 += offset_x_start + (source_width * align->factor);
       allocation->x2 = allocation->x1 + actor_width;
       break;
 
     case CLUTTER_ALIGN_Y_AXIS:
-      allocation->y1 = ((source_height - actor_height) * align->factor)
-                     + source_y;
+      allocation->y1 += offset_y_start + (source_height * align->factor);
       allocation->y2 = allocation->y1 + actor_height;
       break;
 
     case CLUTTER_ALIGN_BOTH:
-      allocation->x1 = ((source_width - actor_width) * align->factor)
-                     + source_x;
-      allocation->y1 = ((source_height - actor_height) * align->factor)
-                     + source_y;
+      allocation->x1 += offset_x_start + (source_width * align->factor);
+      allocation->y1 += offset_y_start + (source_height * align->factor);
       allocation->x2 = allocation->x1 + actor_width;
       allocation->y2 = allocation->y1 + actor_height;
       break;
@@ -189,7 +191,7 @@ clutter_align_constraint_dispose (GObject *gobject)
                                             G_CALLBACK (source_destroyed),
                                             align);
       g_signal_handlers_disconnect_by_func (align->source,
-                                            G_CALLBACK (source_position_changed),
+                                            G_CALLBACK (source_queue_relayout),
                                             align);
       align->source = NULL;
     }
@@ -213,6 +215,10 @@ clutter_align_constraint_set_property (GObject      *gobject,
 
     case PROP_ALIGN_AXIS:
       clutter_align_constraint_set_align_axis (align, g_value_get_enum (value));
+      break;
+
+    case PROP_PIVOT_POINT:
+      clutter_align_constraint_set_pivot_point (align, g_value_get_boxed (value));
       break;
 
     case PROP_FACTOR:
@@ -243,6 +249,16 @@ clutter_align_constraint_get_property (GObject    *gobject,
       g_value_set_enum (value, align->align_axis);
       break;
 
+    case PROP_PIVOT_POINT:
+      {
+        graphene_point_t point;
+
+        clutter_align_constraint_get_pivot_point (align, &point);
+
+        g_value_set_boxed (value, &point);
+      }
+      break;
+
     case PROP_FACTOR:
       g_value_set_float (value, align->factor);
       break;
@@ -271,13 +287,9 @@ clutter_align_constraint_class_init (ClutterAlignConstraintClass *klass)
    *
    * The #ClutterActor must not be a child or a grandchild of the actor
    * using the constraint.
-   *
-   * Since: 1.4
    */
   obj_props[PROP_SOURCE] =
-    g_param_spec_object ("source",
-                           P_("Source"),
-                           P_("The source of the alignment"),
+    g_param_spec_object ("source", NULL, NULL,
                            CLUTTER_TYPE_ACTOR,
                            CLUTTER_PARAM_READWRITE | G_PARAM_CONSTRUCT);
 
@@ -285,16 +297,34 @@ clutter_align_constraint_class_init (ClutterAlignConstraintClass *klass)
    * ClutterAlignConstraint:align-axis:
    *
    * The axis to be used to compute the alignment
-   *
-   * Since: 1.4
    */
   obj_props[PROP_ALIGN_AXIS] =
-    g_param_spec_enum ("align-axis",
-                       P_("Align Axis"),
-                       P_("The axis to align the position to"),
+    g_param_spec_enum ("align-axis", NULL, NULL,
                        CLUTTER_TYPE_ALIGN_AXIS,
                        CLUTTER_ALIGN_X_AXIS,
                        CLUTTER_PARAM_READWRITE | G_PARAM_CONSTRUCT);
+
+  /**
+   * ClutterAlignConstraint:pivot-point:
+   *
+   * The pivot point used by the constraint. The pivot point is the
+   * point in the constraint actor around which the aligning is applied,
+   * with (0, 0) being the top left corner of the actor and (1, 1) the
+   * bottom right corner of the actor.
+   *
+   * For example, setting the pivot point to (0.5, 0.5) and using a factor
+   * of 1 for both axes will align the actors horizontal and vertical
+   * center point with the bottom right corner of the source actor.
+   *
+   * By default, the pivot point is set to (-1, -1), which means it's not
+   * used and the constrained actor will be aligned to always stay inside
+   * the source actor.
+   */
+  obj_props[PROP_PIVOT_POINT] =
+    g_param_spec_boxed ("pivot-point", NULL, NULL,
+                       GRAPHENE_TYPE_POINT,
+                       G_PARAM_READWRITE |
+                       G_PARAM_STATIC_STRINGS);
 
   /**
    * ClutterAlignConstraint:factor:
@@ -305,13 +335,9 @@ clutter_align_constraint_class_init (ClutterAlignConstraintClass *klass)
    * with an align-axis value of %CLUTTER_ALIGN_X_AXIS, 0.0 means left and
    * 1.0 means right; with a value of %CLUTTER_ALIGN_Y_AXIS, 0.0 means top
    * and 1.0 means bottom.
-   *
-   * Since: 1.4
    */
   obj_props[PROP_FACTOR] =
-    g_param_spec_float ("factor",
-                        P_("Factor"),
-                        P_("The alignment factor, between 0.0 and 1.0"),
+    g_param_spec_float ("factor", NULL, NULL,
                         0.0, 1.0,
                         0.0,
                         CLUTTER_PARAM_READWRITE | G_PARAM_CONSTRUCT);
@@ -328,6 +354,8 @@ clutter_align_constraint_init (ClutterAlignConstraint *self)
   self->actor = NULL;
   self->source = NULL;
   self->align_axis = CLUTTER_ALIGN_X_AXIS;
+  self->pivot.x = -1.f;
+  self->pivot.y = -1.f;
   self->factor = 0.0f;
 }
 
@@ -343,8 +371,6 @@ clutter_align_constraint_init (ClutterAlignConstraint *self)
  * alignment @factor
  *
  * Return value: the newly created #ClutterAlignConstraint
- *
- * Since: 1.4
  */
 ClutterConstraint *
 clutter_align_constraint_new (ClutterActor     *source,
@@ -366,8 +392,6 @@ clutter_align_constraint_new (ClutterActor     *source,
  * @source: (allow-none): a #ClutterActor, or %NULL to unset the source
  *
  * Sets the source of the alignment constraint
- *
- * Since: 1.4
  */
 void
 clutter_align_constraint_set_source (ClutterAlignConstraint *align,
@@ -405,15 +429,15 @@ clutter_align_constraint_set_source (ClutterAlignConstraint *align,
                                             G_CALLBACK (source_destroyed),
                                             align);
       g_signal_handlers_disconnect_by_func (old_source,
-                                            G_CALLBACK (source_position_changed),
+                                            G_CALLBACK (source_queue_relayout),
                                             align);
     }
 
   align->source = source;
   if (align->source != NULL)
     {
-      g_signal_connect (align->source, "allocation-changed",
-                        G_CALLBACK (source_position_changed),
+      g_signal_connect (align->source, "queue-relayout",
+                        G_CALLBACK (source_queue_relayout),
                         align);
       g_signal_connect (align->source, "destroy",
                         G_CALLBACK (source_destroyed),
@@ -434,8 +458,6 @@ clutter_align_constraint_set_source (ClutterAlignConstraint *align,
  *
  * Return value: (transfer none): the #ClutterActor used as the source
  *   of the alignment
- *
- * Since: 1.4
  */
 ClutterActor *
 clutter_align_constraint_get_source (ClutterAlignConstraint *align)
@@ -451,8 +473,6 @@ clutter_align_constraint_get_source (ClutterAlignConstraint *align)
  * @axis: the axis to which the alignment refers to
  *
  * Sets the axis to which the alignment refers to
- *
- * Since: 1.4
  */
 void
 clutter_align_constraint_set_align_axis (ClutterAlignConstraint *align,
@@ -478,8 +498,6 @@ clutter_align_constraint_set_align_axis (ClutterAlignConstraint *align,
  * Retrieves the value set using clutter_align_constraint_set_align_axis()
  *
  * Return value: the alignment axis
- *
- * Since: 1.4
  */
 ClutterAlignAxis
 clutter_align_constraint_get_align_axis (ClutterAlignConstraint *align)
@@ -488,6 +506,60 @@ clutter_align_constraint_get_align_axis (ClutterAlignConstraint *align)
                         CLUTTER_ALIGN_X_AXIS);
 
   return align->align_axis;
+}
+
+/**
+ * clutter_align_constraint_set_pivot_point:
+ * @align: a #ClutterAlignConstraint
+ * @pivot_point: A #GraphenePoint
+ *
+ * Sets the pivot point used by the constraint, the pivot point is the
+ * point in the constraint actor around which the aligning is applied,
+ * with (0, 0) being the top left corner of the actor and (1, 1) the
+ * bottom right corner of the actor.
+ *
+ * If -1 is used, the pivot point is unset and the constrained actor
+ * will be aligned to always stay inside the source actor.
+ */
+void
+clutter_align_constraint_set_pivot_point (ClutterAlignConstraint *align,
+                                          const graphene_point_t *pivot_point)
+{
+  g_return_if_fail (CLUTTER_IS_ALIGN_CONSTRAINT (align));
+  g_return_if_fail (pivot_point != NULL);
+  g_return_if_fail (pivot_point->x == -1.f ||
+                    (pivot_point->x >= 0.f && pivot_point->x <= 1.f));
+  g_return_if_fail (pivot_point->y == -1.f ||
+                    (pivot_point->y >= 0.f && pivot_point->y <= 1.f));
+
+  if (graphene_point_equal (&align->pivot, pivot_point))
+    return;
+
+  align->pivot = *pivot_point;
+
+  if (align->actor != NULL)
+    clutter_actor_queue_relayout (align->actor);
+
+  g_object_notify_by_pspec (G_OBJECT (align), obj_props[PROP_PIVOT_POINT]);
+}
+
+/**
+ * clutter_align_constraint_get_pivot_point
+ * @align: a #ClutterAlignConstraint
+ * @pivot_point: (out caller-allocates): return location for a #GraphenePoint
+ *
+ * Gets the pivot point used by the constraint set with
+ * clutter_align_constraint_set_pivot_point(). If no custom pivot
+ * point is set, -1 is set.
+ */
+void
+clutter_align_constraint_get_pivot_point (ClutterAlignConstraint *align,
+                                          graphene_point_t       *pivot_point)
+{
+  g_return_if_fail (CLUTTER_IS_ALIGN_CONSTRAINT (align));
+  g_return_if_fail (pivot_point != NULL);
+
+  *pivot_point = align->pivot;
 }
 
 /**
@@ -506,8 +578,6 @@ clutter_align_constraint_get_align_axis (ClutterAlignConstraint *align)
  * meaning bottom, when #ClutterAlignConstraint:align-axis is set to
  * %CLUTTER_ALIGN_Y_AXIS). A value of 0.5 aligns in the middle in either
  * cases
- *
- * Since: 1.4
  */
 void
 clutter_align_constraint_set_factor (ClutterAlignConstraint *align,
@@ -530,8 +600,6 @@ clutter_align_constraint_set_factor (ClutterAlignConstraint *align,
  * Retrieves the factor set using clutter_align_constraint_set_factor()
  *
  * Return value: the alignment factor
- *
- * Since: 1.4
  */
 gfloat
 clutter_align_constraint_get_factor (ClutterAlignConstraint *align)

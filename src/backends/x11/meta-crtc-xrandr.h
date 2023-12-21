@@ -14,13 +14,10 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_CRTC_XRANDR_H
-#define META_CRTC_XRANDR_H
+#pragma once
 
 #include <X11/extensions/Xrandr.h>
 #include <xcb/randr.h>
@@ -28,7 +25,12 @@
 #include "backends/meta-crtc.h"
 #include "backends/x11/meta-gpu-xrandr.h"
 
-gboolean meta_crtc_xrandr_set_config (MetaCrtc            *crtc,
+#define META_TYPE_CRTC_XRANDR (meta_crtc_xrandr_get_type ())
+G_DECLARE_FINAL_TYPE (MetaCrtcXrandr, meta_crtc_xrandr,
+                      META, CRTC_XRANDR,
+                      MetaCrtc)
+
+gboolean meta_crtc_xrandr_set_config (MetaCrtcXrandr      *crtc_xrandr,
                                       xcb_randr_crtc_t     xrandr_crtc,
                                       xcb_timestamp_t      timestamp,
                                       int                  x,
@@ -39,9 +41,12 @@ gboolean meta_crtc_xrandr_set_config (MetaCrtc            *crtc,
                                       int                  n_outputs,
                                       xcb_timestamp_t     *out_timestamp);
 
-MetaCrtc * meta_create_xrandr_crtc (MetaGpuXrandr      *gpu_xrandr,
-                                    XRRCrtcInfo        *xrandr_crtc,
-                                    RRCrtc              crtc_id,
-                                    XRRScreenResources *resources);
+gboolean meta_crtc_xrandr_is_assignment_changed (MetaCrtcXrandr     *crtc_xrandr,
+                                                 MetaCrtcAssignment *crtc_assignment);
 
-#endif /* META_CRTC_XRANDR_H */
+MetaCrtcMode * meta_crtc_xrandr_get_current_mode (MetaCrtcXrandr *crtc_xrandr);
+
+MetaCrtcXrandr * meta_crtc_xrandr_new (MetaGpuXrandr      *gpu_xrandr,
+                                       XRRCrtcInfo        *xrandr_crtc,
+                                       RRCrtc              crtc_id,
+                                       XRRScreenResources *resources);

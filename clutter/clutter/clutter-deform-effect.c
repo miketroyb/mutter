@@ -26,10 +26,9 @@
  */
 
 /**
- * SECTION:clutter-deform-effect
- * @Title: ClutterDeformEffect
- * @Short_Description: A base class for effects deforming the geometry
- *   of an actor
+ * ClutterDeformEffect:
+ * 
+ * A base class for effects deforming the geometry of an actor
  *
  * #ClutterDeformEffect is an abstract class providing all the plumbing
  * for creating effects that result in the deformation of an actor's
@@ -38,8 +37,6 @@
  * #ClutterDeformEffect uses offscreen buffers to render the contents of
  * a #ClutterActor and then the Cogl vertex buffers API to submit the
  * geometry to the GPU.
- *
- * #ClutterDeformEffect is available since Clutter 1.4
  *
  * ## Implementing ClutterDeformEffect
  *
@@ -51,19 +48,17 @@
  * deformation algorithm.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
-#define CLUTTER_ENABLE_EXPERIMENTAL_API
-#include "clutter-deform-effect.h"
+#include "cogl/cogl.h"
 
-#include <cogl/cogl.h>
-
-#include "clutter-debug.h"
-#include "clutter-enum-types.h"
-#include "clutter-offscreen-effect-private.h"
-#include "clutter-private.h"
+#include "clutter/clutter-deform-effect.h"
+#include "clutter/clutter-color.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-enum-types.h"
+#include "clutter/clutter-paint-node.h"
+#include "clutter/clutter-paint-nodes.h"
+#include "clutter/clutter-private.h"
 
 #define DEFAULT_N_TILES         32
 
@@ -130,10 +125,9 @@ clutter_deform_effect_deform_vertex (ClutterDeformEffect *effect,
 }
 
 static void
-vbo_invalidate (ClutterActor           *actor,
-                const ClutterActorBox  *allocation,
-                ClutterAllocationFlags  flags,
-                ClutterDeformEffect    *effect)
+vbo_invalidate (ClutterActor        *actor,
+                GParamSpec          *pspec,
+                ClutterDeformEffect *effect)
 {
   effect->priv->is_dirty = TRUE;
 }
@@ -149,7 +143,7 @@ clutter_deform_effect_set_actor (ClutterActorMeta *meta,
       ClutterActor *old_actor = clutter_actor_meta_get_actor (meta);
 
       if (old_actor != NULL)
-        g_signal_handler_disconnect (old_actor, priv->allocation_id);
+        g_clear_signal_handler (&priv->allocation_id, old_actor);
 
       priv->allocation_id = 0;
     }
@@ -158,7 +152,7 @@ clutter_deform_effect_set_actor (ClutterActorMeta *meta,
    * changes
    */
   if (actor != NULL)
-    priv->allocation_id = g_signal_connect (actor, "allocation-changed",
+    priv->allocation_id = g_signal_connect (actor, "notify::allocation",
                                             G_CALLBACK (vbo_invalidate),
                                             meta);
 
@@ -168,18 +162,17 @@ clutter_deform_effect_set_actor (ClutterActorMeta *meta,
 }
 
 static void
-clutter_deform_effect_paint_target (ClutterOffscreenEffect *effect)
+clutter_deform_effect_paint_target (ClutterOffscreenEffect *effect,
+                                    ClutterPaintNode       *node,
+                                    ClutterPaintContext    *paint_context)
 {
   ClutterDeformEffect *self= CLUTTER_DEFORM_EFFECT (effect);
   ClutterDeformEffectPrivate *priv = self->priv;
-  CoglHandle material;
   CoglPipeline *pipeline;
   CoglDepthState depth_state;
-  CoglFramebuffer *fb = cogl_get_draw_framebuffer ();
 
   if (priv->is_dirty)
     {
-      ClutterRect rect;
       gboolean mapped_buffer;
       CoglVertexP3T2C4 *verts;
       ClutterActor *actor;
@@ -193,12 +186,7 @@ clutter_deform_effect_paint_target (ClutterOffscreenEffect *effect)
       /* if we don't have a target size, fall back to the actor's
        * allocation, though wrong it might be
        */
-      if (clutter_offscreen_effect_get_target_rect (effect, &rect))
-        {
-          width = clutter_rect_get_width (&rect);
-          height = clutter_rect_get_height (&rect);
-        }
-      else
+      if (!clutter_offscreen_effect_get_target_size (effect, &width, &height))
         clutter_actor_get_size (actor, &width, &height);
 
       /* XXX ideally, the sub-classes should tell us what they
@@ -278,12 +266,12 @@ clutter_deform_effect_paint_target (ClutterOffscreenEffect *effect)
       priv->is_dirty = FALSE;
     }
 
-  material = clutter_offscreen_effect_get_target (effect);
-  pipeline = COGL_PIPELINE (material);
+  pipeline = clutter_offscreen_effect_get_pipeline (effect);
 
   /* enable depth testing */
   cogl_depth_state_init (&depth_state);
   cogl_depth_state_set_test_enabled (&depth_state, TRUE);
+  cogl_depth_state_set_test_function (&depth_state, COGL_DEPTH_TEST_FUNCTION_LEQUAL);
   cogl_pipeline_set_depth_state (pipeline, &depth_state, NULL);
 
   /* enable backface culling if we have a back material */
@@ -292,12 +280,22 @@ clutter_deform_effect_paint_target (ClutterOffscreenEffect *effect)
                                       COGL_PIPELINE_CULL_FACE_MODE_BACK);
 
   /* draw the front */
-  if (material != NULL)
-    cogl_framebuffer_draw_primitive (fb, pipeline, priv->primitive);
+  if (pipeline != NULL)
+    {
+      ClutterPaintNode *front_node;
+
+      front_node = clutter_pipeline_node_new (pipeline);
+      clutter_paint_node_set_static_name (front_node,
+                                          "ClutterDeformEffect (front)");
+      clutter_paint_node_add_child (node, front_node);
+      clutter_paint_node_add_primitive (front_node, priv->primitive);
+      clutter_paint_node_unref (front_node);
+    }
 
   /* draw the back */
   if (priv->back_pipeline != NULL)
     {
+      ClutterPaintNode *back_node;
       CoglPipeline *back_pipeline;
 
       /* We probably shouldn't be modifying the user's material so
@@ -307,20 +305,30 @@ clutter_deform_effect_paint_target (ClutterOffscreenEffect *effect)
       cogl_pipeline_set_cull_face_mode (back_pipeline,
                                         COGL_PIPELINE_CULL_FACE_MODE_FRONT);
 
-      cogl_framebuffer_draw_primitive (fb, back_pipeline, priv->primitive);
 
+      back_node = clutter_pipeline_node_new (back_pipeline);
+      clutter_paint_node_set_static_name (back_node,
+                                          "ClutterDeformEffect (back)");
+      clutter_paint_node_add_child (node, back_node);
+      clutter_paint_node_add_primitive (back_node, priv->primitive);
+
+      clutter_paint_node_unref (back_node);
       cogl_object_unref (back_pipeline);
     }
 
   if (G_UNLIKELY (priv->lines_primitive != NULL))
     {
-      CoglContext *ctx =
-        clutter_backend_get_cogl_context (clutter_get_default_backend ());
-      CoglPipeline *lines_pipeline = cogl_pipeline_new (ctx);
-      cogl_pipeline_set_color4f (lines_pipeline, 1.0, 0, 0, 1.0);
-      cogl_framebuffer_draw_primitive (fb, lines_pipeline,
-                                       priv->lines_primitive);
-      cogl_object_unref (lines_pipeline);
+      const ClutterColor *red;
+      ClutterPaintNode *lines_node;
+
+      red = clutter_color_get_static (CLUTTER_COLOR_RED);
+
+      lines_node = clutter_color_node_new (red);
+      clutter_paint_node_set_static_name (lines_node,
+                                          "ClutterDeformEffect (lines)");
+      clutter_paint_node_add_child (node, lines_node);
+      clutter_paint_node_add_primitive (lines_node, priv->lines_primitive);
+      clutter_paint_node_unref (lines_node);
     }
 }
 
@@ -583,13 +591,9 @@ clutter_deform_effect_class_init (ClutterDeformEffectClass *klass)
    *
    * The number of horizontal tiles. The bigger the number, the
    * smaller the tiles
-   *
-   * Since: 1.4
    */
   obj_props[PROP_X_TILES] =
-    g_param_spec_uint ("x-tiles",
-                       P_("Horizontal Tiles"),
-                       P_("The number of horizontal tiles"),
+    g_param_spec_uint ("x-tiles", NULL, NULL,
                        1, G_MAXUINT,
                        DEFAULT_N_TILES,
                        CLUTTER_PARAM_READWRITE);
@@ -599,13 +603,9 @@ clutter_deform_effect_class_init (ClutterDeformEffectClass *klass)
    *
    * The number of vertical tiles. The bigger the number, the
    * smaller the tiles
-   *
-   * Since: 1.4
    */
   obj_props[PROP_Y_TILES] =
-    g_param_spec_uint ("y-tiles",
-                       P_("Vertical Tiles"),
-                       P_("The number of vertical tiles"),
+    g_param_spec_uint ("y-tiles", NULL, NULL,
                        1, G_MAXUINT,
                        DEFAULT_N_TILES,
                        CLUTTER_PARAM_READWRITE);
@@ -617,13 +617,9 @@ clutter_deform_effect_class_init (ClutterDeformEffectClass *klass)
    * to which this effect has been applied
    *
    * By default, no material will be used
-   *
-   * Since: 1.4
    */
   obj_props[PROP_BACK_MATERIAL] =
-    g_param_spec_boxed ("back-material",
-                        P_("Back Material"),
-                        P_("The material to be used when painting the back of the actor"),
+    g_param_spec_boxed ("back-material", NULL, NULL,
                         COGL_TYPE_HANDLE,
                         CLUTTER_PARAM_READWRITE);
 
@@ -659,8 +655,6 @@ clutter_deform_effect_init (ClutterDeformEffect *self)
  *
  * The #ClutterDeformEffect will take a reference on the material's
  * handle
- *
- * Since: 1.4
  */
 void
 clutter_deform_effect_set_back_material (ClutterDeformEffect *effect,
@@ -692,8 +686,6 @@ clutter_deform_effect_set_back_material (ClutterDeformEffect *effect,
  * Return value: (transfer none): a handle for the material, or %NULL.
  *   The returned material is owned by the #ClutterDeformEffect and it
  *   should not be freed directly
- *
- * Since: 1.4
  */
 CoglHandle
 clutter_deform_effect_get_back_material (ClutterDeformEffect *effect)
@@ -714,8 +706,6 @@ clutter_deform_effect_get_back_material (ClutterDeformEffect *effect)
  *
  * More tiles allow a finer grained deformation at the expenses
  * of computation
- *
- * Since: 1.4
  */
 void
 clutter_deform_effect_set_n_tiles (ClutterDeformEffect *effect,
@@ -769,8 +759,6 @@ clutter_deform_effect_set_n_tiles (ClutterDeformEffect *effect,
  *
  * Retrieves the number of horizontal and vertical tiles used to sub-divide
  * the actor's geometry during the effect
- *
- * Since: 1.4
  */
 void
 clutter_deform_effect_get_n_tiles (ClutterDeformEffect *effect,
@@ -790,10 +778,8 @@ clutter_deform_effect_get_n_tiles (ClutterDeformEffect *effect,
  * clutter_deform_effect_invalidate:
  * @effect: a #ClutterDeformEffect
  *
- * Invalidates the @effect<!-- -->'s vertices and, if it is associated
+ * Invalidates the `effect`'s vertices and, if it is associated
  * to an actor, it will queue a redraw
- *
- * Since: 1.4
  */
 void
 clutter_deform_effect_invalidate (ClutterDeformEffect *effect)

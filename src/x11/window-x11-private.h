@@ -20,33 +20,35 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_WINDOW_X11_PRIVATE_H
-#define META_WINDOW_X11_PRIVATE_H
+#pragma once
 
-#include "window-private.h"
+#include "core/window-private.h"
 #include "x11/iconcache.h"
+#include "x11/meta-sync-counter.h"
+#include "x11/window-x11.h"
 
 G_BEGIN_DECLS
 
+/*
+ * Mirrors _NET_WM_BYPASS_COMPOSITOR preference values.
+ */
+typedef enum _MetaBypassCompositorHint
+{
+  META_BYPASS_COMPOSITOR_HINT_AUTO = 0,
+  META_BYPASS_COMPOSITOR_HINT_ON = 1,
+  META_BYPASS_COMPOSITOR_HINT_OFF = 2,
+} MetaBypassCompositorHint;
+
 typedef struct _MetaWindowX11Private MetaWindowX11Private;
-
-struct _MetaWindowX11Class
-{
-  MetaWindowClass parent_class;
-};
-
-struct _MetaWindowX11
-{
-  MetaWindow parent;
-
-  MetaWindowX11Private *priv;
-};
 
 struct _MetaWindowX11Private
 {
   /* TRUE if the client forced these on */
   guint wm_state_skip_taskbar : 1;
   guint wm_state_skip_pager : 1;
+  guint wm_take_focus : 1;
+  guint wm_ping : 1;
+  guint wm_delete_window : 1;
 
   /* Weird "_NET_WM_STATE_MODAL" flag */
   guint wm_state_modal : 1;
@@ -57,6 +59,8 @@ struct _MetaWindowX11Private
 
   Atom type_atom;
 
+  XWindowAttributes attributes;
+
   /* Requested geometry */
   int border_width;
 
@@ -64,13 +68,32 @@ struct _MetaWindowX11Private
 
   /* These are in server coordinates. If we have a frame, it's
    * relative to the frame. */
-  MetaRectangle client_rect;
+  MtkRectangle client_rect;
 
   MetaIconCache icon_cache;
   Pixmap wm_hints_pixmap;
   Pixmap wm_hints_mask;
+
+  cairo_surface_t *icon;
+  cairo_surface_t *mini_icon;
+  guint update_icon_handle_id;
+
+  /* Freeze/thaw on resize (for Xwayland) */
+  gboolean thaw_after_paint;
+
+  /* Bypass compositor hints */
+  MetaBypassCompositorHint bypass_compositor;
+
+  MetaSyncCounter sync_counter;
 };
 
-G_END_DECLS
+MetaWindowX11Private * meta_window_x11_get_private (MetaWindowX11 *window_x11);
 
-#endif
+void meta_window_x11_set_bypass_compositor_hint (MetaWindowX11            *window_x11,
+                                                 MetaBypassCompositorHint  requested_value);
+
+void meta_window_x11_queue_update_icon (MetaWindowX11 *window_x11);
+
+void meta_window_x11_initialize_state (MetaWindow *window);
+
+G_END_DECLS

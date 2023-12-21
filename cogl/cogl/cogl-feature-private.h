@@ -28,11 +28,12 @@
  *
  */
 
-#ifndef __COGL_FEATURE_PRIVATE_H
-#define __COGL_FEATURE_PRIVATE_H
+#pragma once
 
 #include <glib.h>
 
+#include "cogl/cogl-context.h"
+#include "cogl/cogl-renderer.h"
 
 #define COGL_CHECK_GL_VERSION(driver_major, driver_minor, \
                               target_major, target_minor) \
@@ -41,7 +42,7 @@
 
 typedef enum
 {
-  COGL_EXT_IN_GLES = (1 << 0),
+  COGL_EXT_IN_GL = (1 << 0),
   COGL_EXT_IN_GLES2 = (1 << 1),
   COGL_EXT_IN_GLES3 = (1 << 2)
 } CoglExtGlesAvailability;
@@ -75,8 +76,6 @@ struct _CoglFeatureData
      extension is different from the namespace, you can specify it
      with a ':' after the namespace */
   const char *extension_names;
-  /* A set of feature flags to enable if the extension is available */
-  CoglFeatureFlags feature_flags;
   /* A set of private feature flags to enable if the extension is
    * available */
   int feature_flags_private;
@@ -87,7 +86,7 @@ struct _CoglFeatureData
   const CoglFeatureFunction *functions;
 };
 
-CoglBool
+gboolean
 _cogl_feature_check (CoglRenderer *renderer,
                      const char *driver_prefix,
                      const CoglFeatureData *data,
@@ -102,5 +101,3 @@ _cogl_feature_check_ext_functions (CoglContext *context,
                                    int gl_major,
                                    int gl_minor,
                                    char * const *gl_extensions);
-
-#endif /* __COGL_FEATURE_PRIVATE_H */

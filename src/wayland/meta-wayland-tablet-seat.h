@@ -19,20 +19,18 @@
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#ifndef META_WAYLAND_TABLET_SEAT_H
-#define META_WAYLAND_TABLET_SEAT_H
-
-#include <wayland-server.h>
+#pragma once
 
 #include <glib.h>
+#include <wayland-server.h>
 
-#include "meta-wayland-types.h"
+#include "wayland/meta-wayland-types.h"
 
 struct _MetaWaylandTabletSeat
 {
   MetaWaylandTabletManager *manager;
   MetaWaylandSeat *seat;
-  ClutterDeviceManager *device_manager;
+  ClutterSeat *clutter_seat;
   struct wl_list resource_list;
 
   GHashTable *tablets;
@@ -76,5 +74,5 @@ MetaWaylandTablet     *meta_wayland_tablet_seat_lookup_paired_tablet (MetaWaylan
                                                                       MetaWaylandTabletPad  *pad);
 GList                 *meta_wayland_tablet_seat_lookup_paired_pads   (MetaWaylandTabletSeat *tablet_seat,
                                                                       MetaWaylandTablet     *tablet);
-
-#endif /* META_WAYLAND_TABLET_SEAT_H */
+gboolean               meta_wayland_tablet_seat_can_popup            (MetaWaylandTabletSeat *tablet_seat,
+                                                                      uint32_t               serial);

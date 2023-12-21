@@ -12,36 +12,30 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_LAUNCHER_H
-#define META_LAUNCHER_H
+#pragma once
 
 #include <glib-object.h>
 
-typedef struct _MetaLauncher MetaLauncher;
+#include "backends/meta-backend-types.h"
 
-MetaLauncher     *meta_launcher_new                     (GError       **error);
+typedef struct _MetaLauncher MetaLauncher;
+typedef struct _MetaDBusLogin1Session MetaDBusLogin1Session;
+
+MetaLauncher     *meta_launcher_new                     (MetaBackend   *backend,
+                                                         const char    *session_id,
+                                                         const char    *custom_seat_id,
+                                                         GError       **error);
 void              meta_launcher_free                    (MetaLauncher  *self);
 
-gboolean          meta_launcher_activate_session        (MetaLauncher  *self,
-							 GError       **error);
-
 gboolean          meta_launcher_activate_vt             (MetaLauncher  *self,
-							 signed char    vt,
-							 GError       **error);
+                                                         signed char    vt,
+                                                         GError       **error);
 
 const char *      meta_launcher_get_seat_id             (MetaLauncher *launcher);
 
-int               meta_launcher_open_restricted         (MetaLauncher *launcher,
-                                                         const char   *path,
-                                                         GError      **error);
+MetaDBusLogin1Session * meta_launcher_get_session_proxy (MetaLauncher *launcher);
 
-void              meta_launcher_close_restricted        (MetaLauncher *launcher,
-                                                         int           fd);
-
-
-#endif /* META_LAUNCHER_H */
+MetaBackend * meta_launcher_get_backend (MetaLauncher *launcher);

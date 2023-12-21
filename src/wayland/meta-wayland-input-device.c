@@ -14,9 +14,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jonas Ådahl <jadahl@gmail.com>
@@ -119,9 +117,7 @@ meta_wayland_input_device_class_init (MetaWaylandInputDeviceClass *klass)
   object_class->set_property = meta_wayland_input_device_set_property;
   object_class->get_property = meta_wayland_input_device_get_property;
 
-  pspec = g_param_spec_pointer ("seat",
-                                "MetaWaylandSeat",
-                                "The seat",
+  pspec = g_param_spec_pointer ("seat", NULL, NULL,
                                 G_PARAM_READWRITE |
                                 G_PARAM_STATIC_STRINGS |
                                 G_PARAM_CONSTRUCT_ONLY);

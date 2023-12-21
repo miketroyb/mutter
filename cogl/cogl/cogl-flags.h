@@ -29,14 +29,13 @@
  *   Neil Roberts <neil@linux.intel.com>
  */
 
-#ifndef __COGL_FLAGS_H
-#define __COGL_FLAGS_H
+#pragma once
 
 #include <glib.h>
 
-#include "cogl-util.h"
+#include "cogl/cogl-util.h"
 
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 /* These are macros used to implement a fixed-size array of bits. This
    should be used instead of CoglBitmask when the maximum bit number
@@ -124,7 +123,4 @@ COGL_BEGIN_DECLS
 #define COGL_FLAGS_FOREACH_END \
   } } } G_STMT_END
 
-COGL_END_DECLS
-
-#endif /* __COGL_FLAGS_H */
-
+G_END_DECLS

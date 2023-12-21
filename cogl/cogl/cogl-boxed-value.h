@@ -28,14 +28,14 @@
  *
  */
 
-#ifndef __COGL_BOXED_VALUE_H
-#define __COGL_BOXED_VALUE_H
+#pragma once
 
 #include <glib.h>
 
-#include "cogl-context.h"
+#include "cogl/cogl-context.h"
 
-typedef enum {
+typedef enum
+{
   COGL_BOXED_NONE,
   COGL_BOXED_INT,
   COGL_BOXED_FLOAT,
@@ -64,7 +64,7 @@ typedef struct _CoglBoxedValue
     _bv->count = 1;                             \
   } G_STMT_END
 
-CoglBool
+gboolean
 _cogl_boxed_value_equal (const CoglBoxedValue *bva,
                          const CoglBoxedValue *bvb);
 
@@ -92,7 +92,7 @@ void
 _cogl_boxed_value_set_matrix (CoglBoxedValue *bv,
                               int dimensions,
                               int count,
-                              CoglBool transpose,
+                              gboolean transpose,
                               const float *value);
 
 /*
@@ -113,5 +113,3 @@ void
 _cogl_boxed_value_set_uniform (CoglContext *ctx,
                                int location,
                                const CoglBoxedValue *value);
-
-#endif /* __COGL_BOXED_VALUE_H */

@@ -15,9 +15,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -43,6 +41,18 @@ typedef struct _MetaWaylandGtkSurface
   gulong configure_handler_id;
 } MetaWaylandGtkSurface;
 
+struct _MetaWaylandGtkShell
+{
+  GObject parent;
+
+  MetaWaylandCompositor *compositor;
+
+  GList *shell_resources;
+  uint32_t capabilities;
+};
+
+G_DEFINE_TYPE (MetaWaylandGtkShell, meta_wayland_gtk_shell, G_TYPE_OBJECT)
+
 static void
 gtk_surface_destructor (struct wl_resource *resource)
 {
@@ -52,8 +62,8 @@ gtk_surface_destructor (struct wl_resource *resource)
     {
       g_object_steal_qdata (G_OBJECT (gtk_surface->surface),
                             quark_gtk_surface_data);
-      g_signal_handler_disconnect (gtk_surface->surface,
-                                   gtk_surface->configure_handler_id);
+      g_clear_signal_handler (&gtk_surface->configure_handler_id,
+                              gtk_surface->surface);
     }
 
   g_free (gtk_surface);
@@ -71,15 +81,16 @@ gtk_surface_set_dbus_properties (struct wl_client   *client,
 {
   MetaWaylandGtkSurface *gtk_surface = wl_resource_get_user_data (resource);
   MetaWaylandSurface *surface = gtk_surface->surface;
+  MetaWindow *window;
 
-  /* Broken client, let it die instead of us */
-  if (!surface->window)
-    {
-      meta_warning ("meta-wayland-surface: set_dbus_properties called with invalid window!\n");
-      return;
-    }
+  if (!surface)
+    return;
 
-  meta_window_set_gtk_dbus_properties (surface->window,
+  window = meta_wayland_surface_get_window (surface);
+  if (!window)
+    return;
+
+  meta_window_set_gtk_dbus_properties (window,
                                        application_id,
                                        unique_bus_name,
                                        app_menu_path,
@@ -94,12 +105,20 @@ gtk_surface_set_modal (struct wl_client   *client,
 {
   MetaWaylandGtkSurface *gtk_surface = wl_resource_get_user_data (resource);
   MetaWaylandSurface *surface = gtk_surface->surface;
+  MetaWindow *window;
+
+  if (!surface)
+    return;
+
+  window = meta_wayland_surface_get_window (surface);
+  if (!window)
+    return;
 
   if (gtk_surface->is_modal)
     return;
 
   gtk_surface->is_modal = TRUE;
-  meta_window_set_type (surface->window, META_WINDOW_MODAL_DIALOG);
+  meta_window_set_type (window, META_WINDOW_MODAL_DIALOG);
 }
 
 static void
@@ -108,12 +127,20 @@ gtk_surface_unset_modal (struct wl_client   *client,
 {
   MetaWaylandGtkSurface *gtk_surface = wl_resource_get_user_data (resource);
   MetaWaylandSurface *surface = gtk_surface->surface;
+  MetaWindow *window;
+
+  if (!surface)
+    return;
+
+  window = meta_wayland_surface_get_window (surface);
+  if (!window)
+    return;
 
   if (!gtk_surface->is_modal)
     return;
 
   gtk_surface->is_modal = FALSE;
-  meta_window_set_type (surface->window, META_WINDOW_NORMAL);
+  meta_window_set_type (window, META_WINDOW_NORMAL);
 }
 
 static void
@@ -123,8 +150,12 @@ gtk_surface_present (struct wl_client   *client,
 {
   MetaWaylandGtkSurface *gtk_surface = wl_resource_get_user_data (resource);
   MetaWaylandSurface *surface = gtk_surface->surface;
-  MetaWindow *window = surface->window;
+  MetaWindow *window;
 
+  if (!surface)
+    return;
+
+  window = meta_wayland_surface_get_window (surface);
   if (!window)
     return;
 
@@ -132,18 +163,175 @@ gtk_surface_present (struct wl_client   *client,
                              META_CLIENT_TYPE_APPLICATION, NULL);
 }
 
+static void
+gtk_surface_request_focus (struct wl_client   *client,
+                           struct wl_resource *resource,
+                           const char         *startup_id)
+{
+  MetaWaylandGtkSurface *gtk_surface = wl_resource_get_user_data (resource);
+  MetaWaylandSurface *surface = gtk_surface->surface;
+  MetaContext *context;
+  MetaDisplay *display;
+  MetaStartupSequence *sequence = NULL;
+  MetaWindow *window;
+
+  if (!surface)
+    return;
+
+  window = meta_wayland_surface_get_window (surface);
+  if (!window)
+    return;
+
+  context = meta_wayland_compositor_get_context (surface->compositor);
+  display = meta_context_get_display (context);
+
+  if (startup_id)
+    sequence = meta_startup_notification_lookup_sequence (display->startup_notification,
+                                                          startup_id);
+
+  if (sequence)
+    {
+      uint32_t timestamp;
+      int32_t workspace_idx;
+
+      workspace_idx = meta_startup_sequence_get_workspace (sequence);
+      timestamp = meta_startup_sequence_get_timestamp (sequence);
+
+      meta_startup_sequence_complete (sequence);
+      meta_startup_notification_remove_sequence (display->startup_notification,
+                                                 sequence);
+      if (workspace_idx >= 0)
+        meta_window_change_workspace_by_index (window, workspace_idx, TRUE);
+
+      meta_window_activate_full (window, timestamp,
+                                 META_CLIENT_TYPE_APPLICATION, NULL);
+    }
+  else
+    {
+      meta_window_set_demands_attention (window);
+    }
+}
+
+static void
+gtk_surface_titlebar_gesture (struct wl_client   *client,
+                              struct wl_resource *resource,
+                              uint32_t            serial,
+                              struct wl_resource *seat_resource,
+                              uint32_t            gesture)
+{
+  MetaWaylandGtkSurface *gtk_surface = wl_resource_get_user_data (resource);
+  MetaWaylandSurface *surface = gtk_surface->surface;
+  MetaWaylandSeat *seat = wl_resource_get_user_data (seat_resource);
+  GDesktopTitlebarAction action = G_DESKTOP_TITLEBAR_ACTION_NONE;
+  MetaWindow *window;
+  float x, y;
+
+  if (!surface)
+    return;
+
+  window = meta_wayland_surface_get_window (surface);
+  if (!window)
+    return;
+
+  if (!meta_wayland_seat_get_grab_info (seat, surface, serial, FALSE,
+                                        NULL, NULL, &x, &y))
+    return;
+
+  switch (gesture)
+    {
+    case GTK_SURFACE1_GESTURE_DOUBLE_CLICK:
+      action = meta_prefs_get_action_double_click_titlebar ();
+      break;
+    case GTK_SURFACE1_GESTURE_RIGHT_CLICK:
+      action = meta_prefs_get_action_right_click_titlebar ();
+      break;
+    case GTK_SURFACE1_GESTURE_MIDDLE_CLICK:
+      action = meta_prefs_get_action_middle_click_titlebar ();
+      break;
+    default:
+      wl_resource_post_error (resource,
+                              GTK_SURFACE1_ERROR_INVALID_GESTURE,
+                              "Invalid gesture passed");
+      break;
+    }
+
+  switch (action)
+    {
+    case G_DESKTOP_TITLEBAR_ACTION_TOGGLE_MAXIMIZE:
+      if (!window->has_maximize_func)
+        break;
+
+      if (META_WINDOW_MAXIMIZED (window))
+        meta_window_unmaximize (window, META_MAXIMIZE_BOTH);
+      else
+        meta_window_maximize (window, META_MAXIMIZE_BOTH);
+      break;
+
+    case G_DESKTOP_TITLEBAR_ACTION_TOGGLE_MAXIMIZE_HORIZONTALLY:
+      if (!window->has_maximize_func)
+        break;
+
+      if (META_WINDOW_MAXIMIZED_HORIZONTALLY (window))
+        meta_window_unmaximize (window, META_MAXIMIZE_HORIZONTAL);
+      else
+        meta_window_maximize (window, META_MAXIMIZE_HORIZONTAL);
+      break;
+
+    case G_DESKTOP_TITLEBAR_ACTION_TOGGLE_MAXIMIZE_VERTICALLY:
+      if (!window->has_maximize_func)
+        break;
+
+      if (META_WINDOW_MAXIMIZED_VERTICALLY (window))
+        meta_window_unmaximize (window, META_MAXIMIZE_VERTICAL);
+      else
+        meta_window_maximize (window, META_MAXIMIZE_VERTICAL);
+      break;
+
+    case G_DESKTOP_TITLEBAR_ACTION_MINIMIZE:
+      if (!window->has_minimize_func)
+        break;
+
+      meta_window_minimize (window);
+      break;
+
+    case G_DESKTOP_TITLEBAR_ACTION_LOWER:
+      {
+        uint32_t timestamp;
+
+        timestamp = meta_display_get_current_time_roundtrip (window->display);
+        meta_window_lower_with_transients (window, timestamp);
+      }
+      break;
+
+    case G_DESKTOP_TITLEBAR_ACTION_MENU:
+      meta_window_show_menu (window, META_WINDOW_MENU_WM, x, y);
+      break;
+
+    default:
+      break;
+    }
+}
+
+static void
+gtk_surface_release (struct wl_client   *client,
+                     struct wl_resource *resource)
+{
+  wl_resource_destroy (resource);
+}
+
 static const struct gtk_surface1_interface meta_wayland_gtk_surface_interface = {
   gtk_surface_set_dbus_properties,
   gtk_surface_set_modal,
   gtk_surface_unset_modal,
   gtk_surface_present,
+  gtk_surface_request_focus,
+  gtk_surface_release,
+  gtk_surface_titlebar_gesture
 };
 
 static void
 gtk_surface_surface_destroyed (MetaWaylandGtkSurface *gtk_surface)
 {
-  wl_resource_set_implementation (gtk_surface->resource,
-                                  NULL, NULL, NULL);
   gtk_surface->surface = NULL;
 }
 
@@ -153,29 +341,25 @@ fill_edge_states (struct wl_array *states,
 {
   uint32_t *s;
 
-  /* Top */
-  if (window->edge_constraints[0] != META_EDGE_CONSTRAINT_MONITOR)
+  if (window->edge_constraints.top != META_EDGE_CONSTRAINT_MONITOR)
     {
       s = wl_array_add (states, sizeof *s);
       *s = GTK_SURFACE1_EDGE_CONSTRAINT_RESIZABLE_TOP;
     }
 
-  /* Right */
-  if (window->edge_constraints[1] != META_EDGE_CONSTRAINT_MONITOR)
+  if (window->edge_constraints.right != META_EDGE_CONSTRAINT_MONITOR)
     {
       s = wl_array_add (states, sizeof *s);
       *s = GTK_SURFACE1_EDGE_CONSTRAINT_RESIZABLE_RIGHT;
     }
 
-  /* Bottom */
-  if (window->edge_constraints[2] != META_EDGE_CONSTRAINT_MONITOR)
+  if (window->edge_constraints.bottom != META_EDGE_CONSTRAINT_MONITOR)
     {
       s = wl_array_add (states, sizeof *s);
       *s = GTK_SURFACE1_EDGE_CONSTRAINT_RESIZABLE_BOTTOM;
     }
 
-  /* Left */
-  if (window->edge_constraints[3] != META_EDGE_CONSTRAINT_MONITOR)
+  if (window->edge_constraints.left != META_EDGE_CONSTRAINT_MONITOR)
     {
       s = wl_array_add (states, sizeof *s);
       *s = GTK_SURFACE1_EDGE_CONSTRAINT_RESIZABLE_LEFT;
@@ -197,50 +381,44 @@ send_configure_edges (MetaWaylandGtkSurface *gtk_surface,
 }
 
 static void
+add_state_value (struct wl_array         *states,
+                 enum gtk_surface1_state  state)
+{
+  uint32_t *s;
+
+  s = wl_array_add (states, sizeof *s);
+  *s = state;
+}
+
+static void
 fill_states (struct wl_array    *states,
              MetaWindow         *window,
              struct wl_resource *resource)
 {
-  uint32_t *s;
-  guint version;
+  int version;
 
   version = wl_resource_get_version (resource);
 
   if (version < GTK_SURFACE1_CONFIGURE_EDGES_SINCE_VERSION &&
       (window->tile_mode == META_TILE_LEFT ||
        window->tile_mode == META_TILE_RIGHT))
-    {
-      s = wl_array_add (states, sizeof *s);
-      *s = GTK_SURFACE1_STATE_TILED;
-    }
+    add_state_value (states, GTK_SURFACE1_STATE_TILED);
 
   if (version >= GTK_SURFACE1_STATE_TILED_TOP_SINCE_VERSION &&
-      window->edge_constraints[0] != META_EDGE_CONSTRAINT_NONE)
-    {
-      s = wl_array_add (states, sizeof *s);
-      *s = GTK_SURFACE1_STATE_TILED_TOP;
-    }
+      window->edge_constraints.top != META_EDGE_CONSTRAINT_NONE)
+    add_state_value (states, GTK_SURFACE1_STATE_TILED_TOP);
 
   if (version >= GTK_SURFACE1_STATE_TILED_RIGHT_SINCE_VERSION &&
-      window->edge_constraints[1] != META_EDGE_CONSTRAINT_NONE)
-    {
-      s = wl_array_add (states, sizeof *s);
-      *s = GTK_SURFACE1_STATE_TILED_RIGHT;
-    }
+      window->edge_constraints.right != META_EDGE_CONSTRAINT_NONE)
+    add_state_value (states, GTK_SURFACE1_STATE_TILED_RIGHT);
 
   if (version >= GTK_SURFACE1_STATE_TILED_BOTTOM_SINCE_VERSION &&
-      window->edge_constraints[2] != META_EDGE_CONSTRAINT_NONE)
-    {
-      s = wl_array_add (states, sizeof *s);
-      *s = GTK_SURFACE1_STATE_TILED_BOTTOM;
-    }
+      window->edge_constraints.bottom != META_EDGE_CONSTRAINT_NONE)
+    add_state_value (states, GTK_SURFACE1_STATE_TILED_BOTTOM);
 
   if (version >= GTK_SURFACE1_STATE_TILED_LEFT_SINCE_VERSION &&
-      window->edge_constraints[3] != META_EDGE_CONSTRAINT_NONE)
-    {
-      s = wl_array_add (states, sizeof *s);
-      *s = GTK_SURFACE1_STATE_TILED_LEFT;
-    }
+      window->edge_constraints.left != META_EDGE_CONSTRAINT_NONE)
+    add_state_value (states, GTK_SURFACE1_STATE_TILED_LEFT);
 }
 
 static void
@@ -261,11 +439,14 @@ static void
 on_configure (MetaWaylandSurface    *surface,
               MetaWaylandGtkSurface *gtk_surface)
 {
-  send_configure (gtk_surface, surface->window);
+  MetaWindow *window;
 
+  window = meta_wayland_surface_get_window (surface);
+  send_configure (gtk_surface, window);
 
-  if (wl_resource_get_version (gtk_surface->resource) >= GTK_SURFACE1_CONFIGURE_EDGES_SINCE_VERSION)
-    send_configure_edges (gtk_surface, surface->window);
+  if (wl_resource_get_version (gtk_surface->resource) >=
+      GTK_SURFACE1_CONFIGURE_EDGES_SINCE_VERSION)
+    send_configure_edges (gtk_surface, window);
 }
 
 static void
@@ -312,11 +493,16 @@ gtk_shell_set_startup_id (struct wl_client   *client,
                           struct wl_resource *resource,
                           const char         *startup_id)
 {
-  MetaDisplay *display;
+  MetaWaylandGtkShell *gtk_shell = wl_resource_get_user_data (resource);
+  MetaContext *context =
+    meta_wayland_compositor_get_context (gtk_shell->compositor);
+  MetaDisplay *display = meta_context_get_display (context);
+  MetaStartupSequence *sequence;
 
-  display = meta_get_display ();
-  meta_startup_notification_remove_sequence (display->startup_notification,
-                                             startup_id);
+  sequence = meta_startup_notification_lookup_sequence (display->startup_notification,
+                                                        startup_id);
+  if (sequence)
+    meta_startup_sequence_complete (sequence);
 }
 
 static void
@@ -324,18 +510,23 @@ gtk_shell_system_bell (struct wl_client   *client,
                        struct wl_resource *resource,
                        struct wl_resource *gtk_surface_resource)
 {
-  MetaDisplay *display = meta_get_display ();
+  MetaWaylandGtkShell *gtk_shell = wl_resource_get_user_data (resource);
+  MetaContext *context =
+    meta_wayland_compositor_get_context (gtk_shell->compositor);
+  MetaDisplay *display = meta_context_get_display (context);
 
   if (gtk_surface_resource)
     {
       MetaWaylandGtkSurface *gtk_surface =
         wl_resource_get_user_data (gtk_surface_resource);
       MetaWaylandSurface *surface = gtk_surface->surface;
+      MetaWindow *window;
 
-      if (!surface->window)
+      window = meta_wayland_surface_get_window (surface);
+      if (!window)
         return;
 
-      meta_bell_notify (display, surface->window);
+      meta_bell_notify (display, window);
     }
   else
     {
@@ -343,11 +534,54 @@ gtk_shell_system_bell (struct wl_client   *client,
     }
 }
 
+static void
+gtk_shell_notify_launch (struct wl_client   *client,
+                         struct wl_resource *resource,
+                         const char         *startup_id)
+{
+  MetaWaylandGtkShell *gtk_shell = wl_resource_get_user_data (resource);
+  MetaContext *context =
+    meta_wayland_compositor_get_context (gtk_shell->compositor);
+  MetaDisplay *display = meta_context_get_display (context);
+  MetaStartupSequence *sequence;
+  uint64_t timestamp;
+
+  sequence = meta_startup_notification_lookup_sequence (display->startup_notification,
+                                                        startup_id);
+  if (sequence)
+    {
+      g_warning ("Naughty client notified launch with duplicate startup_id '%s'",
+                 startup_id);
+      return;
+    }
+
+  timestamp = meta_display_get_current_time_roundtrip (display);
+  sequence = g_object_new (META_TYPE_STARTUP_SEQUENCE,
+                           "display", display,
+                           "id", startup_id,
+                           "timestamp", timestamp,
+                           NULL);
+
+  meta_startup_notification_add_sequence (display->startup_notification,
+                                          sequence);
+  g_object_unref (sequence);
+}
+
 static const struct gtk_shell1_interface meta_wayland_gtk_shell_interface = {
   gtk_shell_get_gtk_surface,
   gtk_shell_set_startup_id,
   gtk_shell_system_bell,
+  gtk_shell_notify_launch,
 };
+
+static void
+gtk_shell_destructor (struct wl_resource *resource)
+{
+  MetaWaylandGtkShell *gtk_shell = wl_resource_get_user_data (resource);
+
+  gtk_shell->shell_resources = g_list_remove (gtk_shell->shell_resources,
+                                              resource);
+}
 
 static void
 bind_gtk_shell (struct wl_client *client,
@@ -355,28 +589,91 @@ bind_gtk_shell (struct wl_client *client,
                 guint32           version,
                 guint32           id)
 {
+  MetaWaylandGtkShell *gtk_shell = data;
   struct wl_resource *resource;
-  uint32_t capabilities = 0;
 
   resource = wl_resource_create (client, &gtk_shell1_interface, version, id);
   wl_resource_set_implementation (resource, &meta_wayland_gtk_shell_interface,
-                                  data, NULL);
+                                  data, gtk_shell_destructor);
+
+  gtk_shell->shell_resources = g_list_prepend (gtk_shell->shell_resources,
+                                               resource);
+
+  gtk_shell1_send_capabilities (resource, gtk_shell->capabilities);
+}
+
+static void
+meta_wayland_gtk_shell_init (MetaWaylandGtkShell *gtk_shell)
+{
+}
+
+static void
+meta_wayland_gtk_shell_class_init (MetaWaylandGtkShellClass *klass)
+{
+  quark_gtk_surface_data =
+    g_quark_from_static_string ("-meta-wayland-gtk-shell-surface-data");
+}
+
+static uint32_t
+calculate_capabilities (void)
+{
+  uint32_t capabilities = 0;
 
   if (!meta_prefs_get_show_fallback_app_menu ())
     capabilities = GTK_SHELL1_CAPABILITY_GLOBAL_APP_MENU;
 
-  gtk_shell1_send_capabilities (resource, capabilities);
+  return capabilities;
 }
 
-void
-meta_wayland_gtk_shell_init (MetaWaylandCompositor *compositor)
+static void
+prefs_changed (MetaPreference pref,
+               gpointer       user_data)
 {
-  quark_gtk_surface_data =
-    g_quark_from_static_string ("-meta-wayland-gtk-shell-surface-data");
+  MetaWaylandGtkShell *gtk_shell = user_data;
+  uint32_t new_capabilities;
+  GList *l;
+
+  if (pref != META_PREF_BUTTON_LAYOUT)
+    return;
+
+  new_capabilities = calculate_capabilities ();
+  if (gtk_shell->capabilities == new_capabilities)
+    return;
+  gtk_shell->capabilities = new_capabilities;
+
+  for (l = gtk_shell->shell_resources; l; l = l->next)
+    {
+      struct wl_resource *resource = l->data;
+
+      gtk_shell1_send_capabilities (resource, gtk_shell->capabilities);
+    }
+}
+
+static MetaWaylandGtkShell *
+meta_wayland_gtk_shell_new (MetaWaylandCompositor *compositor)
+{
+  MetaWaylandGtkShell *gtk_shell;
+
+  gtk_shell = g_object_new (META_TYPE_WAYLAND_GTK_SHELL, NULL);
 
   if (wl_global_create (compositor->wayland_display,
                         &gtk_shell1_interface,
                         META_GTK_SHELL1_VERSION,
-                        compositor, bind_gtk_shell) == NULL)
+                        gtk_shell, bind_gtk_shell) == NULL)
     g_error ("Failed to register a global gtk-shell object");
+
+  gtk_shell->compositor = compositor;
+  gtk_shell->capabilities = calculate_capabilities ();
+
+  meta_prefs_add_listener (prefs_changed, gtk_shell);
+
+  return gtk_shell;
+}
+
+void
+meta_wayland_init_gtk_shell (MetaWaylandCompositor *compositor)
+{
+  g_object_set_data_full (G_OBJECT (compositor), "-meta-wayland-gtk-shell",
+                          meta_wayland_gtk_shell_new (compositor),
+                          g_object_unref);
 }

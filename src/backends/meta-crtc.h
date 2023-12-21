@@ -12,87 +12,102 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_CRTC_H
-#define META_CRTC_H
+#pragma once
 
 #include <glib-object.h>
 
-#include "backends/meta-gpu.h"
+#include "backends/meta-backend-types.h"
+#include "backends/meta-crtc-mode.h"
+#include "backends/meta-monitor-transform.h"
+#include "core/util-private.h"
+#include "meta/boxes.h"
 
-/* Same as KMS mode flags and X11 randr flags */
-typedef enum _MetaCrtcModeFlag
+typedef struct _MetaCrtcConfig
 {
-  META_CRTC_MODE_FLAG_NONE = 0,
-  META_CRTC_MODE_FLAG_PHSYNC = (1 << 0),
-  META_CRTC_MODE_FLAG_NHSYNC = (1 << 1),
-  META_CRTC_MODE_FLAG_PVSYNC = (1 << 2),
-  META_CRTC_MODE_FLAG_NVSYNC = (1 << 3),
-  META_CRTC_MODE_FLAG_INTERLACE = (1 << 4),
-  META_CRTC_MODE_FLAG_DBLSCAN = (1 << 5),
-  META_CRTC_MODE_FLAG_CSYNC = (1 << 6),
-  META_CRTC_MODE_FLAG_PCSYNC = (1 << 7),
-  META_CRTC_MODE_FLAG_NCSYNC = (1 << 8),
-  META_CRTC_MODE_FLAG_HSKEW = (1 << 9),
-  META_CRTC_MODE_FLAG_BCAST = (1 << 10),
-  META_CRTC_MODE_FLAG_PIXMUX = (1 << 11),
-  META_CRTC_MODE_FLAG_DBLCLK = (1 << 12),
-  META_CRTC_MODE_FLAG_CLKDIV2 = (1 << 13),
-
-  META_CRTC_MODE_FLAG_MASK = 0x3fff
-} MetaCrtcModeFlag;
-
-struct _MetaCrtc
-{
-  GObject parent;
-
-  MetaGpu *gpu;
-
-  glong crtc_id;
-  MetaRectangle rect;
-  MetaCrtcMode *current_mode;
+  graphene_rect_t layout;
   MetaMonitorTransform transform;
-  unsigned int all_transforms;
-
-  MetaLogicalMonitor *logical_monitor;
-
-  /* Used when changing configuration */
-  gboolean is_dirty;
-
-  /* Used by cursor renderer backend */
-  void *cursor_renderer_private;
-
-  gpointer driver_private;
-  GDestroyNotify driver_notify;
-};
-
-struct _MetaCrtcMode
-{
-  GObject parent;
-
-  /* The low-level ID of this mode, used to apply back configuration */
-  glong mode_id;
-  char *name;
-
-  int width;
-  int height;
-  float refresh_rate;
-  MetaCrtcModeFlag flags;
-
-  gpointer driver_private;
-  GDestroyNotify driver_notify;
-};
+  MetaCrtcMode *mode;
+} MetaCrtcConfig;
 
 #define META_TYPE_CRTC (meta_crtc_get_type ())
-G_DECLARE_FINAL_TYPE (MetaCrtc, meta_crtc, META, CRTC, GObject)
+META_EXPORT_TEST
+G_DECLARE_DERIVABLE_TYPE (MetaCrtc, meta_crtc, META, CRTC, GObject)
 
-#define META_TYPE_CRTC_MODE (meta_crtc_mode_get_type ())
-G_DECLARE_FINAL_TYPE (MetaCrtcMode, meta_crtc_mode, META, CRTC_MODE, GObject)
+struct _MetaCrtcClass
+{
+  GObjectClass parent_class;
 
+  size_t (* get_gamma_lut_size) (MetaCrtc *crtc);
+
+  MetaGammaLut * (* get_gamma_lut) (MetaCrtc *crtc);
+
+  void (* set_gamma_lut) (MetaCrtc           *crtc,
+                          const MetaGammaLut *lut);
+};
+
+META_EXPORT_TEST
+uint64_t meta_crtc_get_id (MetaCrtc *crtc);
+
+META_EXPORT_TEST
+MetaBackend * meta_crtc_get_backend (MetaCrtc *crtc);
+
+META_EXPORT_TEST
 MetaGpu * meta_crtc_get_gpu (MetaCrtc *crtc);
 
-#endif /* META_CRTC_H */
+META_EXPORT_TEST
+const GList * meta_crtc_get_outputs (MetaCrtc *crtc);
+
+void meta_crtc_assign_output (MetaCrtc   *crtc,
+                              MetaOutput *output);
+
+META_EXPORT_TEST
+void meta_crtc_unassign_output (MetaCrtc   *crtc,
+                                MetaOutput *output);
+
+MetaMonitorTransform meta_crtc_get_all_transforms (MetaCrtc *crtc);
+
+META_EXPORT_TEST
+void meta_crtc_set_config (MetaCrtc             *crtc,
+                           graphene_rect_t      *layout,
+                           MetaCrtcMode         *mode,
+                           MetaMonitorTransform  transform);
+
+META_EXPORT_TEST
+void meta_crtc_unset_config (MetaCrtc *crtc);
+
+META_EXPORT_TEST
+const MetaCrtcConfig * meta_crtc_get_config (MetaCrtc *crtc);
+
+size_t meta_crtc_get_gamma_lut_size (MetaCrtc *crtc);
+
+MetaGammaLut * meta_crtc_get_gamma_lut (MetaCrtc *crtc);
+
+void meta_crtc_set_gamma_lut (MetaCrtc           *crtc,
+                              const MetaGammaLut *lut);
+
+META_EXPORT_TEST
+void meta_gamma_lut_free (MetaGammaLut *lut);
+
+META_EXPORT_TEST
+MetaGammaLut * meta_gamma_lut_new (int             size,
+                                   const uint16_t *red,
+                                   const uint16_t *green,
+                                   const uint16_t *blue);
+
+MetaGammaLut * meta_gamma_lut_new_sized (int size);
+
+META_EXPORT_TEST
+MetaGammaLut * meta_gamma_lut_copy (const MetaGammaLut *gamma);
+
+MetaGammaLut * meta_gamma_lut_copy_to_size (const MetaGammaLut *gamma,
+                                            int                 target_size);
+
+META_EXPORT_TEST
+gboolean meta_gamma_lut_equal (const MetaGammaLut *gamma,
+                               const MetaGammaLut *other_gamma);
+
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (MetaGammaLut, meta_gamma_lut_free)
+

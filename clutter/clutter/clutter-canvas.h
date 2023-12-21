@@ -22,14 +22,13 @@
  *   Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_CANVAS_H__
-#define __CLUTTER_CANVAS_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-types.h>
+#include "clutter/clutter-types.h"
 
 G_BEGIN_DECLS
 
@@ -44,15 +43,6 @@ typedef struct _ClutterCanvas           ClutterCanvas;
 typedef struct _ClutterCanvasPrivate    ClutterCanvasPrivate;
 typedef struct _ClutterCanvasClass      ClutterCanvasClass;
 
-/**
- * ClutterCanvas:
- *
- * The #ClutterCanvas structure contains
- * private data and should only be accessed using the provided
- * API.
- *
- * Since: 1.10
- */
 struct _ClutterCanvas
 {
   /*< private >*/
@@ -67,8 +57,6 @@ struct _ClutterCanvas
  *
  * The #ClutterCanvasClass structure contains
  * private data.
- *
- * Since: 1.10
  */
 struct _ClutterCanvasClass
 {
@@ -80,27 +68,22 @@ struct _ClutterCanvasClass
                      cairo_t       *cr,
                      int            width,
                      int            height);
-
-  /*< private >*/
-  gpointer _padding[16];
 };
 
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 GType clutter_canvas_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 ClutterContent *        clutter_canvas_new                      (void);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 gboolean                clutter_canvas_set_size                 (ClutterCanvas *canvas,
                                                                  int            width,
                                                                  int            height);
 
-CLUTTER_AVAILABLE_IN_1_18
+CLUTTER_EXPORT
 void                    clutter_canvas_set_scale_factor         (ClutterCanvas *canvas,
-                                                                 int            scale);
-CLUTTER_AVAILABLE_IN_1_18
-int                     clutter_canvas_get_scale_factor         (ClutterCanvas *canvas);
+                                                                 float          scale);
+CLUTTER_EXPORT
+float                   clutter_canvas_get_scale_factor         (ClutterCanvas *canvas);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_CANVAS_H__ */

@@ -14,20 +14,21 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
 #include "config.h"
 
+#include "wayland/meta-wayland-pointer-gestures.h"
+
 #include <glib.h>
-#include "meta-wayland-pointer-gestures.h"
+
+#include "wayland/meta-wayland-versions.h"
+#include "wayland/meta-wayland-private.h"
+
 #include "pointer-gestures-unstable-v1-server-protocol.h"
-#include "meta-wayland-versions.h"
-#include "meta-wayland-private.h"
 
 static void
 gestures_get_swipe (struct wl_client   *client,
@@ -51,9 +52,29 @@ gestures_get_pinch (struct wl_client   *client,
   meta_wayland_pointer_gesture_pinch_create_new_resource (pointer, client, resource, id);
 }
 
+static void
+gestures_get_hold (struct wl_client   *client,
+                   struct wl_resource *resource,
+                   uint32_t            id,
+                   struct wl_resource *pointer_resource)
+{
+  MetaWaylandPointer *pointer = wl_resource_get_user_data (pointer_resource);
+
+  meta_wayland_pointer_gesture_hold_create_new_resource (pointer, client, resource, id);
+}
+
+static void
+gestures_release (struct wl_client   *client,
+                  struct wl_resource *resource)
+{
+  wl_resource_destroy (resource);
+}
+
 static const struct zwp_pointer_gestures_v1_interface pointer_gestures_interface = {
   gestures_get_swipe,
-  gestures_get_pinch
+  gestures_get_pinch,
+  gestures_release,
+  gestures_get_hold
 };
 
 static void

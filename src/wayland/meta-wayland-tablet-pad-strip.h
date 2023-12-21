@@ -19,15 +19,13 @@
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#ifndef META_WAYLAND_TABLET_PAD_STRIP_H
-#define META_WAYLAND_TABLET_PAD_STRIP_H
-
-#include <wayland-server.h>
+#pragma once
 
 #include <glib.h>
+#include <wayland-server.h>
 
-#include "meta-wayland-types.h"
-#include "meta-cursor-renderer.h"
+#include "backends/meta-cursor-renderer.h"
+#include "wayland/meta-wayland-types.h"
 
 struct _MetaWaylandTabletPadStrip
 {
@@ -56,5 +54,3 @@ gboolean     meta_wayland_tablet_pad_strip_handle_event        (MetaWaylandTable
                                                                 const ClutterEvent        *event);
 
 void         meta_wayland_tablet_pad_strip_sync_focus          (MetaWaylandTabletPadStrip *strip);
-
-#endif /* META_WAYLAND_TABLET_PAD_STRIP_H */

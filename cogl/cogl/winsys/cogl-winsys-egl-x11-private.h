@@ -28,12 +28,13 @@
  *
  */
 
-#ifndef __COGL_WINSYS_EGL_X11_PRIVATE_H
-#define __COGL_WINSYS_EGL_X11_PRIVATE_H
+#pragma once
 
-#include "cogl-winsys-private.h"
+#include "cogl/winsys/cogl-winsys-private.h"
 
-const CoglWinsysVtable *
+COGL_EXPORT const CoglWinsysVtable *
 _cogl_winsys_egl_xlib_get_vtable (void);
 
-#endif /* __COGL_WINSYS_EGL_X11_PRIVATE_H */
+XVisualInfo *
+cogl_display_xlib_get_visual_info (CoglDisplay *display,
+                                   EGLConfig    egl_config);

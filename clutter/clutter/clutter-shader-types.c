@@ -24,15 +24,13 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
 #include <glib-object.h>
 #include <gobject/gvaluecollector.h>
 
-#include "clutter-shader-types.h"
-#include "clutter-private.h"
+#include "clutter/clutter-shader-types.h"
+#include "clutter/clutter-private.h"
 
 static GTypeInfo shader_float_info = {
   0,
@@ -108,13 +106,13 @@ clutter_value_peek_pointer (const GValue *value)
 static void
 clutter_value_init_shader_float (GValue *value)
 {
-  value->data[0].v_pointer = g_slice_new0 (ClutterShaderFloat);
+  value->data[0].v_pointer = g_new0 (ClutterShaderFloat, 1);
 }
 
 static void
 clutter_value_free_shader_float (GValue *value)
 {
-  g_slice_free (ClutterShaderFloat, value->data[0].v_pointer);
+  g_free (value->data[0].v_pointer);
 }
 
 static void
@@ -122,7 +120,7 @@ clutter_value_copy_shader_float (const GValue *src,
                                  GValue       *dest)
 {
   dest->data[0].v_pointer =
-    g_slice_dup (ClutterShaderFloat, src->data[0].v_pointer);
+    g_memdup2 (src->data[0].v_pointer, sizeof (ClutterShaderFloat));
 }
 
 static gchar *
@@ -159,7 +157,8 @@ clutter_value_lcopy_shader_float (const GValue *value,
                             G_VALUE_TYPE_NAME (value));
 
   *float_count = shader_float->size;
-  *floats = g_memdup (shader_float->value, shader_float->size * sizeof (float));
+  *floats = g_memdup2 (shader_float->value,
+                       shader_float->size * sizeof (float));
 
   return NULL;
 }
@@ -199,13 +198,13 @@ clutter_shader_float_get_type (void)
 static void
 clutter_value_init_shader_int (GValue *value)
 {
-  value->data[0].v_pointer = g_slice_new0 (ClutterShaderInt);
+  value->data[0].v_pointer = g_new0 (ClutterShaderInt, 1);
 }
 
 static void
 clutter_value_free_shader_int (GValue *value)
 {
-  g_slice_free (ClutterShaderInt, value->data[0].v_pointer);
+  g_free (value->data[0].v_pointer);
 }
 
 static void
@@ -213,7 +212,7 @@ clutter_value_copy_shader_int (const GValue *src,
                                GValue       *dest)
 {
   dest->data[0].v_pointer =
-    g_slice_dup (ClutterShaderInt, src->data[0].v_pointer);
+    g_memdup2 (src->data[0].v_pointer, sizeof (ClutterShaderInt));
 }
 
 static gchar *
@@ -250,7 +249,7 @@ clutter_value_lcopy_shader_int (const GValue *value,
                             G_VALUE_TYPE_NAME (value));
 
   *int_count = shader_int->size;
-  *ints = g_memdup (shader_int->value, shader_int->size * sizeof (int));
+  *ints = g_memdup2 (shader_int->value, shader_int->size * sizeof (int));
 
   return NULL;
 }
@@ -290,13 +289,13 @@ clutter_shader_int_get_type (void)
 static void
 clutter_value_init_shader_matrix (GValue *value)
 {
-  value->data[0].v_pointer = g_slice_new0 (ClutterShaderMatrix);
+  value->data[0].v_pointer = g_new0 (ClutterShaderMatrix, 1);
 }
 
 static void
 clutter_value_free_shader_matrix (GValue *value)
 {
-  g_slice_free (ClutterShaderMatrix, value->data[0].v_pointer);
+  g_free (value->data[0].v_pointer);
 }
 
 static void
@@ -304,7 +303,7 @@ clutter_value_copy_shader_matrix (const GValue *src,
                                   GValue       *dest)
 {
   dest->data[0].v_pointer =
-    g_slice_dup (ClutterShaderMatrix, src->data[0].v_pointer);
+    g_memdup2 (src->data[0].v_pointer, sizeof (ClutterShaderMatrix));
 }
 
 static gchar *
@@ -341,8 +340,10 @@ clutter_value_lcopy_shader_matrix (const GValue *value,
                             G_VALUE_TYPE_NAME (value));
 
   *float_count = shader_float->size;
-  *floats = g_memdup (shader_float->value,
-                      shader_float->size * shader_float->size * sizeof (float));
+  *floats = g_memdup2 (shader_float->value,
+                       shader_float->size *
+                       shader_float->size *
+                       sizeof (float));
 
   return NULL;
 }
@@ -385,10 +386,8 @@ clutter_shader_matrix_get_type (void)
  * @size: number of floating point values in @floats
  * @floats: (array length=size): an array of floating point values
  *
- * Sets @floats as the contents of @value. The passed #GValue
+ * Sets @floats as the contents of @value. The passed [struct@GObject.Value]
  * must have been initialized using %CLUTTER_TYPE_SHADER_FLOAT.
- *
- * Since: 0.8
  */
 void
 clutter_value_set_shader_float (GValue         *value,
@@ -415,10 +414,8 @@ clutter_value_set_shader_float (GValue         *value,
  * @size: number of integer values in @ints
  * @ints: (array length=size): an array of integer values
  *
- * Sets @ints as the contents of @value. The passed #GValue
+ * Sets @ints as the contents of @value. The passed [struct@GObject.Value]
  * must have been initialized using %CLUTTER_TYPE_SHADER_INT.
- *
- * Since: 0.8
  */
 void
 clutter_value_set_shader_int (GValue     *value,
@@ -445,10 +442,8 @@ clutter_value_set_shader_int (GValue     *value,
  * @size: number of floating point values in @floats
  * @matrix: (array length=size): a matrix of floating point values
  *
- * Sets @matrix as the contents of @value. The passed #GValue
+ * Sets @matrix as the contents of @value. The passed [struct@GObject.Value]
  * must have been initialized using %CLUTTER_TYPE_SHADER_MATRIX.
- *
- * Since: 0.8
  */
 void
 clutter_value_set_shader_matrix (GValue       *value,
@@ -476,14 +471,12 @@ clutter_value_set_shader_matrix (GValue       *value,
  *   point values, or %NULL
  *
  * Retrieves the list of floating point values stored inside
- * the passed #GValue. @value must have been initialized with
+ * the passed [struct@GObject.Value]. @value must have been initialized with
  * %CLUTTER_TYPE_SHADER_FLOAT.
  *
  * Return value: (array length=length): the pointer to a list of
  *   floating point values.  The returned value is owned by the
  *   #GValue and should never be modified or freed.
- *
- * Since: 0.8
  */
 const gfloat *
 clutter_value_get_shader_float (const GValue *value,
@@ -508,14 +501,12 @@ clutter_value_get_shader_float (const GValue *value,
  *   values, or %NULL
  *
  * Retrieves the list of integer values stored inside the passed
- * #GValue. @value must have been initialized with
+ * [struct@GObject.Value]. @value must have been initialized with
  * %CLUTTER_TYPE_SHADER_INT.
  *
  * Return value: (array length=length): the pointer to a list of
  *   integer values.  The returned value is owned by the #GValue and
  *   should never be modified or freed.
- *
- * Since: 0.8
  */
 const gint *
 clutter_value_get_shader_int (const GValue *value,
@@ -540,14 +531,12 @@ clutter_value_get_shader_int (const GValue *value,
  *   point values, or %NULL
  *
  * Retrieves a matrix of floating point values stored inside
- * the passed #GValue. @value must have been initialized with
+ * the passed [struct@GObject.Value]. @value must have been initialized with
  * %CLUTTER_TYPE_SHADER_MATRIX.
  *
  * Return value: (array length=length) (transfer none): the pointer to a matrix
  *   of floating point values. The returned value is owned by the #GValue and
  *   should never be modified or freed.
- *
- * Since: 0.8
  */
 const gfloat *
 clutter_value_get_shader_matrix (const GValue *value,

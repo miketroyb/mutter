@@ -14,9 +14,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jasper St. Pierre <jstpierre@mecheye.net>
@@ -24,31 +22,68 @@
 
 #include "config.h"
 
-#include "meta-wayland-outputs.h"
-
-#include "meta-wayland-private.h"
-#include "backends/meta-logical-monitor.h"
-#include "meta-monitor-manager-private.h"
-#include "xdg-output-unstable-v1-server-protocol.h"
+#include "wayland/meta-wayland-outputs.h"
 
 #include <string.h>
 
-enum {
+#include "backends/meta-logical-monitor.h"
+#include "backends/meta-monitor.h"
+#include "backends/meta-monitor-manager-private.h"
+#include "wayland/meta-wayland-private.h"
+
+#include "xdg-output-unstable-v1-server-protocol.h"
+
+/* Wayland protocol headers list new additions, not deprecations */
+#define NO_XDG_OUTPUT_DONE_SINCE_VERSION 3
+
+enum
+{
   OUTPUT_DESTROYED,
+  OUTPUT_BOUND,
 
   LAST_SIGNAL
 };
 
 static guint signals[LAST_SIGNAL];
 
+struct _MetaWaylandOutput
+{
+  GObject parent;
+
+  struct wl_global *global;
+  uint32_t mode_flags;
+  float refresh_rate;
+  int scale;
+  MetaMonitorTransform transform;
+  int mode_width;
+  int mode_height;
+
+  GList *resources;
+  GList *xdg_output_resources;
+
+  MetaMonitor *monitor;
+};
+
 G_DEFINE_TYPE (MetaWaylandOutput, meta_wayland_output, G_TYPE_OBJECT)
 
 static void
 send_xdg_output_events (struct wl_resource *resource,
                         MetaWaylandOutput  *wayland_output,
-                        MetaLogicalMonitor *logical_monitor,
+                        MetaMonitor        *monitor,
                         gboolean            need_all_events,
                         gboolean           *pending_done_event);
+
+const GList *
+meta_wayland_output_get_resources (MetaWaylandOutput *wayland_output)
+{
+  return wayland_output->resources;
+}
+
+MetaLogicalMonitor *
+meta_wayland_output_get_logical_monitor (MetaWaylandOutput *wayland_output)
+{
+  return meta_monitor_get_logical_monitor (wayland_output->monitor);
+}
 
 static void
 output_resource_destroy (struct wl_resource *res)
@@ -62,14 +97,16 @@ output_resource_destroy (struct wl_resource *res)
   wayland_output->resources = g_list_remove (wayland_output->resources, res);
 }
 
-static MetaMonitor *
-pick_main_monitor (MetaLogicalMonitor *logical_monitor)
+static void
+meta_wl_output_release (struct wl_client   *client,
+                        struct wl_resource *resource)
 {
-  GList *monitors;
-
-  monitors = meta_logical_monitor_get_monitors (logical_monitor);
-  return g_list_first (monitors)->data;
+  wl_resource_destroy (resource);
 }
+
+static const struct wl_output_interface meta_wl_output_interface = {
+  meta_wl_output_release,
+};
 
 static enum wl_output_subpixel
 cogl_subpixel_order_to_wl_output_subpixel (CoglSubpixelOrder subpixel_order)
@@ -91,103 +128,101 @@ cogl_subpixel_order_to_wl_output_subpixel (CoglSubpixelOrder subpixel_order)
     }
 
   g_assert_not_reached ();
-}
-
-static enum wl_output_subpixel
-calculate_suitable_subpixel_order (MetaLogicalMonitor *logical_monitor)
-{
-  GList *monitors;
-  GList *l;
-  MetaMonitor *first_monitor;
-  CoglSubpixelOrder subpixel_order;
-
-  monitors = meta_logical_monitor_get_monitors (logical_monitor);
-  first_monitor = monitors->data;
-  subpixel_order = meta_monitor_get_subpixel_order (first_monitor);
-
-  for (l = monitors->next; l; l = l->next)
-    {
-      MetaMonitor *monitor = l->data;
-
-      if (meta_monitor_get_subpixel_order (monitor) != subpixel_order)
-        {
-          subpixel_order = COGL_SUBPIXEL_ORDER_UNKNOWN;
-          break;
-        }
-    }
-
-  return cogl_subpixel_order_to_wl_output_subpixel (subpixel_order);
+  return WL_OUTPUT_SUBPIXEL_UNKNOWN;
 }
 
 static int
-calculate_wayland_output_scale (MetaLogicalMonitor *logical_monitor)
+calculate_wayland_output_scale (MetaMonitor *monitor)
 {
+  MetaLogicalMonitor *logical_monitor;
   float scale;
 
+  logical_monitor = meta_monitor_get_logical_monitor (monitor);
   scale = meta_logical_monitor_get_scale (logical_monitor);
   return ceilf (scale);
+}
+
+static enum wl_output_transform
+wl_output_transform_from_transform (MetaMonitorTransform transform)
+{
+  switch (transform)
+    {
+    case META_MONITOR_TRANSFORM_NORMAL:
+      return WL_OUTPUT_TRANSFORM_NORMAL;
+    case META_MONITOR_TRANSFORM_90:
+      return WL_OUTPUT_TRANSFORM_90;
+    case META_MONITOR_TRANSFORM_180:
+      return WL_OUTPUT_TRANSFORM_180;
+    case META_MONITOR_TRANSFORM_270:
+      return WL_OUTPUT_TRANSFORM_270;
+    case META_MONITOR_TRANSFORM_FLIPPED:
+      return WL_OUTPUT_TRANSFORM_FLIPPED;
+    case META_MONITOR_TRANSFORM_FLIPPED_90:
+      return WL_OUTPUT_TRANSFORM_FLIPPED_90;
+    case META_MONITOR_TRANSFORM_FLIPPED_180:
+      return WL_OUTPUT_TRANSFORM_FLIPPED_180;
+    case META_MONITOR_TRANSFORM_FLIPPED_270:
+      return WL_OUTPUT_TRANSFORM_FLIPPED_270;
+    }
+  g_assert_not_reached ();
 }
 
 static void
 send_output_events (struct wl_resource *resource,
                     MetaWaylandOutput  *wayland_output,
-                    MetaLogicalMonitor *logical_monitor,
+                    MetaMonitor        *monitor,
                     gboolean            need_all_events,
                     gboolean           *pending_done_event)
 {
   int version = wl_resource_get_version (resource);
-  MetaMonitor *monitor;
   MetaMonitorMode *current_mode;
   MetaMonitorMode *preferred_mode;
   guint mode_flags = WL_OUTPUT_MODE_CURRENT;
+  MetaLogicalMonitor *logical_monitor;
   MetaLogicalMonitor *old_logical_monitor;
   guint old_mode_flags;
   gint old_scale;
   float old_refresh_rate;
   float refresh_rate;
+  MetaMonitorTransform old_transform;
+  MetaMonitorTransform transform;
+  int new_width, new_height;
 
-  old_logical_monitor = wayland_output->logical_monitor;
+  logical_monitor = meta_monitor_get_logical_monitor (monitor);
+  old_logical_monitor =
+    meta_monitor_get_logical_monitor (wayland_output->monitor);
   old_mode_flags = wayland_output->mode_flags;
   old_scale = wayland_output->scale;
+  old_transform = wayland_output->transform;
   old_refresh_rate = wayland_output->refresh_rate;
-
-  monitor = pick_main_monitor (logical_monitor);
 
   current_mode = meta_monitor_get_current_mode (monitor);
   refresh_rate = meta_monitor_mode_get_refresh_rate (current_mode);
+  transform = meta_logical_monitor_get_transform (logical_monitor);
 
   gboolean need_done = FALSE;
 
   if (need_all_events ||
       old_logical_monitor->rect.x != logical_monitor->rect.x ||
-      old_logical_monitor->rect.y != logical_monitor->rect.y)
+      old_logical_monitor->rect.y != logical_monitor->rect.y ||
+      old_transform != transform)
     {
       int width_mm, height_mm;
       const char *vendor;
       const char *product;
-      uint32_t transform;
+      uint32_t wl_transform;
+      CoglSubpixelOrder cogl_subpixel_order;
       enum wl_output_subpixel subpixel_order;
 
-      /*
-       * While the wl_output carries information specific to a single monitor,
-       * it is actually referring to a region of the compositor's screen region
-       * (logical monitor), which may consist of multiple monitors (clones).
-       * Arbitrarily use whatever monitor is the first in the logical monitor
-       * and use that for these details.
-       */
       meta_monitor_get_physical_dimensions (monitor, &width_mm, &height_mm);
       vendor = meta_monitor_get_vendor (monitor);
       product = meta_monitor_get_product (monitor);
 
-      subpixel_order = calculate_suitable_subpixel_order (logical_monitor);
+      cogl_subpixel_order = meta_monitor_get_subpixel_order (monitor);
+      subpixel_order =
+        cogl_subpixel_order_to_wl_output_subpixel (cogl_subpixel_order);
 
-      /*
-       * TODO: When we support wl_surface.set_buffer_transform, pass along
-       * the correct transform here instead of always pretending its 'normal'.
-       * The reason for this is to try stopping clients from setting any buffer
-       * transform other than 'normal'.
-       */
-      transform = WL_OUTPUT_TRANSFORM_NORMAL;
+      wl_transform = wl_output_transform_from_transform (transform);
 
       wl_output_send_geometry (resource,
                                logical_monitor->rect.x,
@@ -195,9 +230,9 @@ send_output_events (struct wl_resource *resource,
                                width_mm,
                                height_mm,
                                subpixel_order,
-                               vendor,
-                               product,
-                               transform);
+                               vendor ? vendor : "unknown",
+                               product ? product : "unknown",
+                               wl_transform);
       need_done = TRUE;
     }
 
@@ -205,16 +240,19 @@ send_output_events (struct wl_resource *resource,
   if (current_mode == preferred_mode)
     mode_flags |= WL_OUTPUT_MODE_PREFERRED;
 
+  meta_monitor_mode_get_resolution (current_mode,
+                                    &new_width,
+                                    &new_height);
   if (need_all_events ||
-      old_logical_monitor->rect.width != logical_monitor->rect.width ||
-      old_logical_monitor->rect.height != logical_monitor->rect.height ||
+      wayland_output->mode_width != new_width ||
+      wayland_output->mode_height != new_height ||
       old_refresh_rate != refresh_rate ||
       old_mode_flags != mode_flags)
     {
       wl_output_send_mode (resource,
                            mode_flags,
-                           logical_monitor->rect.width,
-                           logical_monitor->rect.height,
+                           new_width,
+                           new_height,
                            (int32_t) (refresh_rate * 1000));
       need_done = TRUE;
     }
@@ -223,13 +261,31 @@ send_output_events (struct wl_resource *resource,
     {
       int scale;
 
-      scale = calculate_wayland_output_scale (logical_monitor);
+      scale = calculate_wayland_output_scale (monitor);
       if (need_all_events ||
           old_scale != scale)
         {
           wl_output_send_scale (resource, scale);
           need_done = TRUE;
         }
+    }
+
+  if (need_all_events && version >= WL_OUTPUT_NAME_SINCE_VERSION)
+    {
+      const char *name;
+
+      name = meta_monitor_get_connector (monitor);
+      wl_output_send_name (resource, name);
+      need_done = TRUE;
+    }
+
+  if (need_all_events && version >= WL_OUTPUT_DESCRIPTION_SINCE_VERSION)
+    {
+      const char *description;
+
+      description = meta_monitor_get_display_name (monitor);
+      wl_output_send_description (resource, description);
+      need_done = TRUE;
     }
 
   if (need_all_events && version >= WL_OUTPUT_DONE_SINCE_VERSION)
@@ -249,108 +305,125 @@ bind_output (struct wl_client *client,
              guint32 id)
 {
   MetaWaylandOutput *wayland_output = data;
-  MetaLogicalMonitor *logical_monitor = wayland_output->logical_monitor;
-  struct wl_resource *resource;
   MetaMonitor *monitor;
+  struct wl_resource *resource;
+#ifdef WITH_VERBOSE_MODE
+  MetaLogicalMonitor *logical_monitor;
+#endif
 
   resource = wl_resource_create (client, &wl_output_interface, version, id);
-  wayland_output->resources = g_list_prepend (wayland_output->resources, resource);
 
-  wl_resource_set_user_data (resource, wayland_output);
-  wl_resource_set_destructor (resource, output_resource_destroy);
+  monitor = wayland_output->monitor;
+  if (!monitor)
+    {
+      wl_resource_set_implementation (resource,
+                                      &meta_wl_output_interface,
+                                      NULL, NULL);
+      return;
+    }
 
-  if (!logical_monitor)
-    return;
+  wayland_output->resources = g_list_prepend (wayland_output->resources,
+                                              resource);
+  wl_resource_set_implementation (resource,
+                                  &meta_wl_output_interface,
+                                  wayland_output,
+                                  output_resource_destroy);
 
-  monitor = pick_main_monitor (logical_monitor);
-
-  meta_verbose ("Binding monitor %p/%s (%u, %u, %u, %u) x %f\n",
+#ifdef WITH_VERBOSE_MODE
+  logical_monitor = meta_monitor_get_logical_monitor (monitor);
+  meta_verbose ("Binding monitor %p/%s (%u, %u, %u, %u) x %f",
                 logical_monitor,
                 meta_monitor_get_product (monitor),
                 logical_monitor->rect.x, logical_monitor->rect.y,
-                logical_monitor->rect.width, logical_monitor->rect.height,
+                wayland_output->mode_width,
+                wayland_output->mode_height,
                 wayland_output->refresh_rate);
+#endif
 
-  send_output_events (resource, wayland_output, logical_monitor, TRUE, NULL);
+  send_output_events (resource, wayland_output, monitor, TRUE, NULL);
+
+  g_signal_emit (wayland_output, signals[OUTPUT_BOUND], 0, resource);
 }
 
 static void
-wayland_output_destroy_notify (gpointer data)
+meta_wayland_output_set_monitor (MetaWaylandOutput *wayland_output,
+                                 MetaMonitor       *monitor)
 {
-  MetaWaylandOutput *wayland_output = data;
-
-  g_signal_emit (wayland_output, signals[OUTPUT_DESTROYED], 0);
-  g_object_unref (wayland_output);
-}
-
-static void
-meta_wayland_output_set_logical_monitor (MetaWaylandOutput  *wayland_output,
-                                         MetaLogicalMonitor *logical_monitor)
-{
-  MetaMonitor *monitor;
   MetaMonitorMode *current_mode;
   MetaMonitorMode *preferred_mode;
+  MetaLogicalMonitor *logical_monitor;
 
-  wayland_output->logical_monitor = logical_monitor;
+  wayland_output->monitor = monitor;
   wayland_output->mode_flags = WL_OUTPUT_MODE_CURRENT;
 
-  monitor = pick_main_monitor (logical_monitor);
   current_mode = meta_monitor_get_current_mode (monitor);
   preferred_mode = meta_monitor_get_preferred_mode (monitor);
 
   if (current_mode == preferred_mode)
     wayland_output->mode_flags |= WL_OUTPUT_MODE_PREFERRED;
-  wayland_output->scale = calculate_wayland_output_scale (logical_monitor);
+  wayland_output->scale = calculate_wayland_output_scale (monitor);
   wayland_output->refresh_rate = meta_monitor_mode_get_refresh_rate (current_mode);
+
+  logical_monitor = meta_monitor_get_logical_monitor (monitor);
+  wayland_output->transform =
+    meta_logical_monitor_get_transform (logical_monitor);
+
+  meta_monitor_mode_get_resolution (current_mode,
+                                    &wayland_output->mode_width,
+                                    &wayland_output->mode_height);
 }
 
 static void
-wayland_output_update_for_output (MetaWaylandOutput  *wayland_output,
-                                  MetaLogicalMonitor *logical_monitor)
+wayland_output_update_for_output (MetaWaylandOutput *wayland_output,
+                                  MetaMonitor       *monitor)
 {
-  GList *iter;
+  GList *l;
   gboolean pending_done_event;
 
   pending_done_event = FALSE;
-  for (iter = wayland_output->resources; iter; iter = iter->next)
+  for (l = wayland_output->resources; l; l = l->next)
     {
-      struct wl_resource *resource = iter->data;
-      send_output_events (resource, wayland_output, logical_monitor, FALSE, &pending_done_event);
+      struct wl_resource *resource = l->data;
+
+      send_output_events (resource, wayland_output, monitor,
+                          FALSE, &pending_done_event);
     }
 
-  for (iter = wayland_output->xdg_output_resources; iter; iter = iter->next)
+  for (l = wayland_output->xdg_output_resources; l; l = l->next)
     {
-      struct wl_resource *xdg_output = iter->data;
-      send_xdg_output_events (xdg_output, wayland_output, logical_monitor, FALSE, &pending_done_event);
+      struct wl_resource *xdg_output = l->data;
+
+      send_xdg_output_events (xdg_output, wayland_output, monitor,
+                              FALSE, &pending_done_event);
     }
 
   /* Send the "done" events if needed */
   if (pending_done_event)
     {
-      for (iter = wayland_output->resources; iter; iter = iter->next)
+      for (l = wayland_output->resources; l; l = l->next)
         {
-          struct wl_resource *resource = iter->data;
+          struct wl_resource *resource = l->data;
+
           if (wl_resource_get_version (resource) >= WL_OUTPUT_DONE_SINCE_VERSION)
             wl_output_send_done (resource);
         }
 
-      for (iter = wayland_output->xdg_output_resources; iter; iter = iter->next)
+      for (l = wayland_output->xdg_output_resources; l; l = l->next)
         {
-          struct wl_resource *xdg_output = iter->data;
-          zxdg_output_v1_send_done (xdg_output);
+          struct wl_resource *xdg_output = l->data;
+
+          if (wl_resource_get_version (xdg_output) < NO_XDG_OUTPUT_DONE_SINCE_VERSION)
+            zxdg_output_v1_send_done (xdg_output);
         }
     }
-  /* It's very important that we change the output pointer here, as
-     the old structure is about to be freed by MetaMonitorManager */
-  meta_wayland_output_set_logical_monitor (wayland_output, logical_monitor);
+
+  meta_wayland_output_set_monitor (wayland_output, monitor);
 }
 
 static MetaWaylandOutput *
 meta_wayland_output_new (MetaWaylandCompositor *compositor,
-                         MetaLogicalMonitor    *logical_monitor)
+                         MetaMonitor           *monitor)
 {
-  MetaWaylandCompositor *wayland_compositor =
-    meta_wayland_compositor_get_default ();
   MetaWaylandOutput *wayland_output;
 
   wayland_output = g_object_new (META_TYPE_WAYLAND_OUTPUT, NULL);
@@ -358,19 +431,49 @@ meta_wayland_output_new (MetaWaylandCompositor *compositor,
                                              &wl_output_interface,
                                              META_WL_OUTPUT_VERSION,
                                              wayland_output, bind_output);
-  meta_wayland_compositor_flush_clients (wayland_compositor);
-  meta_wayland_output_set_logical_monitor (wayland_output, logical_monitor);
+  meta_wayland_compositor_flush_clients (compositor);
+  meta_wayland_output_set_monitor (wayland_output, monitor);
 
   return wayland_output;
 }
 
 static void
-nullify_logical_monitor (gpointer key,
-                         gpointer value,
-                         gpointer data)
+make_output_resources_inert (MetaWaylandOutput *wayland_output)
+{
+  GList *l;
+
+  wl_global_remove (wayland_output->global);
+
+  for (l = wayland_output->resources; l; l = l->next)
+    {
+      struct wl_resource *output_resource = l->data;
+
+      wl_resource_set_user_data (output_resource, NULL);
+    }
+  g_list_free (wayland_output->resources);
+  wayland_output->resources = NULL;
+
+  for (l = wayland_output->xdg_output_resources; l; l = l->next)
+    {
+      struct wl_resource *xdg_output_resource = l->data;
+
+      wl_resource_set_user_data (xdg_output_resource, NULL);
+    }
+  g_list_free (wayland_output->xdg_output_resources);
+  wayland_output->xdg_output_resources = NULL;
+}
+
+static void
+make_output_inert (gpointer key,
+                   gpointer value,
+                   gpointer data)
 {
   MetaWaylandOutput *wayland_output = value;
-  wayland_output->logical_monitor = NULL;
+
+  g_signal_emit (wayland_output, signals[OUTPUT_DESTROYED], 0);
+
+  wayland_output->monitor = NULL;
+  make_output_resources_inert (wayland_output);
 }
 
 static gboolean
@@ -385,43 +488,42 @@ meta_wayland_compositor_update_outputs (MetaWaylandCompositor *compositor,
                                         MetaMonitorManager    *monitor_manager)
 {
   GHashTable *new_table;
-  GList *logical_monitors, *l;
+  GList *monitors, *l;
 
-  logical_monitors =
-    meta_monitor_manager_get_logical_monitors (monitor_manager);
-  new_table = g_hash_table_new_full (NULL, NULL, NULL,
-                                     wayland_output_destroy_notify);
+  monitors = meta_monitor_manager_get_monitors (monitor_manager);
+  new_table = g_hash_table_new_full (meta_monitor_spec_hash,
+                                     (GEqualFunc) meta_monitor_spec_equals,
+                                     (GDestroyNotify) meta_monitor_spec_free,
+                                     g_object_unref);
 
-  for (l = logical_monitors; l; l = l->next)
+  for (l = monitors; l; l = l->next)
     {
-      MetaLogicalMonitor *logical_monitor = l->data;
-      MetaWaylandOutput *wayland_output;
+      MetaMonitor *monitor = l->data;
+      MetaMonitorSpec *monitor_spec = meta_monitor_get_spec (monitor);
+      MetaWaylandOutput *wayland_output = NULL;
 
-      if (logical_monitor->winsys_id == 0)
+      if (!meta_monitor_is_active (monitor))
         continue;
 
-      wayland_output =
-        g_hash_table_lookup (compositor->outputs,
-                             GSIZE_TO_POINTER (logical_monitor->winsys_id));
+      if (compositor->outputs)
+        wayland_output = g_hash_table_lookup (compositor->outputs, monitor_spec);
 
       if (wayland_output)
-        {
-          g_hash_table_steal (compositor->outputs,
-                              GSIZE_TO_POINTER (logical_monitor->winsys_id));
-        }
+        g_hash_table_steal (compositor->outputs, monitor_spec);
       else
-        {
-          wayland_output = meta_wayland_output_new (compositor, logical_monitor);
-        }
+        wayland_output = meta_wayland_output_new (compositor, monitor);
 
-      wayland_output_update_for_output (wayland_output, logical_monitor);
+      wayland_output_update_for_output (wayland_output, monitor);
       g_hash_table_insert (new_table,
-                           GSIZE_TO_POINTER (logical_monitor->winsys_id),
+                           meta_monitor_spec_clone (monitor_spec),
                            wayland_output);
     }
 
-  g_hash_table_foreach (compositor->outputs, nullify_logical_monitor, NULL);
-  g_timeout_add_seconds (10, delayed_destroy_outputs, compositor->outputs);
+  if (compositor->outputs)
+    {
+      g_hash_table_foreach (compositor->outputs, make_output_inert, NULL);
+      g_timeout_add_seconds (10, delayed_destroy_outputs, compositor->outputs);
+    }
 
   return new_table;
 }
@@ -442,30 +544,11 @@ static void
 meta_wayland_output_finalize (GObject *object)
 {
   MetaWaylandOutput *wayland_output = META_WAYLAND_OUTPUT (object);
-  GList *l;
+
+  g_warn_if_fail (!wayland_output->resources);
+  g_warn_if_fail (!wayland_output->xdg_output_resources);
 
   wl_global_destroy (wayland_output->global);
-
-  /* Make sure the wl_output destructor doesn't try to access MetaWaylandOutput
-   * after we have freed it.
-   */
-  for (l = wayland_output->resources; l; l = l->next)
-    {
-      struct wl_resource *output_resource = l->data;
-
-      wl_resource_set_user_data (output_resource, NULL);
-    }
-
-  g_list_free (wayland_output->resources);
-
-  for (l = wayland_output->xdg_output_resources; l; l = l->next)
-    {
-      struct wl_resource *xdg_output_resource = l->data;
-
-      wl_resource_set_user_data (xdg_output_resource, NULL);
-    }
-
-  g_list_free (wayland_output->xdg_output_resources);
 
   G_OBJECT_CLASS (meta_wayland_output_parent_class)->finalize (object);
 }
@@ -483,6 +566,14 @@ meta_wayland_output_class_init (MetaWaylandOutputClass *klass)
                                             0,
                                             NULL, NULL, NULL,
                                             G_TYPE_NONE, 0);
+
+  signals[OUTPUT_BOUND] = g_signal_new ("output-bound",
+                                        G_TYPE_FROM_CLASS (object_class),
+                                        G_SIGNAL_RUN_LAST,
+                                        0,
+                                        NULL, NULL, NULL,
+                                        G_TYPE_NONE, 1,
+                                        G_TYPE_POINTER);
 }
 
 static void
@@ -513,47 +604,39 @@ static const struct zxdg_output_v1_interface
 static void
 send_xdg_output_events (struct wl_resource *resource,
                         MetaWaylandOutput  *wayland_output,
-                        MetaLogicalMonitor *logical_monitor,
+                        MetaMonitor        *monitor,
                         gboolean            need_all_events,
                         gboolean           *pending_done_event)
 {
-  MetaRectangle new_layout;
-  MetaRectangle old_layout;
-  MetaLogicalMonitor *old_logical_monitor;
-  gboolean need_done;
+  MtkRectangle layout;
+  MetaLogicalMonitor *logical_monitor;
+  int version;
 
-  need_done = FALSE;
-  old_logical_monitor = wayland_output->logical_monitor;
-  old_layout = meta_logical_monitor_get_layout (old_logical_monitor);
-  new_layout = meta_logical_monitor_get_layout (logical_monitor);
+  logical_monitor = meta_monitor_get_logical_monitor (monitor);
+  layout = meta_logical_monitor_get_layout (logical_monitor);
 
-  if (need_all_events ||
-      old_layout.x != new_layout.x ||
-      old_layout.y != new_layout.y)
+  zxdg_output_v1_send_logical_position (resource, layout.x, layout.y);
+  zxdg_output_v1_send_logical_size (resource, layout.width, layout.height);
+
+  version = wl_resource_get_version (resource);
+
+  if (need_all_events && version >= ZXDG_OUTPUT_V1_NAME_SINCE_VERSION)
     {
-      zxdg_output_v1_send_logical_position (resource,
-                                            new_layout.x,
-                                            new_layout.y);
-      need_done = TRUE;
+      const char *name;
+
+      name = meta_monitor_get_connector (monitor);
+      zxdg_output_v1_send_name (resource, name);
     }
 
-  if (need_all_events ||
-      old_layout.width != new_layout.width ||
-      old_layout.height != new_layout.height)
+  if (need_all_events && version >= ZXDG_OUTPUT_V1_DESCRIPTION_SINCE_VERSION)
     {
-      zxdg_output_v1_send_logical_size (resource,
-                                        new_layout.width,
-                                        new_layout.height);
-      need_done = TRUE;
+      const char *description;
+
+      description = meta_monitor_get_display_name (monitor);
+      zxdg_output_v1_send_description (resource, description);
     }
 
-  if (need_all_events)
-    {
-      zxdg_output_v1_send_done (resource);
-      need_done = FALSE;
-    }
-
-  if (pending_done_event && need_done)
+  if (pending_done_event)
     *pending_done_event = TRUE;
 }
 
@@ -565,27 +648,41 @@ meta_xdg_output_manager_get_xdg_output (struct wl_client   *client,
 {
   struct wl_resource *xdg_output_resource;
   MetaWaylandOutput *wayland_output;
+  int xdg_output_version;
+  int wl_output_version;
 
   xdg_output_resource = wl_resource_create (client,
                                             &zxdg_output_v1_interface,
                                             wl_resource_get_version (resource),
                                             id);
 
+  wayland_output = wl_resource_get_user_data (output);
   wl_resource_set_implementation (xdg_output_resource,
                                   &meta_xdg_output_interface,
-                                  NULL, meta_xdg_output_destructor);
+                                  wayland_output, meta_xdg_output_destructor);
 
-  wayland_output = wl_resource_get_user_data (output);
   if (!wayland_output)
-    return;
+    goto done;
 
   wayland_output->xdg_output_resources =
     g_list_prepend (wayland_output->xdg_output_resources, xdg_output_resource);
 
+  if (!wayland_output->monitor)
+    goto done;
+
   send_xdg_output_events (xdg_output_resource,
                           wayland_output,
-                          wayland_output->logical_monitor,
+                          wayland_output->monitor,
                           TRUE, NULL);
+
+done:
+  xdg_output_version = wl_resource_get_version (xdg_output_resource);
+  wl_output_version = wl_resource_get_version (output);
+
+  if (xdg_output_version < NO_XDG_OUTPUT_DONE_SINCE_VERSION)
+    zxdg_output_v1_send_done (xdg_output_resource);
+  else if (wl_output_version >= WL_OUTPUT_DONE_SINCE_VERSION)
+    wl_output_send_done (output);
 }
 
 static void
@@ -619,16 +716,31 @@ bind_xdg_output_manager (struct wl_client *client,
 }
 
 void
+meta_wayland_outputs_finalize (MetaWaylandCompositor *compositor)
+{
+  MetaBackend *backend = meta_context_get_backend (compositor->context);
+  MetaMonitorManager *monitor_manager =
+    meta_backend_get_monitor_manager (backend);
+
+  g_signal_handlers_disconnect_by_func (monitor_manager, on_monitors_changed,
+                                        compositor);
+
+  g_hash_table_destroy (compositor->outputs);
+}
+
+void
 meta_wayland_outputs_init (MetaWaylandCompositor *compositor)
 {
-  MetaMonitorManager *monitors;
+  MetaContext *context = meta_wayland_compositor_get_context (compositor);
+  MetaBackend *backend = meta_context_get_backend (context);
+  MetaMonitorManager *monitor_manager =
+    meta_backend_get_monitor_manager (backend);
 
-  monitors = meta_monitor_manager_get ();
-  g_signal_connect (monitors, "monitors-changed-internal",
+  g_signal_connect (monitor_manager, "monitors-changed-internal",
                     G_CALLBACK (on_monitors_changed), compositor);
 
-  compositor->outputs = g_hash_table_new_full (NULL, NULL, NULL, wayland_output_destroy_notify);
-  compositor->outputs = meta_wayland_compositor_update_outputs (compositor, monitors);
+  compositor->outputs =
+    meta_wayland_compositor_update_outputs (compositor, monitor_manager);
 
   wl_global_create (compositor->wayland_display,
                     &zxdg_output_manager_v1_interface,

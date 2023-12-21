@@ -18,14 +18,13 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __CALLY_UTIL_H__
-#define __CALLY_UTIL_H__
+#pragma once
 
 #if !defined(__CALLY_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <cally/cally.h> can be included directly."
 #endif
 
-#include <clutter/clutter.h>
+#include "clutter/clutter.h"
 #include <atk/atk.h>
 
 G_BEGIN_DECLS
@@ -41,14 +40,6 @@ typedef struct _CallyUtil        CallyUtil;
 typedef struct _CallyUtilClass   CallyUtilClass;
 typedef struct _CallyUtilPrivate CallyUtilPrivate;
 
-/**
- * CallyUtil:
- *
- * The <structname>CallyUtil</structname> structure contains only
- * private data and should be accessed using the provided API
- *
- * Since: 1.4
- */
 struct _CallyUtil
 {
   /*< private >*/
@@ -62,23 +53,19 @@ struct _CallyUtil
  *
  * The <structname>CallyUtilClass</structname> structure contains only
  * private data
- *
- * Since: 1.4
  */
 struct _CallyUtilClass
 {
   /*< private >*/
   AtkUtilClass parent_class;
-
-  /* padding for future expansion */
-  gpointer _padding_dummy[8];
 };
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 GType cally_util_get_type (void) G_GNUC_CONST;
 
 void _cally_util_override_atk_util (void);
 
-G_END_DECLS
+gboolean cally_snoop_key_event (ClutterStage    *stage,
+                                ClutterKeyEvent *key);
 
-#endif /* __CALLY_UTIL_H__ */
+G_END_DECLS

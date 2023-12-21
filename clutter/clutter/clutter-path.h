@@ -21,15 +21,13 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __CLUTTER_PATH_H__
-#define __CLUTTER_PATH_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <cairo.h>
-#include <clutter/clutter-types.h>
+#include "clutter/clutter-types.h"
 
 G_BEGIN_DECLS
 
@@ -49,22 +47,12 @@ typedef struct _ClutterPathPrivate ClutterPathPrivate;
  * @node: the node
  * @data: (closure): optional data passed to the function
  *
- * This function is passed to clutter_path_foreach() and will be
+ * This function is passed to [method@Path.foreach] and will be
  * called for each node contained in the path.
- *
- * Since: 1.0
  */
 typedef void (* ClutterPathCallback) (const ClutterPathNode *node,
                                       gpointer               data);
 
-/**
- * ClutterPath:
- *
- * The #ClutterPath struct contains only private data and should
- * be accessed with the functions below.
- *
- * Since: 1.0
- */
 struct _ClutterPath
 {
   /*< private >*/
@@ -77,8 +65,6 @@ struct _ClutterPath
  * ClutterPathClass:
  *
  * The #ClutterPathClass struct contains only private data.
- *
- * Since: 1.0
  */
 struct _ClutterPathClass
 {
@@ -86,30 +72,30 @@ struct _ClutterPathClass
   GInitiallyUnownedClass parent_class;
 };
 
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 GType clutter_path_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 ClutterPath *clutter_path_new                  (void);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 ClutterPath *clutter_path_new_with_description (const gchar           *desc);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void         clutter_path_add_move_to          (ClutterPath           *path,
                                                 gint                   x,
                                                 gint                   y);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void         clutter_path_add_rel_move_to      (ClutterPath           *path,
                                                 gint                   x,
                                                 gint                   y);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void         clutter_path_add_line_to          (ClutterPath           *path,
                                                 gint                   x,
                                                 gint                   y);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void         clutter_path_add_rel_line_to      (ClutterPath           *path,
                                                 gint                   x,
                                                 gint                   y);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void         clutter_path_add_curve_to         (ClutterPath           *path,
                                                 gint                   x_1,
                                                 gint                   y_1,
@@ -117,7 +103,7 @@ void         clutter_path_add_curve_to         (ClutterPath           *path,
                                                 gint                   y_2,
                                                 gint                   x_3,
                                                 gint                   y_3);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void         clutter_path_add_rel_curve_to     (ClutterPath           *path,
                                                 gint                   x_1,
                                                 gint                   y_1,
@@ -125,57 +111,49 @@ void         clutter_path_add_rel_curve_to     (ClutterPath           *path,
                                                 gint                   y_2,
                                                 gint                   x_3,
                                                 gint                   y_3);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void         clutter_path_add_close            (ClutterPath           *path);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 gboolean     clutter_path_add_string           (ClutterPath           *path,
                                                 const gchar           *str);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void         clutter_path_add_node             (ClutterPath           *path,
                                                 const ClutterPathNode *node);
-CLUTTER_AVAILABLE_IN_1_0
-void         clutter_path_add_cairo_path       (ClutterPath           *path,
-                                                const cairo_path_t    *cpath);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 guint        clutter_path_get_n_nodes          (ClutterPath           *path);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void         clutter_path_get_node             (ClutterPath           *path,
                                                 guint                  index_,
                                                 ClutterPathNode       *node);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 GSList *     clutter_path_get_nodes            (ClutterPath           *path);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void         clutter_path_foreach              (ClutterPath           *path,
                                                 ClutterPathCallback    callback,
                                                 gpointer               user_data);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void         clutter_path_insert_node          (ClutterPath           *path,
                                                 gint                   index_,
                                                 const ClutterPathNode *node);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void         clutter_path_remove_node          (ClutterPath           *path,
                                                 guint                  index_);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void         clutter_path_replace_node         (ClutterPath           *path,
                                                 guint                  index_,
                                                 const ClutterPathNode *node);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 gchar *      clutter_path_get_description      (ClutterPath           *path);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 gboolean     clutter_path_set_description      (ClutterPath           *path,
                                                 const gchar           *str);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void         clutter_path_clear                (ClutterPath           *path);
-CLUTTER_AVAILABLE_IN_1_0
-void         clutter_path_to_cairo_path        (ClutterPath           *path,
-                                                cairo_t               *cr);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 guint        clutter_path_get_position         (ClutterPath           *path,
                                                 gdouble                progress,
                                                 ClutterKnot           *position);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 guint        clutter_path_get_length           (ClutterPath           *path);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_PATH_H__ */

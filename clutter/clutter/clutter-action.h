@@ -22,90 +22,70 @@
  *   Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_ACTION_H__
-#define __CLUTTER_ACTION_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-actor-meta.h>
+#include "clutter/clutter-actor-meta.h"
 
 G_BEGIN_DECLS
 
-#define CLUTTER_TYPE_ACTION             (clutter_action_get_type ())
-#define CLUTTER_ACTION(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), CLUTTER_TYPE_ACTION, ClutterAction))
-#define CLUTTER_IS_ACTION(obj)          (G_TYPE_CHECK_INSTANCE_TYPE ((obj), CLUTTER_TYPE_ACTION))
-#define CLUTTER_ACTION_CLASS(klass)     (G_TYPE_CHECK_CLASS_CAST ((klass), CLUTTER_TYPE_ACTION, ClutterActionClass))
-#define CLUTTER_IS_ACTION_CLASS(klass)  (G_TYPE_CHECK_CLASS_TYPE ((klass), CLUTTER_TYPE_ACTION))
-#define CLUTTER_ACTION_GET_CLASS(obj)   (G_TYPE_INSTANCE_GET_CLASS ((obj), CLUTTER_TYPE_ACTION, ClutterActionClass))
+#define CLUTTER_TYPE_ACTION (clutter_action_get_type ())
 
-typedef struct _ClutterActionClass      ClutterActionClass;
-
-/**
- * ClutterAction:
- *
- * The #ClutterAction structure contains only private data and
- * should be accessed using the provided API.
- *
- * Since: 1.4
- */
-struct _ClutterAction
-{
-  /*< private >*/
-  ClutterActorMeta parent_instance;
-};
+CLUTTER_EXPORT
+G_DECLARE_DERIVABLE_TYPE (ClutterAction, clutter_action,
+                          CLUTTER, ACTION, ClutterActorMeta);
 
 /**
  * ClutterActionClass:
  *
  * The ClutterActionClass structure contains only private data
- *
- * Since: 1.4
  */
 struct _ClutterActionClass
 {
   /*< private >*/
   ClutterActorMetaClass parent_class;
 
-  void (* _clutter_action1) (void);
-  void (* _clutter_action2) (void);
-  void (* _clutter_action3) (void);
-  void (* _clutter_action4) (void);
-  void (* _clutter_action5) (void);
-  void (* _clutter_action6) (void);
-  void (* _clutter_action7) (void);
-  void (* _clutter_action8) (void);
+  gboolean (* handle_event) (ClutterAction      *action,
+                             const ClutterEvent *event);
+
+  void (* sequence_cancelled) (ClutterAction        *action,
+                               ClutterInputDevice   *device,
+                               ClutterEventSequence *sequence);
 };
 
-CLUTTER_AVAILABLE_IN_1_4
-GType clutter_action_get_type (void) G_GNUC_CONST;
-
 /* ClutterActor API */
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void           clutter_actor_add_action            (ClutterActor  *self,
                                                     ClutterAction *action);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void           clutter_actor_add_action_with_name  (ClutterActor  *self,
                                                     const gchar   *name,
                                                     ClutterAction *action);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
+void           clutter_actor_add_action_full       (ClutterActor      *self,
+                                                    const char        *name,
+                                                    ClutterEventPhase  phase,
+                                                    ClutterAction     *action);
+CLUTTER_EXPORT
 void           clutter_actor_remove_action         (ClutterActor  *self,
                                                     ClutterAction *action);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void           clutter_actor_remove_action_by_name (ClutterActor  *self,
                                                     const gchar   *name);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 ClutterAction *clutter_actor_get_action            (ClutterActor  *self,
                                                     const gchar   *name);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 GList *        clutter_actor_get_actions           (ClutterActor  *self);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void           clutter_actor_clear_actions         (ClutterActor  *self);
 
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 gboolean       clutter_actor_has_actions           (ClutterActor  *self);
 
-G_END_DECLS
+ClutterEventPhase clutter_action_get_phase (ClutterAction *action);
 
-#endif /* __CLUTTER_ACTION_H__ */
+G_END_DECLS

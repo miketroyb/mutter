@@ -19,14 +19,13 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __CLUTTER_CAIRO_H__
-#define __CLUTTER_CAIRO_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-types.h>
+#include "clutter/clutter-types.h"
 
 G_BEGIN_DECLS
 
@@ -36,8 +35,6 @@ G_BEGIN_DECLS
  * The #CoglPixelFormat to be used when uploading image data from
  * and to a Cairo image surface using %CAIRO_FORMAT_ARGB32 and
  * %CAIRO_FORMAT_RGB24 as #cairo_format_t.
- *
- * Since: 1.8
  */
 
 /* Cairo stores the data in native byte order as ARGB but Cogl's pixel
@@ -50,12 +47,10 @@ G_BEGIN_DECLS
 #define CLUTTER_CAIRO_FORMAT_ARGB32     (COGL_PIXEL_FORMAT_ARGB_8888_PRE)
 #endif
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void    clutter_cairo_clear             (cairo_t               *cr);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void    clutter_cairo_set_source_color  (cairo_t               *cr,
                                          const ClutterColor    *color);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_CAIRO_H__ */

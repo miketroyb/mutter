@@ -14,28 +14,28 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_WAYLAND_SEAT_H
-#define META_WAYLAND_SEAT_H
+#pragma once
 
 #include <wayland-server.h>
-#include <clutter/clutter.h>
 
-#include "meta-wayland-types.h"
-#include "meta-wayland-input-device.h"
-#include "meta-wayland-pointer.h"
-#include "meta-wayland-keyboard.h"
-#include "meta-wayland-touch.h"
-#include "meta-wayland-data-device.h"
-#include "meta-wayland-tablet-tool.h"
-#include "meta-wayland-text-input.h"
+#include "clutter/clutter.h"
+#include "wayland/meta-wayland-data-device.h"
+#include "wayland/meta-wayland-data-device-primary.h"
+#include "wayland/meta-wayland-input-device.h"
+#include "wayland/meta-wayland-keyboard.h"
+#include "wayland/meta-wayland-pointer.h"
+#include "wayland/meta-wayland-tablet-tool.h"
+#include "wayland/meta-wayland-text-input.h"
+#include "wayland/meta-wayland-touch.h"
+#include "wayland/meta-wayland-types.h"
 
 struct _MetaWaylandSeat
 {
+  MetaWaylandCompositor *compositor;
+
   struct wl_list base_resource_list;
   struct wl_display *wl_display;
 
@@ -44,6 +44,7 @@ struct _MetaWaylandSeat
   MetaWaylandTouch *touch;
 
   MetaWaylandDataDevice data_device;
+  MetaWaylandDataDevicePrimary primary_data_device;
 
   MetaWaylandTextInput *text_input;
 
@@ -63,14 +64,14 @@ gboolean meta_wayland_seat_handle_event (MetaWaylandSeat *seat,
 void meta_wayland_seat_set_input_focus (MetaWaylandSeat    *seat,
                                         MetaWaylandSurface *surface);
 
-void meta_wayland_seat_repick (MetaWaylandSeat *seat);
-
-gboolean meta_wayland_seat_get_grab_info (MetaWaylandSeat    *seat,
-                                          MetaWaylandSurface *surface,
-                                          uint32_t            serial,
-                                          gboolean            require_pressed,
-                                          gfloat             *x,
-                                          gfloat             *y);
+gboolean meta_wayland_seat_get_grab_info (MetaWaylandSeat       *seat,
+                                          MetaWaylandSurface    *surface,
+                                          uint32_t               serial,
+                                          gboolean               require_pressed,
+                                          ClutterInputDevice   **device_out,
+                                          ClutterEventSequence **sequence_out,
+                                          float                 *x,
+                                          float                 *y);
 gboolean meta_wayland_seat_can_popup     (MetaWaylandSeat *seat,
                                           uint32_t         serial);
 
@@ -80,4 +81,6 @@ gboolean meta_wayland_seat_has_pointer (MetaWaylandSeat *seat);
 
 gboolean meta_wayland_seat_has_touch (MetaWaylandSeat *seat);
 
-#endif /* META_WAYLAND_SEAT_H */
+MetaWaylandCompositor * meta_wayland_seat_get_compositor (MetaWaylandSeat *seat);
+
+gboolean meta_wayland_seat_is_grabbed (MetaWaylandSeat *seat);

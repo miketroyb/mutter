@@ -14,9 +14,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jasper St. Pierre <jstpierre@mecheye.net>
@@ -24,12 +22,15 @@
 
 #include "config.h"
 
-#include "meta-accel-parse.h"
-#include "keybindings-private.h"
+#include "core/meta-accel-parse.h"
+#include "clutter/clutter-keyval.h"
+#include "meta/util.h"
 
-#include <xkbcommon/xkbcommon.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+#include <xkbcommon/xkbcommon.h>
+
+#include "core/keybindings-private.h"
 
 /* This is copied from GTK+ and modified to work with mutter's
  * internal structures. Originating code comes from gtk/gtkaccelgroup.c
@@ -177,7 +178,7 @@ accelerator_parse (const gchar         *accelerator,
                    MetaKeyCombo        *combo)
 {
   guint keyval, keycode;
-  MetaVirtualModifier mods;
+  ClutterModifierType mods;
   gint len;
 
   combo->keysym = 0;
@@ -200,40 +201,40 @@ accelerator_parse (const gchar         *accelerator,
               /* Primary is treated the same as Control */
               accelerator += 9;
               len -= 9;
-              mods |= META_VIRTUAL_CONTROL_MASK;
+              mods |= CLUTTER_CONTROL_MASK;
             }
           else if (len >= 9 && is_control (accelerator))
             {
               accelerator += 9;
               len -= 9;
-              mods |= META_VIRTUAL_CONTROL_MASK;
+              mods |= CLUTTER_CONTROL_MASK;
             }
           else if (len >= 7 && is_shift (accelerator))
             {
               accelerator += 7;
               len -= 7;
-              mods |= META_VIRTUAL_SHIFT_MASK;
+              mods |= CLUTTER_SHIFT_MASK;
             }
           else if (len >= 6 && is_shft (accelerator))
             {
               accelerator += 6;
               len -= 6;
-              mods |= META_VIRTUAL_SHIFT_MASK;
+              mods |= CLUTTER_SHIFT_MASK;
             }
           else if (len >= 6 && is_ctrl (accelerator))
             {
               accelerator += 6;
               len -= 6;
-              mods |= META_VIRTUAL_CONTROL_MASK;
+              mods |= CLUTTER_CONTROL_MASK;
             }
           else if (len >= 6 && is_modx (accelerator))
             {
               static const guint mod_vals[] = {
-                META_VIRTUAL_ALT_MASK,
-                META_VIRTUAL_MOD2_MASK,
-                META_VIRTUAL_MOD3_MASK,
-                META_VIRTUAL_MOD4_MASK,
-                META_VIRTUAL_MOD5_MASK,
+                CLUTTER_MOD1_MASK,
+                CLUTTER_MOD2_MASK,
+                CLUTTER_MOD3_MASK,
+                CLUTTER_MOD4_MASK,
+                CLUTTER_MOD5_MASK,
               };
 
               len -= 6;
@@ -245,31 +246,31 @@ accelerator_parse (const gchar         *accelerator,
             {
               accelerator += 5;
               len -= 5;
-              mods |= META_VIRTUAL_CONTROL_MASK;
+              mods |= CLUTTER_CONTROL_MASK;
             }
           else if (len >= 5 && is_alt (accelerator))
             {
               accelerator += 5;
               len -= 5;
-              mods |= META_VIRTUAL_ALT_MASK;
+              mods |= CLUTTER_MOD1_MASK;
             }
           else if (len >= 6 && is_meta (accelerator))
             {
               accelerator += 6;
               len -= 6;
-              mods |= META_VIRTUAL_META_MASK;
+              mods |= CLUTTER_META_MASK;
             }
           else if (len >= 7 && is_hyper (accelerator))
             {
               accelerator += 7;
               len -= 7;
-              mods |= META_VIRTUAL_HYPER_MASK;
+              mods |= CLUTTER_HYPER_MASK;
             }
           else if (len >= 7 && is_super (accelerator))
             {
               accelerator += 7;
               len -= 7;
-              mods |= META_VIRTUAL_SUPER_MASK;
+              mods |= CLUTTER_SUPER_MASK;
             }
           else
             {
@@ -291,16 +292,16 @@ accelerator_parse (const gchar         *accelerator,
               keycode = strtoul (accelerator, NULL, 16);
               goto out;
             }
-	  else if (strcmp (accelerator, "Above_Tab") == 0)
+          else if (strcmp (accelerator, "Above_Tab") == 0)
             {
               keyval = META_KEY_ABOVE_TAB;
               goto out;
             }
           else
-	    {
+            {
               keyval = xkb_keysym_from_name (accelerator, XKB_KEYSYM_CASE_INSENSITIVE);
-	      if (keyval == XKB_KEY_NoSymbol)
-	        {
+              if (keyval == XKB_KEY_NoSymbol)
+                {
                   char *with_xf86 = g_strconcat ("XF86", accelerator, NULL);
                   keyval = xkb_keysym_from_name (with_xf86, XKB_KEYSYM_CASE_INSENSITIVE);
                   g_free (with_xf86);
@@ -308,14 +309,14 @@ accelerator_parse (const gchar         *accelerator,
                   if (keyval == XKB_KEY_NoSymbol)
                     return FALSE;
                 }
-	    }
+            }
 
           accelerator += len;
           len -= len;
         }
     }
 
- out:
+out:
   combo->keysym = keyval;
   combo->keycode = keycode;
   combo->modifiers = mods;
@@ -338,7 +339,7 @@ meta_parse_accelerator (const char   *accel,
 
 gboolean
 meta_parse_modifier (const char          *accel,
-                     MetaVirtualModifier *mask)
+                     ClutterModifierType *mask)
 {
   MetaKeyCombo combo = { 0 };
 
@@ -354,4 +355,79 @@ meta_parse_modifier (const char          *accel,
 
   *mask = combo.modifiers;
   return TRUE;
+}
+
+/**
+ * meta_accelerator_name:
+ * @accelerator_mods: Accelerator modifier mask.
+ * @accelerator_key: Accelerator keyval.
+ *
+ * Convert an accelerator keyval and modifier mask into a string parsable by `meta_parse_accelerator`.
+ *
+ * Returns: The accelerator name.
+ */
+char *
+meta_accelerator_name (ClutterModifierType accelerator_mods,
+                       unsigned int        accelerator_key)
+{
+#define TXTLEN(s) sizeof (s) - 1
+  static const struct {
+    guint mask;
+    const char *text;
+    gsize text_len;
+  } mask_text[] = {
+    { CLUTTER_SHIFT_MASK,   "<Shift>",   TXTLEN ("<Shift>") },
+    { CLUTTER_CONTROL_MASK, "<Control>", TXTLEN ("<Control>") },
+    { CLUTTER_MOD1_MASK,    "<Alt>",     TXTLEN ("<Alt>") },
+    { CLUTTER_META_MASK,    "<Meta>",    TXTLEN ("<Meta>") },
+    { CLUTTER_SUPER_MASK,   "<Super>",   TXTLEN ("<Super>") },
+    { CLUTTER_HYPER_MASK,   "<Hyper>",   TXTLEN ("<Hyper>") }
+  };
+#undef TXTLEN
+
+  ClutterModifierType saved_mods;
+  guint l;
+  guint name_len;
+  const char *keyval_name;
+  char *accelerator;
+  int i;
+  unsigned int lower_key;
+
+  accelerator_mods &= CLUTTER_MODIFIER_MASK;
+
+  clutter_keyval_convert_case (accelerator_key, &lower_key, NULL);
+  keyval_name = clutter_keyval_name (lower_key);
+  if (!keyval_name)
+    keyval_name = "";
+
+  name_len = strlen (keyval_name);
+
+  saved_mods = accelerator_mods;
+  for (i = 0; i < G_N_ELEMENTS (mask_text); i++)
+    {
+      if (accelerator_mods & mask_text[i].mask)
+        name_len += mask_text[i].text_len;
+    }
+
+  if (name_len == 0)
+    return g_strdup (keyval_name);
+
+  name_len += 1; /* NUL byte */
+  accelerator = g_new (char, name_len);
+
+  accelerator_mods = saved_mods;
+  l = 0;
+  for (i = 0; i < G_N_ELEMENTS (mask_text); i++)
+    {
+      if (accelerator_mods & mask_text[i].mask)
+        {
+          strcpy (accelerator + l, mask_text[i].text);
+          l += mask_text[i].text_len;
+        }
+    }
+
+  strcpy (accelerator + l, keyval_name);
+  accelerator[name_len - 1] = '\0';
+
+  return accelerator;
 }

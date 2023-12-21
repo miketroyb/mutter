@@ -14,19 +14,17 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_LOGICAL_MONITOR_H
-#define META_LOGICAL_MONITOR_H
+#pragma once
 
 #include <glib-object.h>
 
 #include "backends/meta-monitor.h"
 #include "backends/meta-monitor-config-manager.h"
 #include "backends/meta-monitor-manager-private.h"
+#include "core/util-private.h"
 #include "meta/boxes.h"
 
 #define META_MAX_OUTPUTS_PER_MONITOR 4
@@ -36,7 +34,7 @@ struct _MetaLogicalMonitor
   GObject parent;
 
   int number;
-  MetaRectangle rect;
+  MtkRectangle rect;
   gboolean is_primary;
   gboolean is_presentation; /* XXX: not yet used */
   gboolean in_fullscreen;
@@ -47,11 +45,11 @@ struct _MetaLogicalMonitor
      It can be matched to a winsys_id of a MetaOutput.
 
      This is used as an opaque token on reconfiguration when switching from
-     clone to extened, to decide on what output the windows should go next
+     clone to extended, to decide on what output the windows should go next
      (it's an attempt to keep windows on the same monitor, and preferably on
      the primary one).
   */
-  glong winsys_id;
+  uint64_t winsys_id;
 
   GList *monitors;
 };
@@ -62,6 +60,8 @@ G_DECLARE_FINAL_TYPE (MetaLogicalMonitor, meta_logical_monitor,
                       GObject)
 
 typedef void (* MetaLogicalMonitorCrtcFunc) (MetaLogicalMonitor *logical_monitor,
+                                             MetaMonitor        *monitor,
+                                             MetaOutput         *output,
                                              MetaCrtc           *crtc,
                                              gpointer            user_data);
 
@@ -71,13 +71,14 @@ MetaLogicalMonitor * meta_logical_monitor_new (MetaMonitorManager       *monitor
 
 MetaLogicalMonitor * meta_logical_monitor_new_derived (MetaMonitorManager *monitor_manager,
                                                        MetaMonitor        *monitor,
-                                                       MetaRectangle      *layout,
+                                                       MtkRectangle       *layout,
                                                        float               scale,
                                                        int                 monitor_number);
 
 void meta_logical_monitor_add_monitor (MetaLogicalMonitor *logical_monitor,
                                        MetaMonitor        *monitor);
 
+META_EXPORT_TEST
 gboolean meta_logical_monitor_is_primary (MetaLogicalMonitor *logical_monitor);
 
 void meta_logical_monitor_make_primary (MetaLogicalMonitor *logical_monitor);
@@ -86,16 +87,16 @@ float meta_logical_monitor_get_scale (MetaLogicalMonitor *logical_monitor);
 
 MetaMonitorTransform meta_logical_monitor_get_transform (MetaLogicalMonitor *logical_monitor);
 
-MetaRectangle meta_logical_monitor_get_layout (MetaLogicalMonitor *logical_monitor);
+META_EXPORT_TEST
+MtkRectangle meta_logical_monitor_get_layout (MetaLogicalMonitor *logical_monitor);
 
+META_EXPORT_TEST
 GList * meta_logical_monitor_get_monitors (MetaLogicalMonitor *logical_monitor);
 
-gboolean meta_logical_monitor_has_neighbor (MetaLogicalMonitor  *logical_monitor,
-                                            MetaLogicalMonitor  *neighbor,
-                                            MetaScreenDirection  neighbor_dir);
+gboolean meta_logical_monitor_has_neighbor (MetaLogicalMonitor   *logical_monitor,
+                                            MetaLogicalMonitor   *neighbor,
+                                            MetaDisplayDirection  neighbor_dir);
 
 void meta_logical_monitor_foreach_crtc (MetaLogicalMonitor        *logical_monitor,
                                         MetaLogicalMonitorCrtcFunc func,
                                         gpointer                   user_data);
-
-#endif /* META_LOGICAL_MONITOR_H */

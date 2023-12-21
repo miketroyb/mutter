@@ -29,15 +29,13 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
-#include "cogl-object.h"
+#include "cogl/cogl-object.h"
 
-#include "cogl-framebuffer-private.h"
-#include "cogl-onscreen-template-private.h"
-#include "cogl-gtype-private.h"
+#include "cogl/cogl-framebuffer-private.h"
+#include "cogl/cogl-onscreen-template-private.h"
+#include "cogl/cogl-gtype-private.h"
 
 #include <stdlib.h>
 
@@ -49,13 +47,13 @@ COGL_GTYPE_DEFINE_CLASS (OnscreenTemplate, onscreen_template);
 static void
 _cogl_onscreen_template_free (CoglOnscreenTemplate *onscreen_template)
 {
-  g_slice_free (CoglOnscreenTemplate, onscreen_template);
+  g_free (onscreen_template);
 }
 
 CoglOnscreenTemplate *
 cogl_onscreen_template_new (CoglSwapChain *swap_chain)
 {
-  CoglOnscreenTemplate *onscreen_template = g_slice_new0 (CoglOnscreenTemplate);
+  CoglOnscreenTemplate *onscreen_template = g_new0 (CoglOnscreenTemplate, 1);
   char *user_config;
 
   onscreen_template->config.swap_chain = swap_chain;
@@ -64,7 +62,6 @@ cogl_onscreen_template_new (CoglSwapChain *swap_chain)
   else
     onscreen_template->config.swap_chain = cogl_swap_chain_new ();
 
-  onscreen_template->config.swap_throttled = TRUE;
   onscreen_template->config.need_stencil = TRUE;
   onscreen_template->config.samples_per_pixel = 0;
 
@@ -89,17 +86,9 @@ cogl_onscreen_template_set_samples_per_pixel (
 }
 
 void
-cogl_onscreen_template_set_swap_throttled (
-                                          CoglOnscreenTemplate *onscreen_template,
-                                          CoglBool throttled)
-{
-  onscreen_template->config.swap_throttled = throttled;
-}
-
-void
 cogl_onscreen_template_set_stereo_enabled (
 					   CoglOnscreenTemplate *onscreen_template,
-					   CoglBool enabled)
+					   gboolean enabled)
 {
   onscreen_template->config.stereo_enabled = enabled;
 }

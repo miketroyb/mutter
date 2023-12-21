@@ -14,26 +14,23 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
-
-#define _GNU_SOURCE
 
 #include "config.h"
 
 #include <glib.h>
 
 #include <wayland-server.h>
-#include "tablet-unstable-v2-server-protocol.h"
 
-#include "meta-wayland-private.h"
-#include "meta-wayland-tablet-manager.h"
-#include "meta-wayland-tablet-seat.h"
-#include "meta-wayland-tablet-tool.h"
+#include "wayland/meta-wayland-private.h"
+#include "wayland/meta-wayland-tablet-manager.h"
+#include "wayland/meta-wayland-tablet-seat.h"
+#include "wayland/meta-wayland-tablet-tool.h"
+
+#include "tablet-unstable-v2-server-protocol.h"
 
 static void
 unbind_resource (struct wl_resource *resource)
@@ -44,18 +41,16 @@ unbind_resource (struct wl_resource *resource)
 static gboolean
 is_tablet_device (ClutterInputDevice *device)
 {
-  ClutterInputDeviceType device_type;
+  ClutterInputCapabilities capabilities;
 
-  if (clutter_input_device_get_device_mode (device) == CLUTTER_INPUT_MODE_MASTER)
+  if (clutter_input_device_get_device_mode (device) == CLUTTER_INPUT_MODE_LOGICAL)
     return FALSE;
 
-  device_type = clutter_input_device_get_device_type (device);
+  capabilities = clutter_input_device_get_capabilities (device);
 
-  return (device_type == CLUTTER_TABLET_DEVICE ||
-          device_type == CLUTTER_PEN_DEVICE ||
-          device_type == CLUTTER_ERASER_DEVICE ||
-          device_type == CLUTTER_CURSOR_DEVICE ||
-          device_type == CLUTTER_PAD_DEVICE);
+  return (capabilities &
+          (CLUTTER_INPUT_CAPABILITY_TABLET_TOOL |
+           CLUTTER_INPUT_CAPABILITY_TABLET_PAD)) != 0;
 }
 
 static void
@@ -109,7 +104,7 @@ meta_wayland_tablet_manager_new (MetaWaylandCompositor *compositor)
 {
   MetaWaylandTabletManager *tablet_manager;
 
-  tablet_manager = g_slice_new0 (MetaWaylandTabletManager);
+  tablet_manager = g_new0 (MetaWaylandTabletManager, 1);
   tablet_manager->compositor = compositor;
   tablet_manager->wl_display = compositor->wayland_display;
   tablet_manager->seats = g_hash_table_new_full (NULL, NULL, NULL,
@@ -130,15 +125,10 @@ meta_wayland_tablet_manager_init (MetaWaylandCompositor *compositor)
 }
 
 void
-meta_wayland_tablet_manager_free (MetaWaylandTabletManager *tablet_manager)
+meta_wayland_tablet_manager_finalize (MetaWaylandCompositor *compositor)
 {
-  ClutterDeviceManager *device_manager;
-
-  device_manager = clutter_device_manager_get_default ();
-  g_signal_handlers_disconnect_by_data (device_manager, tablet_manager);
-
-  g_hash_table_destroy (tablet_manager->seats);
-  g_slice_free (MetaWaylandTabletManager, tablet_manager);
+  g_hash_table_destroy (compositor->tablet_manager->seats);
+  g_clear_pointer (&compositor->tablet_manager, g_free);
 }
 
 static MetaWaylandTabletSeat *
@@ -185,7 +175,7 @@ meta_wayland_tablet_manager_update (MetaWaylandTabletManager *manager,
   if (!tablet_seat)
     return;
 
-  switch (event->type)
+  switch (clutter_event_type (event))
     {
     case CLUTTER_PROXIMITY_IN:
     case CLUTTER_PROXIMITY_OUT:
@@ -215,7 +205,7 @@ meta_wayland_tablet_manager_handle_event (MetaWaylandTabletManager *manager,
   if (!tablet_seat)
     return CLUTTER_EVENT_PROPAGATE;
 
-  switch (event->type)
+  switch (clutter_event_type (event))
     {
     case CLUTTER_PROXIMITY_IN:
     case CLUTTER_PROXIMITY_OUT:
@@ -247,31 +237,4 @@ meta_wayland_tablet_manager_ensure_seat (MetaWaylandTabletManager *manager,
     }
 
   return tablet_seat;
-}
-
-void
-meta_wayland_tablet_manager_update_cursor_position (MetaWaylandTabletManager *manager,
-                                                    const ClutterEvent       *event)
-{
-  MetaWaylandTabletSeat *tablet_seat = NULL;
-  MetaWaylandTabletTool *tool = NULL;
-  ClutterInputDeviceTool *device_tool;
-  ClutterInputDevice *device;
-
-  device = clutter_event_get_source_device (event);
-  device_tool = clutter_event_get_device_tool (event);
-
-  if (device)
-    tablet_seat = meta_wayland_tablet_manager_lookup_seat (manager, device);
-
-  if (tablet_seat && device_tool)
-    tool = meta_wayland_tablet_seat_lookup_tool (tablet_seat, device_tool);
-
-  if (tool)
-    {
-      gfloat new_x, new_y;
-
-      clutter_event_get_coords (event, &new_x, &new_y);
-      meta_wayland_tablet_tool_set_cursor_position (tool, new_x, new_y);
-    }
 }

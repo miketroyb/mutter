@@ -31,15 +31,16 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_STACK_TRACKER_H
-#define META_STACK_TRACKER_H
+#pragma once
 
-#include <meta/screen.h>
-#include <meta/window.h>
+#include "core/util-private.h"
+#include "meta/display.h"
+#include "meta/window.h"
 
 typedef struct _MetaStackTracker MetaStackTracker;
+typedef struct _MetaStack MetaStack;
 
-MetaStackTracker *meta_stack_tracker_new  (MetaScreen       *screen);
+MetaStackTracker *meta_stack_tracker_new  (MetaStack        *stack);
 void              meta_stack_tracker_free (MetaStackTracker *tracker);
 
 /* These functions are called when we make an X call that changes the
@@ -75,11 +76,10 @@ void meta_stack_tracker_reparent_event  (MetaStackTracker    *tracker,
 void meta_stack_tracker_configure_event (MetaStackTracker    *tracker,
 					 XConfigureEvent     *event);
 
+META_EXPORT_TEST
 void meta_stack_tracker_get_stack  (MetaStackTracker *tracker,
                                     guint64         **windows,
                                     int              *n_entries);
 
 void meta_stack_tracker_sync_stack       (MetaStackTracker *tracker);
 void meta_stack_tracker_queue_sync_stack (MetaStackTracker *tracker);
-
-#endif /* META_STACK_TRACKER_H */

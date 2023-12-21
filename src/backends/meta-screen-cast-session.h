@@ -14,16 +14,17 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#ifndef META_SCREEN_CAST_SESSION_H
-#define META_SCREEN_CAST_SESSION_H
+#pragma once
 
 #include "backends/meta-screen-cast.h"
+
+#include "backends/meta-backend-types.h"
+#include "backends/meta-screen-cast-stream.h"
+#include "meta/meta-remote-access-controller.h"
 
 typedef enum _MetaScreenCastSessionType
 {
@@ -36,16 +37,31 @@ G_DECLARE_FINAL_TYPE (MetaScreenCastSession, meta_screen_cast_session,
                       META, SCREEN_CAST_SESSION,
                       MetaDBusScreenCastSessionSkeleton)
 
+#define META_TYPE_SCREEN_CAST_SESSION_HANDLE (meta_screen_cast_session_handle_get_type ())
+G_DECLARE_FINAL_TYPE (MetaScreenCastSessionHandle,
+                      meta_screen_cast_session_handle,
+                      META, SCREEN_CAST_SESSION_HANDLE,
+                      MetaRemoteAccessHandle)
+
 char * meta_screen_cast_session_get_object_path (MetaScreenCastSession *session);
 
-MetaScreenCastSession * meta_screen_cast_session_new (MetaScreenCast             *screen_cast,
-                                                      MetaScreenCastSessionType   session_type,
-                                                      const char                 *peer_name,
-                                                      GError                    **error);
+char * meta_screen_cast_session_get_peer_name (MetaScreenCastSession *session);
+
+MetaScreenCastSessionType meta_screen_cast_session_get_session_type (MetaScreenCastSession *session);
+
+MetaRemoteDesktopSession * meta_screen_cast_session_get_remote_desktop_session (MetaScreenCastSession *session);
 
 gboolean meta_screen_cast_session_start (MetaScreenCastSession  *session,
                                          GError                **error);
 
-void meta_screen_cast_session_close (MetaScreenCastSession *session);
+gboolean meta_screen_cast_session_is_active (MetaScreenCastSession *session);
 
-#endif /* META_SCREEN_CAST_SESSION_H */
+GList * meta_screen_cast_session_peek_streams (MetaScreenCastSession *session);
+
+MetaScreenCastStream * meta_screen_cast_session_get_stream (MetaScreenCastSession *session,
+                                                            const char            *path);
+
+MetaScreenCast * meta_screen_cast_session_get_screen_cast (MetaScreenCastSession *session);
+
+void meta_screen_cast_session_set_disable_animations (MetaScreenCastSession *session,
+                                                      gboolean               disable_animations);

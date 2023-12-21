@@ -31,14 +31,13 @@
  *   Neil Roberts <neil@linux.intel.com>
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
 
-#ifndef __COGL_SNIPPET_H__
-#define __COGL_SNIPPET_H__
-
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 /**
  * SECTION:cogl-snippet
@@ -107,7 +106,7 @@ COGL_BEGIN_DECLS
  * The snippets can be added to a pipeline with
  * cogl_pipeline_add_snippet() or
  * cogl_pipeline_add_layer_snippet(). Which function to use depends on
- * which hook the snippet is targetting. The snippets are all
+ * which hook the snippet is targeting. The snippets are all
  * generated in the order they are added to the pipeline. That is, the
  * post strings are executed in the order they are added to the
  * pipeline and the pre strings are executed in reverse order. If any
@@ -294,8 +293,7 @@ COGL_BEGIN_DECLS
  *    will be the bottom right. Note that there is currently a bug in
  *    Cogl where when rendering to an offscreen buffer these
  *    coordinates will be upside-down. The value is undefined when not
- *    rendering points. This builtin can only be used if the
- *    %COGL_FEATURE_ID_POINT_SPRITE feature is available.
+ *    rendering points.
  *   </para></glossdef>
  *  </glossentry>
  * </glosslist>
@@ -346,6 +344,7 @@ typedef struct _CoglSnippet CoglSnippet;
  *
  * Returns: a #GType that can be used with the GLib type system.
  */
+COGL_EXPORT
 GType cogl_snippet_get_gtype (void);
 
 /* Enumeration of all the hook points that a snippet can be attached
@@ -645,17 +644,15 @@ GType cogl_snippet_get_gtype (void);
  * </para>
  * <para>
  * The ‘post’ string in @snippet will be inserted after texture lookup
- * has been preformed. Here the snippet can modify the cogl_texel
+ * has been performed. Here the snippet can modify the cogl_texel
  * variable to alter the returned texel.
  * </para>
  *   </glossdef>
  *  </glossentry>
  * </glosslist>
- *
- * Since: 1.10
- * Stability: Unstable
  */
-typedef enum {
+typedef enum
+{
   /* Per pipeline vertex hooks */
   COGL_SNIPPET_HOOK_VERTEX = 0,
   COGL_SNIPPET_HOOK_VERTEX_TRANSFORM,
@@ -678,19 +675,16 @@ typedef enum {
  * cogl_snippet_new:
  * @hook: The point in the pipeline that this snippet will wrap around
  *   or replace.
- * @declarations: The source code for the declarations for this
+ * @declarations: (nullable): The source code for the declarations for this
  *   snippet or %NULL. See cogl_snippet_set_declarations().
- * @post: The source code to run after the hook point where this
+ * @post: (nullable): The source code to run after the hook point where this
  *   shader snippet is attached or %NULL. See cogl_snippet_set_post().
  *
  * Allocates and initializes a new snippet with the given source strings.
  *
- * Return value: a pointer to a new #CoglSnippet
- *
- * Since: 1.10
- * Stability: Unstable
+ * Returns: (transfer full): a pointer to a new #CoglSnippet
  */
-CoglSnippet *
+COGL_EXPORT CoglSnippet *
 cogl_snippet_new (CoglSnippetHook hook,
                   const char *declarations,
                   const char *post);
@@ -699,12 +693,10 @@ cogl_snippet_new (CoglSnippetHook hook,
  * cogl_snippet_get_hook:
  * @snippet: A #CoglSnippet
  *
- * Return value: the hook that was set when cogl_snippet_new() was
- *   called.
- * Since: 1.10
- * Stability: Unstable
+ * Returns: (transfer none): the hook that was set when cogl_snippet_new()
+ *   was called.
  */
-CoglSnippetHook
+COGL_EXPORT CoglSnippetHook
 cogl_snippet_get_hook (CoglSnippet *snippet);
 
 /**
@@ -713,13 +705,10 @@ cogl_snippet_get_hook (CoglSnippet *snippet);
  *
  * Gets whether the given @object references an existing snippet object.
  *
- * Return value: %TRUE if the @object references a #CoglSnippet,
+ * Returns: %TRUE if the @object references a #CoglSnippet,
  *   %FALSE otherwise
- *
- * Since: 1.10
- * Stability: Unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_is_snippet (void *object);
 
 /**
@@ -736,11 +725,8 @@ cogl_is_snippet (void *object);
  * This function should only be called before the snippet is attached
  * to its first pipeline. After that the snippet should be considered
  * immutable.
- *
- * Since: 1.10
- * Stability: Unstable
  */
-void
+COGL_EXPORT void
 cogl_snippet_set_declarations (CoglSnippet *snippet,
                                const char *declarations);
 
@@ -748,13 +734,10 @@ cogl_snippet_set_declarations (CoglSnippet *snippet,
  * cogl_snippet_get_declarations:
  * @snippet: A #CoglSnippet
  *
- * Return value: the source string that was set with
+ * Returns: (transfer none): the source string that was set with
  *   cogl_snippet_set_declarations() or %NULL if none was set.
- *
- * Since: 1.10
- * Stability: Unstable
  */
-const char *
+COGL_EXPORT const char *
 cogl_snippet_get_declarations (CoglSnippet *snippet);
 
 /**
@@ -770,11 +753,8 @@ cogl_snippet_get_declarations (CoglSnippet *snippet);
  * This function should only be called before the snippet is attached
  * to its first pipeline. After that the snippet should be considered
  * immutable.
- *
- * Since: 1.10
- * Stability: Unstable
  */
-void
+COGL_EXPORT void
 cogl_snippet_set_pre (CoglSnippet *snippet,
                       const char *pre);
 
@@ -782,13 +762,10 @@ cogl_snippet_set_pre (CoglSnippet *snippet,
  * cogl_snippet_get_pre:
  * @snippet: A #CoglSnippet
  *
- * Return value: the source string that was set with
+ * Returns: (transfer none): the source string that was set with
  *   cogl_snippet_set_pre() or %NULL if none was set.
- *
- * Since: 1.10
- * Stability: Unstable
  */
-const char *
+COGL_EXPORT const char *
 cogl_snippet_get_pre (CoglSnippet *snippet);
 
 /**
@@ -804,11 +781,8 @@ cogl_snippet_get_pre (CoglSnippet *snippet);
  * This function should only be called before the snippet is attached
  * to its first pipeline. After that the snippet should be considered
  * immutable.
- *
- * Since: 1.10
- * Stability: Unstable
  */
-void
+COGL_EXPORT void
 cogl_snippet_set_replace (CoglSnippet *snippet,
                           const char *replace);
 
@@ -816,13 +790,10 @@ cogl_snippet_set_replace (CoglSnippet *snippet,
  * cogl_snippet_get_replace:
  * @snippet: A #CoglSnippet
  *
- * Return value: the source string that was set with
+ * Returns: (transfer none): the source string that was set with
  *   cogl_snippet_set_replace() or %NULL if none was set.
- *
- * Since: 1.10
- * Stability: Unstable
  */
-const char *
+COGL_EXPORT const char *
 cogl_snippet_get_replace (CoglSnippet *snippet);
 
 /**
@@ -838,11 +809,8 @@ cogl_snippet_get_replace (CoglSnippet *snippet);
  * This function should only be called before the snippet is attached
  * to its first pipeline. After that the snippet should be considered
  * immutable.
- *
- * Since: 1.10
- * Stability: Unstable
  */
-void
+COGL_EXPORT void
 cogl_snippet_set_post (CoglSnippet *snippet,
                        const char *post);
 
@@ -850,15 +818,10 @@ cogl_snippet_set_post (CoglSnippet *snippet,
  * cogl_snippet_get_post:
  * @snippet: A #CoglSnippet
  *
- * Return value: the source string that was set with
+ * Returns: (transfer none): the source string that was set with
  *   cogl_snippet_set_post() or %NULL if none was set.
- *
- * Since: 1.10
- * Stability: Unstable
  */
-const char *
+COGL_EXPORT const char *
 cogl_snippet_get_post (CoglSnippet *snippet);
 
-COGL_END_DECLS
-
-#endif /* __COGL_SNIPPET_H__ */
+G_END_DECLS

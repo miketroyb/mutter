@@ -14,16 +14,22 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#ifndef META_DBUS_SESSION_WATCHER_H
-#define META_DBUS_SESSION_WATCHER_H
+#pragma once
 
 #include <glib-object.h>
+
+#include "backends/meta-backend-types.h"
+
+enum
+{
+  META_DBUS_SESSION_PROP_SESSION_MANAGER,
+  META_DBUS_SESSION_PROP_PEER_NAME,
+  META_DBUS_SESSION_PROP_ID,
+};
 
 #define META_TYPE_DBUS_SESSION (meta_dbus_session_get_type ())
 G_DECLARE_INTERFACE (MetaDbusSession, meta_dbus_session,
@@ -34,7 +40,7 @@ struct _MetaDbusSessionInterface
 {
   GTypeInterface parent_iface;
 
-  void (* client_vanished) (MetaDbusSession *session);
+  void (* close) (MetaDbusSession *session);
 };
 
 #define META_TYPE_DBUS_SESSION_WATCHER (meta_dbus_session_watcher_get_type ())
@@ -47,6 +53,15 @@ void meta_dbus_session_watcher_watch_session (MetaDbusSessionWatcher *session_wa
                                               const char             *client_dbus_name,
                                               MetaDbusSession        *session);
 
+void meta_dbus_session_install_properties (GObjectClass *object_class,
+                                           unsigned int  first_prop);
+
 void meta_dbus_session_notify_closed (MetaDbusSession *session);
 
-#endif /* META_DBUS_SESSION_WATCHER_H */
+void meta_dbus_session_close (MetaDbusSession *session);
+
+MetaDbusSessionManager * meta_dbus_session_manager (MetaDbusSessionManager *session);
+
+char * meta_dbus_session_get_peer_name (MetaDbusSession *session);
+
+char * meta_dbus_session_get_id (MetaDbusSession *session);

@@ -22,14 +22,13 @@
  *   Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_INTERVAL_H__
-#define __CLUTTER_INTERVAL_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-types.h>
+#include "clutter/clutter-types.h"
 
 G_BEGIN_DECLS
 
@@ -43,14 +42,6 @@ G_BEGIN_DECLS
 typedef struct _ClutterIntervalPrivate          ClutterIntervalPrivate;
 typedef struct _ClutterIntervalClass            ClutterIntervalClass;
 
-/**
- * ClutterInterval:
- *
- * The #ClutterInterval structure contains only private data and should
- * be accessed using the provided functions.
- *
- * Since: 1.0
- */
 struct _ClutterInterval
 {
   /*< private >*/
@@ -67,8 +58,6 @@ struct _ClutterInterval
  *   inside an interval using an adimensional factor between 0 and 1
  *
  * The #ClutterIntervalClass contains only private data.
- *
- * Since: 1.0
  */
 struct _ClutterIntervalClass
 {
@@ -81,79 +70,68 @@ struct _ClutterIntervalClass
   gboolean (* compute_value) (ClutterInterval *interval,
                               gdouble          factor,
                               GValue          *value);
-
-  /*< private >*/
-  /* padding for future expansion */
-  void (*_clutter_reserved1) (void);
-  void (*_clutter_reserved2) (void);
-  void (*_clutter_reserved3) (void);
-  void (*_clutter_reserved4) (void);
-  void (*_clutter_reserved5) (void);
-  void (*_clutter_reserved6) (void);
 };
 
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 GType            clutter_interval_get_type           (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 ClutterInterval *clutter_interval_new                (GType            gtype,
                                                       ...);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 ClutterInterval *clutter_interval_new_with_values    (GType            gtype,
                                                       const GValue    *initial,
                                                       const GValue    *final);
 
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 ClutterInterval *clutter_interval_clone              (ClutterInterval *interval);
 
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 GType            clutter_interval_get_value_type     (ClutterInterval *interval);
 
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 void             clutter_interval_set_initial        (ClutterInterval *interval,
                                                       ...);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void             clutter_interval_set_initial_value  (ClutterInterval *interval,
                                                       const GValue    *value);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void             clutter_interval_get_initial_value  (ClutterInterval *interval,
                                                       GValue          *value);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 GValue *         clutter_interval_peek_initial_value (ClutterInterval *interval);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 void             clutter_interval_set_final          (ClutterInterval *interval,
                                                       ...);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void             clutter_interval_set_final_value    (ClutterInterval *interval,
                                                       const GValue    *value);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void             clutter_interval_get_final_value    (ClutterInterval *interval,
                                                       GValue          *value);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 GValue *         clutter_interval_peek_final_value   (ClutterInterval *interval);
 
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void             clutter_interval_set_interval       (ClutterInterval *interval,
                                                       ...);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void             clutter_interval_get_interval       (ClutterInterval *interval,
                                                       ...);
 
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 gboolean         clutter_interval_validate           (ClutterInterval *interval,
                                                       GParamSpec      *pspec);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 gboolean         clutter_interval_compute_value      (ClutterInterval *interval,
                                                       gdouble          factor,
                                                       GValue          *value);
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 const GValue *   clutter_interval_compute            (ClutterInterval *interval,
                                                       gdouble          factor);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 gboolean         clutter_interval_is_valid           (ClutterInterval *interval);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_INTERVAL_H__ */

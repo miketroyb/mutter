@@ -12,20 +12,18 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Olivier Fourdan <ofourdan@redhat.com>
  */
 
-#ifndef META_WAYLAND_INHIBIT_SHORTCUTS_H
-#define META_WAYLAND_INHIBIT_SHORTCUTS_H
+#pragma once
 
 #include <wayland-server.h>
-#include "wayland/meta-wayland-types.h"
+
 #include "meta/window.h"
+#include "wayland/meta-wayland-types.h"
 
 #define META_TYPE_WAYLAND_KEYBOARD_SHORTCUTS_INHIBIT (meta_wayland_keyboard_shortcuts_inhibit_resource_get_type ())
 G_DECLARE_FINAL_TYPE (MetaWaylandKeyboardShotscutsInhibit,
@@ -34,5 +32,3 @@ G_DECLARE_FINAL_TYPE (MetaWaylandKeyboardShotscutsInhibit,
                       GObject);
 
 gboolean meta_wayland_keyboard_shortcuts_inhibit_init (MetaWaylandCompositor *compositor);
-
-#endif /* META_WAYLAND_INHIBIT_SHORTCUTS_H */

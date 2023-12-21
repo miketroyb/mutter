@@ -22,97 +22,108 @@
  */
 
 /**
- * SECTION:clutter-timeline
- * @short_description: A class for time-based events
- * @see_also: #ClutterAnimation, #ClutterAnimator, #ClutterState
+ * ClutterTimeline:
+ * 
+ * A class for time-based events
  *
  * #ClutterTimeline is a base class for managing time-based event that cause
  * Clutter to redraw a stage, such as animations.
  *
  * Each #ClutterTimeline instance has a duration: once a timeline has been
- * started, using clutter_timeline_start(), it will emit a signal that can
+ * started, using [method@Timeline.start], it will emit a signal that can
  * be used to update the state of the actors.
  *
  * It is important to note that #ClutterTimeline is not a generic API for
- * calling closures after an interval; each Timeline is tied into the master
+ * calling closures after an interval; each Timeline is tied into a frame
  * clock used to drive the frame cycle. If you need to schedule a closure
- * after an interval, see clutter_threads_add_timeout() instead.
+ * after an interval, see [func@threads_add_timeout] instead.
  *
- * Users of #ClutterTimeline should connect to the #ClutterTimeline::new-frame
+ * Users of #ClutterTimeline should connect to the [signal@Timeline::new-frame]
  * signal, which is emitted each time a timeline is advanced during the maste
- * clock iteration. The #ClutterTimeline::new-frame signal provides the time
+ * clock iteration. The [signal@Timeline::new-frame] signal provides the time
  * elapsed since the beginning of the timeline, in milliseconds. A normalized
- * progress value can be obtained by calling clutter_timeline_get_progress().
- * By using clutter_timeline_get_delta() it is possible to obtain the wallclock
- * time elapsed since the last emission of the #ClutterTimeline::new-frame
+ * progress value can be obtained by calling [method@Timeline.get_progress].
+ * By using [method@Timeline.get_delta] it is possible to obtain the wallclock
+ * time elapsed since the last emission of the [signal@Timeline::new-frame]
  * signal.
  *
- * Initial state can be set up by using the #ClutterTimeline::started signal,
- * while final state can be set up by using the #ClutterTimeline::stopped
+ * Initial state can be set up by using the [signal@Timeline::started] signal,
+ * while final state can be set up by using the [signal@Timeline::stopped]
  * signal. The #ClutterTimeline guarantees the emission of at least a single
- * #ClutterTimeline::new-frame signal, as well as the emission of the
- * #ClutterTimeline::completed signal every time the #ClutterTimeline reaches
- * its #ClutterTimeline:duration.
+ * [signal@Timeline::new-frame] signal, as well as the emission of the
+ * [signal@Timeline::completed] signal every time the #ClutterTimeline reaches
+ * its [property@Timeline:duration].
  *
  * It is possible to connect to specific points in the timeline progress by
- * adding markers using clutter_timeline_add_marker_at_time() and connecting
- * to the #ClutterTimeline::marker-reached signal.
+ * adding markers using [method@Timeline.add_marker_at_time] and connecting
+ * to the [signal@Timeline::marker-reached] signal.
  *
  * Timelines can be made to loop once they reach the end of their duration, by
  * using clutter_timeline_set_repeat_count(); a looping timeline will still
- * emit the #ClutterTimeline::completed signal once it reaches the end of its
+ * emit the [signal@Timeline::completed] signal once it reaches the end of its
  * duration at each repeat. If you want to be notified of the end of the last
- * repeat, use the #ClutterTimeline::stopped signal.
+ * repeat, use the [signal@Timeline::stopped] signal.
  *
- * Timelines have a #ClutterTimeline:direction: the default direction is
+ * Timelines have a [property@Timeline:direction]: the default direction is
  * %CLUTTER_TIMELINE_FORWARD, and goes from 0 to the duration; it is possible
  * to change the direction to %CLUTTER_TIMELINE_BACKWARD, and have the timeline
  * go from the duration to 0. The direction can be automatically reversed
- * when reaching completion by using the #ClutterTimeline:auto-reverse property.
+ * when reaching completion by using the [property@Timeline:auto-reverse] property.
  *
  * Timelines are used in the Clutter animation framework by classes like
- * #ClutterAnimation, #ClutterAnimator, and #ClutterState.
+ * [class@Transition].
  *
  * ## Defining Timelines in ClutterScript
  *
- * A #ClutterTimeline can be described in #ClutterScript like any
+ * A #ClutterTimeline can be described in [class@Script] like any
  * other object. Additionally, it is possible to define markers directly
  * inside the JSON definition by using the `markers` JSON object member,
  * such as:
  *
- * |[
-{
-  "type" : "ClutterTimeline",
-  "duration" : 1000,
-  "markers" : [
-    { "name" : "quarter", "time" : 250 },
-    { "name" : "half-time", "time" : 500 },
-    { "name" : "three-quarters", "time" : 750 }
-  ]
-}
- * ]|
+ * ```json
+ * {
+ *   "type" : "ClutterTimeline",
+ *   "duration" : 1000,
+ *   "markers" : [
+ *     { "name" : "quarter", "time" : 250 },
+ *     { "name" : "half-time", "time" : 500 },
+ *     { "name" : "three-quarters", "time" : 750 }
+ *   ]
+ * }
+ * ```
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
-#include "clutter-timeline.h"
+#include "clutter/clutter-timeline.h"
+#include "clutter/deprecated/clutter-timeline.h"
 
-#include "clutter-debug.h"
-#include "clutter-easing.h"
-#include "clutter-enum-types.h"
-#include "clutter-main.h"
-#include "clutter-marshal.h"
-#include "clutter-master-clock.h"
-#include "clutter-private.h"
-#include "clutter-scriptable.h"
-
-#include "deprecated/clutter-timeline.h"
+#include "clutter/clutter-actor-private.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-easing.h"
+#include "clutter/clutter-enum-types.h"
+#include "clutter/clutter-frame-clock.h"
+#include "clutter/clutter-main.h"
+#include "clutter/clutter-marshal.h"
+#include "clutter/clutter-mutter.h"
+#include "clutter/clutter-private.h"
+#include "clutter/clutter-scriptable.h"
+#include "clutter/clutter-timeline-private.h"
 
 struct _ClutterTimelinePrivate
 {
   ClutterTimelineDirection direction;
+
+  ClutterFrameClock *custom_frame_clock;
+  ClutterFrameClock *frame_clock;
+  ClutterActor *frame_clock_actor;
+  gulong frame_clock_actor_stage_views_handler_id;
+
+  ClutterActor *actor;
+  gulong actor_destroy_handler_id;
+  gulong actor_stage_views_handler_id;
+  gulong stage_stage_views_handler_id;
+  ClutterActor *stage;
 
   guint delay_id;
 
@@ -147,13 +158,13 @@ struct _ClutterTimelinePrivate
   ClutterStepMode step_mode;
 
   /* cubic-bezier() parameters */
-  ClutterPoint cb_1;
-  ClutterPoint cb_2;
+  graphene_point_t cb_1;
+  graphene_point_t cb_2;
 
   guint is_playing         : 1;
 
   /* If we've just started playing and haven't yet gotten
-   * a tick from the master clock
+   * a tick from the frame clock
    */
   guint waiting_first_tick : 1;
   guint auto_reverse       : 1;
@@ -175,13 +186,14 @@ enum
 {
   PROP_0,
 
-  PROP_LOOP,
+  PROP_ACTOR,
   PROP_DELAY,
   PROP_DURATION,
   PROP_DIRECTION,
   PROP_AUTO_REVERSE,
   PROP_REPEAT_COUNT,
   PROP_PROGRESS_MODE,
+  PROP_FRAME_CLOCK,
 
   PROP_LAST
 };
@@ -202,6 +214,8 @@ enum
 
 static guint timeline_signals[LAST_SIGNAL] = { 0, };
 
+static void update_frame_clock (ClutterTimeline *timeline);
+
 static void clutter_scriptable_iface_init (ClutterScriptableIface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (ClutterTimeline, clutter_timeline, G_TYPE_OBJECT,
@@ -213,7 +227,7 @@ static TimelineMarker *
 timeline_marker_new_time (const gchar *name,
                           guint        msecs)
 {
-  TimelineMarker *marker = g_slice_new (TimelineMarker);
+  TimelineMarker *marker = g_new0 (TimelineMarker, 1);
 
   marker->name = g_strdup (name);
   marker->quark = g_quark_from_string (marker->name);
@@ -227,7 +241,7 @@ static TimelineMarker *
 timeline_marker_new_progress (const gchar *name,
                               gdouble      progress)
 {
-  TimelineMarker *marker = g_slice_new (TimelineMarker);
+  TimelineMarker *marker = g_new0 (TimelineMarker, 1);
 
   marker->name = g_strdup (name);
   marker->quark = g_quark_from_string (marker->name);
@@ -245,7 +259,7 @@ timeline_marker_free (gpointer data)
       TimelineMarker *marker = data;
 
       g_free (marker->name);
-      g_slice_free (TimelineMarker, marker);
+      g_free (marker);
     }
 }
 
@@ -293,21 +307,195 @@ clutter_timeline_add_marker_internal (ClutterTimeline *timeline,
   g_hash_table_insert (priv->markers_by_name, marker->name, marker);
 }
 
-static inline void
-clutter_timeline_set_loop_internal (ClutterTimeline *timeline,
-                                    gboolean         loop)
+static void
+on_actor_destroyed (ClutterActor    *actor,
+                    ClutterTimeline *timeline)
 {
-  gint old_repeat_count;
+  ClutterTimelinePrivate *priv = timeline->priv;
 
-  old_repeat_count = timeline->priv->repeat_count;
+  g_clear_signal_handler (&priv->stage_stage_views_handler_id, priv->stage);
+  priv->actor = NULL;
+}
 
-  if (loop)
-    clutter_timeline_set_repeat_count (timeline, -1);
-  else
-    clutter_timeline_set_repeat_count (timeline, 0);
+/**
+ * clutter_timeline_get_actor:
+ * @timeline: a #ClutterTimeline
+ *
+ * Get the actor the timeline is associated with.
+ *
+ * Returns: (transfer none): the associated #ClutterActor
+ */
+ClutterActor *
+clutter_timeline_get_actor (ClutterTimeline *timeline)
+{
+  ClutterTimelinePrivate *priv = timeline->priv;
 
-  if (old_repeat_count != timeline->priv->repeat_count)
-    g_object_notify_by_pspec (G_OBJECT (timeline), obj_props[PROP_LOOP]);
+  return priv->actor;
+}
+
+static void
+maybe_add_timeline (ClutterTimeline *timeline)
+{
+  ClutterTimelinePrivate *priv = timeline->priv;
+
+  if (!priv->frame_clock)
+    return;
+
+  clutter_frame_clock_add_timeline (priv->frame_clock, timeline);
+}
+
+static void
+maybe_remove_timeline (ClutterTimeline *timeline)
+{
+  ClutterTimelinePrivate *priv = timeline->priv;
+
+  if (!priv->frame_clock)
+    return;
+
+  clutter_frame_clock_remove_timeline (priv->frame_clock, timeline);
+}
+
+static void
+set_frame_clock_internal (ClutterTimeline   *timeline,
+                          ClutterFrameClock *frame_clock)
+{
+  ClutterTimelinePrivate *priv = timeline->priv;
+
+  if (priv->frame_clock == frame_clock)
+    return;
+
+  if (priv->frame_clock && priv->is_playing)
+    maybe_remove_timeline (timeline);
+
+  g_set_object (&priv->frame_clock, frame_clock);
+
+  g_object_notify_by_pspec (G_OBJECT (timeline),
+                            obj_props[PROP_FRAME_CLOCK]);
+
+  if (priv->is_playing)
+    maybe_add_timeline (timeline);
+}
+
+static void
+on_stage_stage_views_changed (ClutterActor    *stage,
+                              ClutterTimeline *timeline)
+{
+  ClutterTimelinePrivate *priv = timeline->priv;
+
+  g_clear_signal_handler (&priv->stage_stage_views_handler_id, priv->stage);
+  priv->stage = NULL;
+
+  update_frame_clock (timeline);
+}
+
+static void
+on_frame_clock_actor_stage_views_changed (ClutterActor    *frame_clock_actor,
+                                          ClutterTimeline *timeline)
+{
+  update_frame_clock (timeline);
+}
+
+static void
+update_frame_clock (ClutterTimeline *timeline)
+{
+  ClutterTimelinePrivate *priv = timeline->priv;
+  ClutterFrameClock *frame_clock = NULL;
+  ClutterActor *stage;
+  ClutterActor *frame_clock_actor;
+
+  if (!priv->actor)
+    goto out;
+
+  if (priv->frame_clock_actor)
+    {
+      g_clear_signal_handler (&priv->frame_clock_actor_stage_views_handler_id,
+                              priv->frame_clock_actor);
+      g_clear_weak_pointer (&priv->frame_clock_actor);
+    }
+
+  frame_clock = clutter_actor_pick_frame_clock (priv->actor, &frame_clock_actor);
+  if (frame_clock)
+    {
+      g_set_weak_pointer (&priv->frame_clock_actor, frame_clock_actor);
+      priv->frame_clock_actor_stage_views_handler_id =
+        g_signal_connect (frame_clock_actor, "stage-views-changed",
+                          G_CALLBACK (on_frame_clock_actor_stage_views_changed),
+                          timeline);
+
+      g_clear_signal_handler (&priv->stage_stage_views_handler_id, priv->stage);
+      goto out;
+    }
+
+  stage = clutter_actor_get_stage (priv->actor);
+  if (!stage)
+    {
+      if (priv->is_playing)
+        g_warning ("Timelines with detached actors are not supported. "
+                   "%s in animation of duration %ums but not on stage.",
+                   _clutter_actor_get_debug_name (priv->actor),
+                   priv->duration);
+      goto out;
+    }
+
+  if (priv->stage_stage_views_handler_id > 0)
+    goto out;
+
+  priv->stage_stage_views_handler_id =
+    g_signal_connect (stage, "stage-views-changed",
+                      G_CALLBACK (on_stage_stage_views_changed),
+                      timeline);
+  priv->stage = stage;
+
+out:
+  set_frame_clock_internal (timeline, frame_clock);
+}
+
+static void
+on_actor_stage_views_changed (ClutterActor    *actor,
+                              ClutterTimeline *timeline)
+{
+  update_frame_clock (timeline);
+}
+
+/**
+ * clutter_timeline_set_actor:
+ * @timeline: a #ClutterTimeline
+ * @actor: (nullable): a #ClutterActor
+ *
+ * Set the actor the timeline is associated with.
+ */
+void
+clutter_timeline_set_actor (ClutterTimeline *timeline,
+                            ClutterActor    *actor)
+{
+  ClutterTimelinePrivate *priv = timeline->priv;
+
+  g_return_if_fail (!actor || (actor && !priv->custom_frame_clock));
+
+  if (priv->actor)
+    {
+      g_clear_signal_handler (&priv->actor_destroy_handler_id, priv->actor);
+      g_clear_signal_handler (&priv->actor_stage_views_handler_id, priv->actor);
+      g_clear_signal_handler (&priv->stage_stage_views_handler_id, priv->stage);
+      priv->stage = NULL;
+      priv->actor = NULL;
+    }
+
+  priv->actor = actor;
+
+  if (priv->actor)
+    {
+      priv->actor_destroy_handler_id =
+        g_signal_connect (priv->actor, "destroy",
+                          G_CALLBACK (on_actor_destroyed),
+                          timeline);
+      priv->actor_stage_views_handler_id =
+        g_signal_connect (priv->actor, "stage-views-changed",
+                          G_CALLBACK (on_actor_stage_views_changed),
+                          timeline);
+    }
+
+  update_frame_clock (timeline);
 }
 
 /* Scriptable */
@@ -426,6 +614,11 @@ clutter_timeline_set_custom_property (ClutterScriptable *scriptable,
     g_object_set_property (G_OBJECT (scriptable), name, value);
 }
 
+void
+clutter_timeline_cancel_delay (ClutterTimeline *timeline)
+{
+  g_clear_handle_id (&timeline->priv->delay_id, g_source_remove);
+}
 
 static void
 clutter_scriptable_iface_init (ClutterScriptableIface *iface)
@@ -446,8 +639,8 @@ clutter_timeline_set_property (GObject      *object,
 
   switch (prop_id)
     {
-    case PROP_LOOP:
-      clutter_timeline_set_loop_internal (timeline, g_value_get_boolean (value));
+    case PROP_ACTOR:
+      clutter_timeline_set_actor (timeline, g_value_get_object (value));
       break;
 
     case PROP_DELAY:
@@ -474,6 +667,10 @@ clutter_timeline_set_property (GObject      *object,
       clutter_timeline_set_progress_mode (timeline, g_value_get_enum (value));
       break;
 
+    case PROP_FRAME_CLOCK:
+      clutter_timeline_set_frame_clock (timeline, g_value_get_object (value));
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -491,8 +688,8 @@ clutter_timeline_get_property (GObject    *object,
 
   switch (prop_id)
     {
-    case PROP_LOOP:
-      g_value_set_boolean (value, priv->repeat_count != 0);
+    case PROP_ACTOR:
+      g_value_set_object (value, priv->actor);
       break;
 
     case PROP_DELAY:
@@ -519,6 +716,10 @@ clutter_timeline_get_property (GObject    *object,
       g_value_set_enum (value, priv->progress_mode);
       break;
 
+    case PROP_FRAME_CLOCK:
+      g_value_set_object (value, priv->frame_clock);
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -530,16 +731,14 @@ clutter_timeline_finalize (GObject *object)
 {
   ClutterTimeline *self = CLUTTER_TIMELINE (object);
   ClutterTimelinePrivate *priv = self->priv;
-  ClutterMasterClock *master_clock;
 
   if (priv->markers_by_name)
     g_hash_table_destroy (priv->markers_by_name);
 
   if (priv->is_playing)
-    {
-      master_clock = _clutter_master_clock_get_default ();
-      _clutter_master_clock_remove_timeline (master_clock, self);
-    }
+    maybe_remove_timeline (self);
+
+  g_clear_object (&priv->frame_clock);
 
   G_OBJECT_CLASS (clutter_timeline_parent_class)->finalize (object);
 }
@@ -552,10 +751,21 @@ clutter_timeline_dispose (GObject *object)
 
   priv = self->priv;
 
-  if (priv->delay_id)
+  clutter_timeline_cancel_delay (self);
+
+  if (priv->actor)
     {
-      g_source_remove (priv->delay_id);
-      priv->delay_id = 0;
+      g_clear_signal_handler (&priv->actor_destroy_handler_id, priv->actor);
+      g_clear_signal_handler (&priv->actor_stage_views_handler_id, priv->actor);
+      g_clear_signal_handler (&priv->stage_stage_views_handler_id, priv->stage);
+      priv->actor = NULL;
+    }
+
+  if (priv->frame_clock_actor)
+    {
+      g_clear_signal_handler (&priv->frame_clock_actor_stage_views_handler_id,
+                              priv->frame_clock_actor);
+      g_clear_weak_pointer (&priv->frame_clock_actor);
     }
 
   if (priv->progress_notify != NULL)
@@ -575,36 +785,23 @@ clutter_timeline_class_init (ClutterTimelineClass *klass)
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
   /**
-   * ClutterTimeline:loop:
+   * ClutterTimeline::actor:
    *
-   * Whether the timeline should automatically rewind and restart.
-   *
-   * As a side effect, setting this property to %TRUE will set the
-   * #ClutterTimeline:repeat-count property to -1, while setting this
-   * property to %FALSE will set the #ClutterTimeline:repeat-count
-   * property to 0.
-   *
-   * Deprecated: 1.10: Use the #ClutterTimeline:repeat-count property instead.
+   * The actor the timeline is associated with. This will determine what frame
+   * clock will drive it.
    */
-  obj_props[PROP_LOOP] =
-    g_param_spec_boolean ("loop",
-                          P_("Loop"),
-                          P_("Should the timeline automatically restart"),
-                          FALSE,
-                          CLUTTER_PARAM_READWRITE | G_PARAM_DEPRECATED);
-
+  obj_props[PROP_ACTOR] =
+    g_param_spec_object ("actor", NULL, NULL,
+                         CLUTTER_TYPE_ACTOR,
+                         G_PARAM_CONSTRUCT | CLUTTER_PARAM_READWRITE);
   /**
    * ClutterTimeline:delay:
    *
    * A delay, in milliseconds, that should be observed by the
    * timeline before actually starting.
-   *
-   * Since: 0.4
    */
   obj_props[PROP_DELAY] =
-    g_param_spec_uint ("delay",
-                       P_("Delay"),
-                       P_("Delay before start"),
+    g_param_spec_uint ("delay", NULL, NULL,
                        0, G_MAXUINT,
                        0,
                        CLUTTER_PARAM_READWRITE);
@@ -613,14 +810,10 @@ clutter_timeline_class_init (ClutterTimelineClass *klass)
    * ClutterTimeline:duration:
    *
    * Duration of the timeline in milliseconds, depending on the
-   * ClutterTimeline:fps value.
-   *
-   * Since: 0.6
+   * [property@Timeline:frame-clock] value.
    */
   obj_props[PROP_DURATION] =
-    g_param_spec_uint ("duration",
-                       P_("Duration"),
-                       P_("Duration of the timeline in milliseconds"),
+    g_param_spec_uint ("duration", NULL, NULL,
                        0, G_MAXUINT,
                        1000,
                        CLUTTER_PARAM_READWRITE);
@@ -630,13 +823,9 @@ clutter_timeline_class_init (ClutterTimelineClass *klass)
    *
    * The direction of the timeline, either %CLUTTER_TIMELINE_FORWARD or
    * %CLUTTER_TIMELINE_BACKWARD.
-   *
-   * Since: 0.6
    */
   obj_props[PROP_DIRECTION] =
-    g_param_spec_enum ("direction",
-                       P_("Direction"),
-                       P_("Direction of the timeline"),
+    g_param_spec_enum ("direction", NULL, NULL,
                        CLUTTER_TYPE_TIMELINE_DIRECTION,
                        CLUTTER_TIMELINE_FORWARD,
                        CLUTTER_PARAM_READWRITE);
@@ -646,13 +835,9 @@ clutter_timeline_class_init (ClutterTimelineClass *klass)
    *
    * If the direction of the timeline should be automatically reversed
    * when reaching the end.
-   *
-   * Since: 1.6
    */
   obj_props[PROP_AUTO_REVERSE] =
-    g_param_spec_boolean ("auto-reverse",
-                          P_("Auto Reverse"),
-                          P_("Whether the direction should be reversed when reaching the end"),
+    g_param_spec_boolean ("auto-reverse", NULL, NULL,
                           FALSE,
                           CLUTTER_PARAM_READWRITE);
 
@@ -665,13 +850,9 @@ clutter_timeline_class_init (ClutterTimelineClass *klass)
    *
    * If the repeat count is set to -1, the timeline will repeat until it is
    * stopped.
-   *
-   * Since: 1.10
    */
   obj_props[PROP_REPEAT_COUNT] =
-    g_param_spec_int ("repeat-count",
-                      P_("Repeat Count"),
-                      P_("How many times the timeline should repeat"),
+    g_param_spec_int ("repeat-count", NULL, NULL,
                       -1, G_MAXINT,
                       0,
                       CLUTTER_PARAM_READWRITE);
@@ -680,16 +861,22 @@ clutter_timeline_class_init (ClutterTimelineClass *klass)
    * ClutterTimeline:progress-mode:
    *
    * Controls the way a #ClutterTimeline computes the normalized progress.
-   *
-   * Since: 1.10
    */
   obj_props[PROP_PROGRESS_MODE] =
-    g_param_spec_enum ("progress-mode",
-                       P_("Progress Mode"),
-                       P_("How the timeline should compute the progress"),
+    g_param_spec_enum ("progress-mode", NULL, NULL,
                        CLUTTER_TYPE_ANIMATION_MODE,
                        CLUTTER_LINEAR,
                        CLUTTER_PARAM_READWRITE);
+
+  /**
+   * ClutterTimeline:frame-clock:
+   *
+   * The frame clock driving the timeline.
+   */
+  obj_props[PROP_FRAME_CLOCK] =
+    g_param_spec_object ("frame-clock", NULL, NULL,
+                         CLUTTER_TYPE_FRAME_CLOCK,
+                         G_PARAM_CONSTRUCT | CLUTTER_PARAM_READWRITE);
 
   object_class->dispose = clutter_timeline_dispose;
   object_class->finalize = clutter_timeline_finalize;
@@ -702,7 +889,7 @@ clutter_timeline_class_init (ClutterTimelineClass *klass)
    * @timeline: the timeline which received the signal
    * @msecs: the elapsed time between 0 and duration
    *
-   * The ::new-frame signal is emitted for each timeline running
+   * The signal is emitted for each timeline running
    * timeline before a new frame is drawn to give animations a chance
    * to update the scene.
    */
@@ -711,16 +898,15 @@ clutter_timeline_class_init (ClutterTimelineClass *klass)
 		  G_TYPE_FROM_CLASS (object_class),
 		  G_SIGNAL_RUN_LAST,
 		  G_STRUCT_OFFSET (ClutterTimelineClass, new_frame),
-		  NULL, NULL,
-		  _clutter_marshal_VOID__INT,
+		  NULL, NULL, NULL,
 		  G_TYPE_NONE,
 		  1, G_TYPE_INT);
   /**
    * ClutterTimeline::completed:
    * @timeline: the #ClutterTimeline which received the signal
    *
-   * The #ClutterTimeline::completed signal is emitted when the timeline's
-   * elapsed time reaches the value of the #ClutterTimeline:duration
+   * The signal is emitted when the timeline's
+   * elapsed time reaches the value of the [property@Timeline:duration]
    * property.
    *
    * This signal will be emitted even if the #ClutterTimeline is set to be
@@ -728,23 +914,22 @@ clutter_timeline_class_init (ClutterTimelineClass *klass)
    *
    * If you want to get notification on whether the #ClutterTimeline has
    * been stopped or has finished its run, including its eventual repeats,
-   * you should use the #ClutterTimeline::stopped signal instead.
+   * you should use the [signal@Timeline::stopped] signal instead.
    */
   timeline_signals[COMPLETED] =
     g_signal_new (I_("completed"),
 		  G_TYPE_FROM_CLASS (object_class),
 		  G_SIGNAL_RUN_LAST,
 		  G_STRUCT_OFFSET (ClutterTimelineClass, completed),
-		  NULL, NULL,
-		  _clutter_marshal_VOID__VOID,
+		  NULL, NULL, NULL,
 		  G_TYPE_NONE, 0);
   /**
    * ClutterTimeline::started:
    * @timeline: the #ClutterTimeline which received the signal
    *
-   * The ::started signal is emitted when the timeline starts its run.
-   * This might be as soon as clutter_timeline_start() is invoked or
-   * after the delay set in the ClutterTimeline:delay property has
+   * The signal is emitted when the timeline starts its run.
+   * This might be as soon as [method@Timeline.start] is invoked or
+   * after the delay set in the [property@Timeline:delay] property has
    * expired.
    */
   timeline_signals[STARTED] =
@@ -752,22 +937,20 @@ clutter_timeline_class_init (ClutterTimelineClass *klass)
 		  G_TYPE_FROM_CLASS (object_class),
 		  G_SIGNAL_RUN_LAST,
 		  G_STRUCT_OFFSET (ClutterTimelineClass, started),
-		  NULL, NULL,
-		  _clutter_marshal_VOID__VOID,
+		  NULL, NULL, NULL,
 		  G_TYPE_NONE, 0);
   /**
    * ClutterTimeline::paused:
    * @timeline: the #ClutterTimeline which received the signal
    *
-   * The ::paused signal is emitted when clutter_timeline_pause() is invoked.
+   * The signal is emitted when [method@Timeline.pause] is invoked.
    */
   timeline_signals[PAUSED] =
     g_signal_new (I_("paused"),
 		  G_TYPE_FROM_CLASS (object_class),
 		  G_SIGNAL_RUN_LAST,
 		  G_STRUCT_OFFSET (ClutterTimelineClass, paused),
-		  NULL, NULL,
-		  _clutter_marshal_VOID__VOID,
+		  NULL, NULL, NULL,
 		  G_TYPE_NONE, 0);
   /**
    * ClutterTimeline::marker-reached:
@@ -775,14 +958,14 @@ clutter_timeline_class_init (ClutterTimelineClass *klass)
    * @marker_name: the name of the marker reached
    * @msecs: the elapsed time
    *
-   * The ::marker-reached signal is emitted each time a timeline
-   * reaches a marker set with
-   * clutter_timeline_add_marker_at_time(). This signal is detailed
-   * with the name of the marker as well, so it is possible to connect
-   * a callback to the ::marker-reached signal for a specific marker
-   * with:
+   * The signal is emitted each time a timeline
+   * reaches a marker set with [method@Timeline.add_marker_at_time].
+   * 
+   * This signal is detailed with the name of the marker as well,
+   * so it is possible to connect a callback to the [signal@Timeline::marker-reached] 
+   * signal for a specific marker with:
    *
-   * <informalexample><programlisting>
+   * ```c
    *   clutter_timeline_add_marker_at_time (timeline, "foo", 500);
    *   clutter_timeline_add_marker_at_time (timeline, "bar", 750);
    *
@@ -792,13 +975,11 @@ clutter_timeline_class_init (ClutterTimelineClass *klass)
    *                     G_CALLBACK (foo_marker_reached), NULL);
    *   g_signal_connect (timeline, "marker-reached::bar",
    *                     G_CALLBACK (bar_marker_reached), NULL);
-   * </programlisting></informalexample>
+   * ```
    *
    * In the example, the first callback will be invoked for both
    * the "foo" and "bar" marker, while the second and third callbacks
    * will be invoked for the "foo" or "bar" markers, respectively.
-   *
-   * Since: 0.8
    */
   timeline_signals[MARKER_REACHED] =
     g_signal_new (I_("marker-reached"),
@@ -817,25 +998,22 @@ clutter_timeline_class_init (ClutterTimelineClass *klass)
    * @is_finished: %TRUE if the signal was emitted at the end of the
    *   timeline.
    *
-   * The #ClutterTimeline::stopped signal is emitted when the timeline
-   * has been stopped, either because clutter_timeline_stop() has been
+   * The signal is emitted when the timeline
+   * has been stopped, either because [method@Timeline.stop] has been
    * called, or because it has been exhausted.
    *
-   * This is different from the #ClutterTimeline::completed signal,
+   * This is different from the [signal@Timeline::completed] signal,
    * which gets emitted after every repeat finishes.
    *
    * If the #ClutterTimeline has is marked as infinitely repeating,
    * this signal will never be emitted.
-   *
-   * Since: 1.12
    */
   timeline_signals[STOPPED] =
     g_signal_new (I_("stopped"),
 		  G_TYPE_FROM_CLASS (object_class),
 		  G_SIGNAL_RUN_LAST,
 		  G_STRUCT_OFFSET (ClutterTimelineClass, stopped),
-		  NULL, NULL,
-		  _clutter_marshal_VOID__BOOLEAN,
+		  NULL, NULL, NULL,
 		  G_TYPE_NONE, 1,
                   G_TYPE_BOOLEAN);
 }
@@ -852,8 +1030,8 @@ clutter_timeline_init (ClutterTimeline *self)
   self->priv->step_mode = CLUTTER_STEP_MODE_END;
 
   /* default cubic-bezier() paramereters are (0, 0, 1, 1) */
-  clutter_point_init (&self->priv->cb_1, 0, 0);
-  clutter_point_init (&self->priv->cb_2, 1, 1);
+  graphene_point_init (&self->priv->cb_1, 0, 0);
+  graphene_point_init (&self->priv->cb_2, 1, 1);
 }
 
 struct CheckIfMarkerHitClosure
@@ -978,7 +1156,6 @@ set_is_playing (ClutterTimeline *timeline,
                 gboolean         is_playing)
 {
   ClutterTimelinePrivate *priv = timeline->priv;
-  ClutterMasterClock *master_clock;
 
   is_playing = !!is_playing;
 
@@ -987,15 +1164,17 @@ set_is_playing (ClutterTimeline *timeline,
 
   priv->is_playing = is_playing;
 
-  master_clock = _clutter_master_clock_get_default ();
   if (priv->is_playing)
     {
       priv->waiting_first_tick = TRUE;
       priv->current_repeat = 0;
-      _clutter_master_clock_add_timeline (master_clock, timeline);
+
+      maybe_add_timeline (timeline);
     }
   else
-    _clutter_master_clock_remove_timeline (master_clock, timeline);
+    {
+      maybe_remove_timeline (timeline);
+    }
 }
 
 static gboolean
@@ -1044,15 +1223,15 @@ clutter_timeline_do_frame (ClutterTimeline *timeline)
        * to correpondingly reduce elapsed_time_delta to reflect the correct
        * range of times */
       if (priv->direction == CLUTTER_TIMELINE_FORWARD)
-	{
-	  elapsed_time_delta -= (priv->elapsed_time - priv->duration);
-	  priv->elapsed_time = priv->duration;
-	}
+        {
+          elapsed_time_delta -= (priv->elapsed_time - priv->duration);
+          priv->elapsed_time = priv->duration;
+        }
       else if (priv->direction == CLUTTER_TIMELINE_BACKWARD)
-	{
-	  elapsed_time_delta -= - priv->elapsed_time;
-	  priv->elapsed_time = 0;
-	}
+        {
+          elapsed_time_delta -= - priv->elapsed_time;
+          priv->elapsed_time = 0;
+        }
 
       end_msecs = priv->elapsed_time;
 
@@ -1192,6 +1371,9 @@ clutter_timeline_start (ClutterTimeline *timeline)
   if (priv->duration == 0)
     return;
 
+  g_warn_if_fail ((priv->actor && clutter_actor_get_stage (priv->actor)) ||
+                  priv->frame_clock);
+
   if (priv->delay)
     priv->delay_id = clutter_threads_add_timeout (priv->delay,
                                                   delay_timeout_func,
@@ -1220,14 +1402,10 @@ clutter_timeline_pause (ClutterTimeline *timeline)
 
   priv = timeline->priv;
 
-  if (priv->delay_id == 0 && !priv->is_playing)
-    return;
+  clutter_timeline_cancel_delay (timeline);
 
-  if (priv->delay_id)
-    {
-      g_source_remove (priv->delay_id);
-      priv->delay_id = 0;
-    }
+  if (!priv->is_playing)
+    return;
 
   priv->msecs_delta = 0;
   set_is_playing (timeline, FALSE);
@@ -1260,45 +1438,6 @@ clutter_timeline_stop (ClutterTimeline *timeline)
 
   if (was_playing)
     g_signal_emit (timeline, timeline_signals[STOPPED], 0, FALSE);
-}
-
-/**
- * clutter_timeline_set_loop:
- * @timeline: a #ClutterTimeline
- * @loop: %TRUE for enable looping
- *
- * Sets whether @timeline should loop.
- *
- * This function is equivalent to calling clutter_timeline_set_repeat_count()
- * with -1 if @loop is %TRUE, and with 0 if @loop is %FALSE.
- *
- * Deprecated: 1.10: Use clutter_timeline_set_repeat_count() instead.
- */
-void
-clutter_timeline_set_loop (ClutterTimeline *timeline,
-			   gboolean         loop)
-{
-  g_return_if_fail (CLUTTER_IS_TIMELINE (timeline));
-
-  clutter_timeline_set_loop_internal (timeline, loop);
-}
-
-/**
- * clutter_timeline_get_loop:
- * @timeline: a #ClutterTimeline
- *
- * Gets whether @timeline is looping
- *
- * Return value: %TRUE if the timeline is looping
- *
- * Deprecated: 1.10: Use clutter_timeline_get_repeat_count() instead.
- */
-gboolean
-clutter_timeline_get_loop (ClutterTimeline *timeline)
-{
-  g_return_val_if_fail (CLUTTER_IS_TIMELINE (timeline), FALSE);
-
-  return timeline->priv->repeat_count != 0;
 }
 
 /**
@@ -1367,9 +1506,9 @@ clutter_timeline_skip (ClutterTimeline *timeline,
  * Advance timeline to the requested point. The point is given as a
  * time in milliseconds since the timeline started.
  *
- * The @timeline will not emit the #ClutterTimeline::new-frame
- * signal for the given time. The first ::new-frame signal after the call to
- * clutter_timeline_advance() will be emit the skipped markers.
+ * The @timeline will not emit the [signal@Timeline::new-frame]
+ * signal for the given time. The first [signal@Timeline::new-frame] signal
+ * after the call to [method@Timeline.advance] will be emit the skipped markers.
  */
 void
 clutter_timeline_advance (ClutterTimeline *timeline,
@@ -1417,59 +1556,59 @@ clutter_timeline_is_playing (ClutterTimeline *timeline)
 }
 
 /**
- * clutter_timeline_clone:
- * @timeline: #ClutterTimeline to duplicate.
+ * clutter_timeline_new:
+ * @duration_ms: Duration of the timeline in milliseconds
  *
- * Create a new #ClutterTimeline instance which has property values
- * matching that of supplied timeline. The cloned timeline will not
- * be started and will not be positioned to the current position of
- * the original @timeline: you will have to start it with
- * clutter_timeline_start().
+ * Creates a new #ClutterTimeline with a duration of @duration_ms milli seconds.
  *
- * The only cloned properties are:
- *
- *  - #ClutterTimeline:duration
- *  - #ClutterTimeline:loop
- *  - #ClutterTimeline:delay
- *  - #ClutterTimeline:direction
- *
- * Return value: (transfer full): a new #ClutterTimeline, cloned
- *   from @timeline
- *
- * Since: 0.4
- *
- * Deprecated: 1.10: Use clutter_timeline_new() or g_object_new()
- *   instead
+ * Return value: the newly created #ClutterTimeline instance. Use
+ *   [method@GObject.Object.unref] when done using it
  */
 ClutterTimeline *
-clutter_timeline_clone (ClutterTimeline *timeline)
+clutter_timeline_new (guint duration_ms)
 {
-  g_return_val_if_fail (CLUTTER_IS_TIMELINE (timeline), NULL);
-
   return g_object_new (CLUTTER_TYPE_TIMELINE,
-                       "duration", timeline->priv->duration,
-                       "loop", timeline->priv->repeat_count != 0,
-                       "delay", timeline->priv->delay,
-                       "direction", timeline->priv->direction,
+                       "duration", duration_ms,
                        NULL);
 }
 
 /**
- * clutter_timeline_new:
- * @msecs: Duration of the timeline in milliseconds
+ * clutter_timeline_new_for_actor:
+ * @actor: The #ClutterActor the timeline is associated with
+ * @duration_ms: Duration of the timeline in milliseconds
  *
- * Creates a new #ClutterTimeline with a duration of @msecs.
+ * Creates a new #ClutterTimeline with a duration of @duration milli seconds.
  *
  * Return value: the newly created #ClutterTimeline instance. Use
- *   g_object_unref() when done using it
- *
- * Since: 0.6
+ *   [method@GObject.Object.unref] when done using it
  */
 ClutterTimeline *
-clutter_timeline_new (guint msecs)
+clutter_timeline_new_for_actor (ClutterActor *actor,
+                                unsigned int  duration_ms)
 {
   return g_object_new (CLUTTER_TYPE_TIMELINE,
-                       "duration", msecs,
+                       "duration", duration_ms,
+                       "actor", actor,
+                       NULL);
+}
+
+/**
+ * clutter_timeline_new_for_frame_clock:
+ * @frame_clock: The #ClutterFrameClock the timeline is driven by
+ * @duration_ms: Duration of the timeline in milliseconds
+ *
+ * Creates a new #ClutterTimeline with a duration of @duration_ms milli seconds.
+ *
+ * Return value: the newly created #ClutterTimeline instance. Use
+ *   [method@GObject.Object.unref] when done using it
+ */
+ClutterTimeline *
+clutter_timeline_new_for_frame_clock (ClutterFrameClock *frame_clock,
+                                      unsigned int       duration_ms)
+{
+  return g_object_new (CLUTTER_TYPE_TIMELINE,
+                       "duration", duration_ms,
+                       "frame-clock", frame_clock,
                        NULL);
 }
 
@@ -1477,11 +1616,9 @@ clutter_timeline_new (guint msecs)
  * clutter_timeline_get_delay:
  * @timeline: a #ClutterTimeline
  *
- * Retrieves the delay set using clutter_timeline_set_delay().
+ * Retrieves the delay set using [method@Timeline.set_delay].
  *
  * Return value: the delay in milliseconds.
- *
- * Since: 0.4
  */
 guint
 clutter_timeline_get_delay (ClutterTimeline *timeline)
@@ -1497,8 +1634,6 @@ clutter_timeline_get_delay (ClutterTimeline *timeline)
  * @msecs: delay in milliseconds
  *
  * Sets the delay, in milliseconds, before @timeline should start.
- *
- * Since: 0.4
  */
 void
 clutter_timeline_set_delay (ClutterTimeline *timeline,
@@ -1522,11 +1657,9 @@ clutter_timeline_set_delay (ClutterTimeline *timeline,
  * @timeline: a #ClutterTimeline
  *
  * Retrieves the duration of a #ClutterTimeline in milliseconds.
- * See clutter_timeline_set_duration().
+ * See [method@Timeline.set_duration].
  *
  * Return value: the duration of the timeline, in milliseconds.
- *
- * Since: 0.6
  */
 guint
 clutter_timeline_get_duration (ClutterTimeline *timeline)
@@ -1546,9 +1679,7 @@ clutter_timeline_get_duration (ClutterTimeline *timeline)
  * @msecs: duration of the timeline in milliseconds
  *
  * Sets the duration of the timeline, in milliseconds. The speed
- * of the timeline depends on the ClutterTimeline:fps setting.
- *
- * Since: 0.6
+ * of the timeline depends on the [property@Timeline:frame-clock] setting.
  */
 void
 clutter_timeline_set_duration (ClutterTimeline *timeline,
@@ -1576,12 +1707,10 @@ clutter_timeline_set_duration (ClutterTimeline *timeline,
  * The position of the timeline in a normalized [-1, 2] interval.
  *
  * The return value of this function is determined by the progress
- * mode set using clutter_timeline_set_progress_mode(), or by the
- * progress function set using clutter_timeline_set_progress_func().
+ * mode set using [method@Timeline.set_progress_mode], or by the
+ * progress function set using [method@Timeline.set_progress_func].
  *
  * Return value: the normalized current position in the timeline.
- *
- * Since: 0.6
  */
 gdouble
 clutter_timeline_get_progress (ClutterTimeline *timeline)
@@ -1607,11 +1736,9 @@ clutter_timeline_get_progress (ClutterTimeline *timeline)
  * @timeline: a #ClutterTimeline
  *
  * Retrieves the direction of the timeline set with
- * clutter_timeline_set_direction().
+ * [method@Timeline.set_direction].
  *
  * Return value: the direction of the timeline
- *
- * Since: 0.6
  */
 ClutterTimelineDirection
 clutter_timeline_get_direction (ClutterTimeline *timeline)
@@ -1629,8 +1756,6 @@ clutter_timeline_get_direction (ClutterTimeline *timeline)
  *
  * Sets the direction of @timeline, either %CLUTTER_TIMELINE_FORWARD or
  * %CLUTTER_TIMELINE_BACKWARD.
- *
- * Since: 0.6
  */
 void
 clutter_timeline_set_direction (ClutterTimeline          *timeline,
@@ -1658,7 +1783,7 @@ clutter_timeline_set_direction (ClutterTimeline          *timeline,
  * @timeline: a #ClutterTimeline
  *
  * Retrieves the amount of time elapsed since the last
- * ClutterTimeline::new-frame signal.
+ * [signal@Timeline::new-frame] signal.
  *
  * This function is only useful inside handlers for the ::new-frame
  * signal, and its behaviour is undefined if the timeline is not
@@ -1666,8 +1791,6 @@ clutter_timeline_set_direction (ClutterTimeline          *timeline,
  *
  * Return value: the amount of time in milliseconds elapsed since the
  * last frame
- *
- * Since: 0.6
  */
 guint
 clutter_timeline_get_delta (ClutterTimeline *timeline)
@@ -1712,9 +1835,11 @@ _clutter_timeline_advance (ClutterTimeline *timeline,
  * @tick_time: time of advance
  *
  * Advances @timeline based on the time passed in @tick_time. This
- * function is called by the master clock. The @timeline will use this
- * interval to emit the #ClutterTimeline::new-frame signal and
- * eventually skip frames.
+ * function is called by the frame clock and ideally passes the next
+ * presentation time in which consequences of our timeline will be visible.
+ * Otherwise an estimate using the current monotonic time is also acceptable.
+ * The @timeline will use this interval to emit the #ClutterTimeline::new-frame
+ * signal and eventually skip frames.
  */
 void
 _clutter_timeline_do_tick (ClutterTimeline *timeline,
@@ -1735,7 +1860,7 @@ _clutter_timeline_do_tick (ClutterTimeline *timeline,
 
   /* Check the is_playing variable before performing the timeline tick.
    * This is necessary, as if a timeline is stopped in response to a
-   * master-clock generated signal of a different timeline, this code can
+   * frame clock generated signal of a different timeline, this code can
    * still be reached.
    */
   if (!priv->is_playing)
@@ -1766,12 +1891,12 @@ _clutter_timeline_do_tick (ClutterTimeline *timeline,
         }
 
       if (msecs != 0)
-	{
-	  /* Avoid accumulating error */
+        {
+          /* Avoid accumulating error */
           priv->last_frame_time += msecs;
-	  priv->msecs_delta = msecs;
-	  clutter_timeline_do_frame (timeline);
-	}
+          priv->msecs_delta = msecs;
+          clutter_timeline_do_frame (timeline);
+        }
     }
 }
 
@@ -1786,16 +1911,14 @@ _clutter_timeline_do_tick (ClutterTimeline *timeline,
  *
  * Markers are unique string identifiers for a given position on the
  * timeline. Once @timeline reaches the given @progress of its duration,
- * if will emit a ::marker-reached signal for each marker attached to
- * that particular point.
+ * if will emit a [signal@Timeline::marker-reached] signal for each marker
+ * attached to that particular point.
  *
- * A marker can be removed with clutter_timeline_remove_marker(). The
+ * A marker can be removed with [method@Timeline.remove_marker]. The
  * timeline can be advanced to a marker using
- * clutter_timeline_advance_to_marker().
+ * [method@Timeline.advance_to_marker].
  *
- * See also: clutter_timeline_add_marker_at_time()
- *
- * Since: 1.14
+ * See also: [method@Timeline.add_marker_at_time]
  */
 void
 clutter_timeline_add_marker (ClutterTimeline *timeline,
@@ -1822,15 +1945,13 @@ clutter_timeline_add_marker (ClutterTimeline *timeline,
  *
  * Markers are unique string identifiers for a given position on the
  * timeline. Once @timeline reaches the given @msecs, it will emit
- * a ::marker-reached signal for each marker attached to that position.
+ * a [signal@Timeline::marker-reached] signal for each marker attached to that position.
  *
- * A marker can be removed with clutter_timeline_remove_marker(). The
+ * A marker can be removed with [method@Timeline.remove_marker]. The
  * timeline can be advanced to a marker using
- * clutter_timeline_advance_to_marker().
+ * [method@Timeline.advance_to_marker].
  *
- * See also: clutter_timeline_add_marker()
- *
- * Since: 0.8
+ * See also: [method@Timeline.add_marker]
  */
 void
 clutter_timeline_add_marker_at_time (ClutterTimeline *timeline,
@@ -1885,9 +2006,7 @@ collect_markers (const gchar *key,
  *
  * Return value: (transfer full) (array zero-terminated=1 length=n_markers):
  *   a newly allocated, %NULL terminated string array containing the names
- *   of the markers. Use g_strfreev() when done.
- *
- * Since: 0.8
+ *   of the markers. Use [func@GLib.strfreev] when done.
  */
 gchar **
 clutter_timeline_list_markers (ClutterTimeline *timeline,
@@ -1951,12 +2070,10 @@ clutter_timeline_list_markers (ClutterTimeline *timeline,
  *
  * Advances @timeline to the time of the given @marker_name.
  *
- * Like clutter_timeline_advance(), this function will not
- * emit the #ClutterTimeline::new-frame for the time where @marker_name
- * is set, nor it will emit #ClutterTimeline::marker-reached for
+ * Like [method@Timeline.advance], this function will not
+ * emit the [signal@Timeline::new-frame] for the time where @marker_name
+ * is set, nor it will emit [signal@Timeline::marker-reached] for
  * @marker_name.
- *
- * Since: 0.8
  */
 void
 clutter_timeline_advance_to_marker (ClutterTimeline *timeline,
@@ -1998,8 +2115,6 @@ clutter_timeline_advance_to_marker (ClutterTimeline *timeline,
  * @marker_name: the name of the marker to remove
  *
  * Removes @marker_name, if found, from @timeline.
- *
- * Since: 0.8
  */
 void
 clutter_timeline_remove_marker (ClutterTimeline *timeline,
@@ -2038,8 +2153,6 @@ clutter_timeline_remove_marker (ClutterTimeline *timeline,
  * Checks whether @timeline has a marker set with the given name.
  *
  * Return value: %TRUE if the marker was found
- *
- * Since: 0.8
  */
 gboolean
 clutter_timeline_has_marker (ClutterTimeline *timeline,
@@ -2061,14 +2174,14 @@ clutter_timeline_has_marker (ClutterTimeline *timeline,
  * @reverse: %TRUE if the @timeline should reverse the direction
  *
  * Sets whether @timeline should reverse the direction after the
- * emission of the #ClutterTimeline::completed signal.
+ * emission of the [signal@Timeline::completed] signal.
  *
- * Setting the #ClutterTimeline:auto-reverse property to %TRUE is the
- * equivalent of connecting a callback to the #ClutterTimeline::completed
+ * Setting the [property@Timeline:auto-reverse] property to %TRUE is the
+ * equivalent of connecting a callback to the [signal@Timeline::completed]
  * signal and changing the direction of the timeline from that callback;
  * for instance, this code:
  *
- * |[
+ * ```c
  * static void
  * reverse_timeline (ClutterTimeline *timeline)
  * {
@@ -2087,17 +2200,15 @@ clutter_timeline_has_marker (ClutterTimeline *timeline,
  *   g_signal_connect (timeline, "completed",
  *                     G_CALLBACK (reverse_timeline),
  *                     NULL);
- * ]|
+ * ```
  *
  * can be effectively replaced by:
  *
- * |[
+ * ```c
  *   timeline = clutter_timeline_new (1000);
  *   clutter_timeline_set_repeat_count (timeline, -1);
  *   clutter_timeline_set_auto_reverse (timeline);
- * ]|
- *
- * Since: 1.6
+ * ```
  */
 void
 clutter_timeline_set_auto_reverse (ClutterTimeline *timeline,
@@ -2124,12 +2235,10 @@ clutter_timeline_set_auto_reverse (ClutterTimeline *timeline,
  * clutter_timeline_get_auto_reverse:
  * @timeline: a #ClutterTimeline
  *
- * Retrieves the value set by clutter_timeline_set_auto_reverse().
+ * Retrieves the value set by [method@Timeline.set_auto_reverse].
  *
  * Return value: %TRUE if the timeline should automatically reverse, and
  *   %FALSE otherwise
- *
- * Since: 1.6
  */
 gboolean
 clutter_timeline_get_auto_reverse (ClutterTimeline *timeline)
@@ -2150,8 +2259,6 @@ clutter_timeline_get_auto_reverse (ClutterTimeline *timeline)
  *
  * If @count is -1, the timeline will always repeat until
  * it's stopped.
- *
- * Since: 1.10
  */
 void
 clutter_timeline_set_repeat_count (ClutterTimeline *timeline,
@@ -2177,11 +2284,9 @@ clutter_timeline_set_repeat_count (ClutterTimeline *timeline,
  * clutter_timeline_get_repeat_count:
  * @timeline: a #ClutterTimeline
  *
- * Retrieves the number set using clutter_timeline_set_repeat_count().
+ * Retrieves the number set using [method@Timeline.set_repeat_count].
  *
  * Return value: the number of repeats
- *
- * Since: 1.10
  */
 gint
 clutter_timeline_get_repeat_count (ClutterTimeline *timeline)
@@ -2200,17 +2305,15 @@ clutter_timeline_get_repeat_count (ClutterTimeline *timeline)
  *    or the timeline is disposed
  *
  * Sets a custom progress function for @timeline. The progress function will
- * be called by clutter_timeline_get_progress() and will be used to compute
+ * be called by [method@Timeline.get_progress] and will be used to compute
  * the progress value based on the elapsed time and the total duration of the
  * timeline.
  *
- * If @func is not %NULL, the #ClutterTimeline:progress-mode property will
+ * If @func is not %NULL, the [property@Timeline:progress-mode] property will
  * be set to %CLUTTER_CUSTOM_MODE.
  *
  * If @func is %NULL, any previously set progress function will be unset, and
- * the #ClutterTimeline:progress-mode property will be set to %CLUTTER_LINEAR.
- *
- * Since: 1.10
+ * the [property@Timeline:progress-mode] property will be set to %CLUTTER_LINEAR.
  */
 void
 clutter_timeline_set_progress_func (ClutterTimeline             *timeline,
@@ -2298,11 +2401,9 @@ clutter_timeline_progress_func (ClutterTimeline *timeline,
  * @timeline: a #ClutterTimeline
  * @mode: the progress mode, as a #ClutterAnimationMode
  *
- * Sets the progress function using a value from the #ClutterAnimationMode
+ * Sets the progress function using a value from the [enum@AnimationMode]
  * enumeration. The @mode cannot be %CLUTTER_CUSTOM_MODE or bigger than
  * %CLUTTER_ANIMATION_LAST.
- *
- * Since: 1.10
  */
 void
 clutter_timeline_set_progress_mode (ClutterTimeline      *timeline,
@@ -2340,12 +2441,10 @@ clutter_timeline_set_progress_mode (ClutterTimeline      *timeline,
  * clutter_timeline_get_progress_mode:
  * @timeline: a #ClutterTimeline
  *
- * Retrieves the progress mode set using clutter_timeline_set_progress_mode()
- * or clutter_timeline_set_progress_func().
+ * Retrieves the progress mode set using [method@Timeline.set_progress_mode]
+ * or [method@Timeline.set_progress_func].
  *
  * Return value: a #ClutterAnimationMode
- *
- * Since: 1.10
  */
 ClutterAnimationMode
 clutter_timeline_get_progress_mode (ClutterTimeline *timeline)
@@ -2360,17 +2459,15 @@ clutter_timeline_get_progress_mode (ClutterTimeline *timeline)
  * @timeline: a #ClutterTimeline
  *
  * Retrieves the full duration of the @timeline, taking into account the
- * current value of the #ClutterTimeline:repeat-count property.
+ * current value of the [property@Timeline:repeat-count] property.
  *
- * If the #ClutterTimeline:repeat-count property is set to -1, this function
+ * If the [property@Timeline:repeat-count] property is set to -1, this function
  * will return %G_MAXINT64.
  *
  * The returned value is to be considered a hint, and it's only valid
  * as long as the @timeline hasn't been changed.
  *
  * Return value: the full duration of the #ClutterTimeline
- *
- * Since: 1.10
  */
 gint64
 clutter_timeline_get_duration_hint (ClutterTimeline *timeline)
@@ -2398,8 +2495,6 @@ clutter_timeline_get_duration_hint (ClutterTimeline *timeline)
  * Repeats start at 0.
  *
  * Return value: the current repeat
- *
- * Since: 1.10
  */
 gint
 clutter_timeline_get_current_repeat (ClutterTimeline *timeline)
@@ -2416,10 +2511,8 @@ clutter_timeline_get_current_repeat (ClutterTimeline *timeline)
  * @step_mode: whether the change should happen at the start
  *   or at the end of the step
  *
- * Sets the #ClutterTimeline:progress-mode of the @timeline to %CLUTTER_STEPS
+ * Sets the [property@Timeline:progress-mode] of the @timeline to %CLUTTER_STEPS
  * and provides the parameters of the step function.
- *
- * Since: 1.12
  */
 void
 clutter_timeline_set_step_progress (ClutterTimeline *timeline,
@@ -2454,8 +2547,6 @@ clutter_timeline_set_step_progress (ClutterTimeline *timeline,
  *
  * Return value: %TRUE if the @timeline is using a step progress
  *   mode, and %FALSE otherwise
- *
- * Since: 1.12
  */
 gboolean
 clutter_timeline_get_step_progress (ClutterTimeline *timeline,
@@ -2484,20 +2575,18 @@ clutter_timeline_get_step_progress (ClutterTimeline *timeline,
  * @c_1: the first control point for the cubic bezier
  * @c_2: the second control point for the cubic bezier
  *
- * Sets the #ClutterTimeline:progress-mode of @timeline
+ * Sets the [property@Timeline:progress-mode] of @timeline
  * to %CLUTTER_CUBIC_BEZIER, and sets the two control
  * points for the cubic bezier.
  *
  * The cubic bezier curve is between (0, 0) and (1, 1). The X coordinate
  * of the two control points must be in the [ 0, 1 ] range, while the
  * Y coordinate of the two control points can exceed this range.
- *
- * Since: 1.12
  */
 void
-clutter_timeline_set_cubic_bezier_progress (ClutterTimeline    *timeline,
-                                            const ClutterPoint *c_1,
-                                            const ClutterPoint *c_2)
+clutter_timeline_set_cubic_bezier_progress (ClutterTimeline        *timeline,
+                                            const graphene_point_t *c_1,
+                                            const graphene_point_t *c_2)
 {
   ClutterTimelinePrivate *priv;
 
@@ -2528,13 +2617,11 @@ clutter_timeline_set_cubic_bezier_progress (ClutterTimeline    *timeline,
  *
  * Return value: %TRUE if the @timeline is using a cubic bezier progress
  *   more, and %FALSE otherwise
- *
- * Since: 1.12
  */
 gboolean
-clutter_timeline_get_cubic_bezier_progress (ClutterTimeline *timeline,
-                                            ClutterPoint    *c_1,
-                                            ClutterPoint    *c_2)
+clutter_timeline_get_cubic_bezier_progress (ClutterTimeline  *timeline,
+                                            graphene_point_t *c_1,
+                                            graphene_point_t *c_2)
 {
   g_return_val_if_fail (CLUTTER_IS_TIMELINE (timeline), FALSE);
 
@@ -2552,4 +2639,33 @@ clutter_timeline_get_cubic_bezier_progress (ClutterTimeline *timeline,
     *c_2 = timeline->priv->cb_2;
 
   return TRUE;
+}
+
+/**
+ * clutter_timeline_get_frame_clock: (skip)
+ */
+ClutterFrameClock *
+clutter_timeline_get_frame_clock (ClutterTimeline *timeline)
+{
+  g_return_val_if_fail (CLUTTER_IS_TIMELINE (timeline), NULL);
+
+  return timeline->priv->frame_clock;
+}
+
+void
+clutter_timeline_set_frame_clock (ClutterTimeline   *timeline,
+                                  ClutterFrameClock *frame_clock)
+{
+  ClutterTimelinePrivate *priv;
+
+  g_return_if_fail (CLUTTER_IS_TIMELINE (timeline));
+
+  priv = timeline->priv;
+
+  g_assert (!frame_clock || (frame_clock && !priv->actor));
+  g_return_if_fail (!frame_clock || (frame_clock && !priv->actor));
+
+  priv->custom_frame_clock = frame_clock;
+  if (!priv->actor)
+    set_frame_clock_internal (timeline, frame_clock);
 }

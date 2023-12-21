@@ -17,19 +17,30 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_DND_PRIVATE__H
-#define META_DND_PRIVATE__H
+#pragma once
 
+#include <glib.h>
+
+#ifdef HAVE_X11
 #include <X11/Xlib.h>
+#include "compositor/meta-compositor-x11.h"
+#endif
 
-gboolean meta_dnd_handle_xdnd_event (MetaBackend    *backend,
-                                     MetaCompositor *compositor,
-                                     MetaDisplay    *display,
-                                     XEvent         *xev);
+#include "backends/meta-backend-private.h"
+
+#ifdef HAVE_X11
+gboolean meta_dnd_handle_xdnd_event (MetaBackend       *backend,
+                                     MetaCompositorX11 *compositor_x11,
+                                     Display           *xdisplay,
+                                     XEvent            *xev);
+
+void meta_dnd_init_xdnd (MetaX11Display *x11_display);
+#endif
 
 #ifdef HAVE_WAYLAND
 void meta_dnd_wayland_handle_begin_modal (MetaCompositor *compositor);
 void meta_dnd_wayland_handle_end_modal   (MetaCompositor *compositor);
-#endif
 
-#endif /* META_DND_PRIVATE_H */
+void meta_dnd_wayland_maybe_handle_event (MetaDnd            *dnd,
+                                          const ClutterEvent *event);
+#endif

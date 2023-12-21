@@ -12,9 +12,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "config.h"
@@ -27,19 +25,41 @@
 #include <xkbcommon/xkbcommon-x11.h>
 
 #include "backends/meta-backend-private.h"
+#include "backends/meta-dnd-private.h"
+#include "backends/x11/meta-barrier-x11.h"
 #include "backends/x11/meta-cursor-renderer-x11.h"
+#include "backends/x11/meta-cursor-tracker-x11.h"
+#include "backends/x11/meta-gpu-xrandr.h"
 #include "backends/x11/meta-input-settings-x11.h"
 #include "backends/x11/meta-monitor-manager-xrandr.h"
 #include "backends/x11/cm/meta-renderer-x11-cm.h"
+#include "compositor/meta-compositor-x11.h"
+#include "core/display-private.h"
+
+enum
+{
+  PROP_0,
+
+  PROP_DISPLAY_NAME,
+
+  N_PROPS
+};
+
+static GParamSpec *obj_props[N_PROPS];
 
 struct _MetaBackendX11Cm
 {
   MetaBackendX11 parent;
 
+  char *display_name;
+
+  MetaCursorRenderer *cursor_renderer;
   char *keymap_layouts;
   char *keymap_variants;
   char *keymap_options;
   int locked_group;
+
+  MetaInputSettings *input_settings;
 };
 
 G_DEFINE_TYPE (MetaBackendX11Cm, meta_backend_x11_cm, META_TYPE_BACKEND_X11)
@@ -66,9 +86,9 @@ take_touch_grab (MetaBackend *backend)
 }
 
 static void
-on_device_added (ClutterDeviceManager *device_manager,
-                 ClutterInputDevice   *device,
-                 gpointer              user_data)
+on_device_added (ClutterSeat        *seat,
+                 ClutterInputDevice *device,
+                 gpointer            user_data)
 {
   MetaBackendX11 *x11 = META_BACKEND_X11 (user_data);
 
@@ -81,21 +101,42 @@ meta_backend_x11_cm_post_init (MetaBackend *backend)
 {
   MetaBackendClass *parent_backend_class =
     META_BACKEND_CLASS (meta_backend_x11_cm_parent_class);
+  MetaBackendX11Cm *x11_cm = META_BACKEND_X11_CM (backend);
+  ClutterSeat *seat;
 
-  parent_backend_class->post_init (backend);
-
-  g_signal_connect_object (clutter_device_manager_get_default (),
-                           "device-added",
+  seat = clutter_backend_get_default_seat (clutter_get_default_backend ());
+  g_signal_connect_object (seat, "device-added",
                            G_CALLBACK (on_device_added), backend, 0);
 
+  x11_cm->input_settings = g_object_new (META_TYPE_INPUT_SETTINGS_X11,
+                                         "backend", backend,
+                                         NULL);
+
+  parent_backend_class->post_init (backend);
   take_touch_grab (backend);
+}
+
+static MetaBackendCapabilities
+meta_backend_x11_cm_get_capabilities (MetaBackend *backend)
+{
+  MetaBackendX11 *backend_x11 = META_BACKEND_X11 (backend);
+  MetaBackendCapabilities capabilities = META_BACKEND_CAPABILITY_NONE;
+  MetaX11Barriers *barriers;
+
+  barriers = meta_backend_x11_get_barriers (backend_x11);
+  if (barriers)
+    capabilities |= META_BACKEND_CAPABILITY_BARRIERS;
+
+  return capabilities;
 }
 
 static MetaRenderer *
 meta_backend_x11_cm_create_renderer (MetaBackend *backend,
                                      GError     **error)
 {
-  return g_object_new (META_TYPE_RENDERER_X11_CM, NULL);
+  return g_object_new (META_TYPE_RENDERER_X11_CM,
+                       "backend", backend,
+                       NULL);
 }
 
 static MetaMonitorManager *
@@ -108,15 +149,37 @@ meta_backend_x11_cm_create_monitor_manager (MetaBackend *backend,
 }
 
 static MetaCursorRenderer *
-meta_backend_x11_cm_create_cursor_renderer (MetaBackend *backend)
+meta_backend_x11_cm_get_cursor_renderer (MetaBackend        *backend,
+                                         ClutterInputDevice *device)
 {
-  return g_object_new (META_TYPE_CURSOR_RENDERER_X11, NULL);
+  MetaBackendX11Cm *x11_cm = META_BACKEND_X11_CM (backend);
+
+  if (!x11_cm->cursor_renderer)
+    {
+      x11_cm->cursor_renderer =
+        g_object_new (META_TYPE_CURSOR_RENDERER_X11,
+                      "backend", backend,
+                      "device", device,
+                      NULL);
+    }
+
+  return x11_cm->cursor_renderer;
+}
+
+static MetaCursorTracker *
+meta_backend_x11_cm_create_cursor_tracker (MetaBackend *backend)
+{
+  return g_object_new (META_TYPE_CURSOR_TRACKER_X11,
+                       "backend", backend,
+                       NULL);
 }
 
 static MetaInputSettings *
-meta_backend_x11_cm_create_input_settings (MetaBackend *backend)
+meta_backend_x11_cm_get_input_settings (MetaBackend *backend)
 {
-  return g_object_new (META_TYPE_INPUT_SETTINGS_X11, NULL);
+  MetaBackendX11Cm *x11_cm = META_BACKEND_X11_CM (backend);
+
+  return x11_cm->input_settings;
 }
 
 static void
@@ -316,17 +379,30 @@ meta_backend_x11_cm_lock_layout_group (MetaBackend *backend,
 }
 
 static gboolean
-meta_backend_x11_cm_handle_host_xevent (MetaBackendX11 *backend_x11,
+meta_backend_x11_cm_handle_host_xevent (MetaBackendX11 *x11,
                                         XEvent         *event)
 {
-  MetaBackend *backend = META_BACKEND (backend_x11);
-  MetaBackendX11 *x11 = META_BACKEND_X11 (backend);
+  MetaBackend *backend = META_BACKEND (x11);
+  MetaContext *context = meta_backend_get_context (backend);
   MetaBackendX11Cm *x11_cm = META_BACKEND_X11_CM (x11);
   MetaMonitorManager *monitor_manager =
     meta_backend_get_monitor_manager (backend);
   MetaMonitorManagerXrandr *monitor_manager_xrandr =
     META_MONITOR_MANAGER_XRANDR (monitor_manager);
   Display *xdisplay = meta_backend_x11_get_xdisplay (x11);
+  MetaDisplay *display;
+
+  display = meta_context_get_display (context);
+  if (display)
+    {
+      MetaCompositor *compositor = display->compositor;
+      MetaCompositorX11 *compositor_x11 = META_COMPOSITOR_X11 (compositor);
+      Display *xdisplay = meta_backend_x11_get_xdisplay (x11);
+
+      if (meta_dnd_handle_xdnd_event (backend, compositor_x11,
+                                      xdisplay, event))
+        return TRUE;
+    }
 
   if (event->type == meta_backend_x11_get_xkb_event_base (x11))
     {
@@ -350,8 +426,10 @@ meta_backend_x11_cm_handle_host_xevent (MetaBackendX11 *backend_x11,
         }
     }
 
-  return meta_monitor_manager_xrandr_handle_xevent (monitor_manager_xrandr,
-                                                    event);
+  if (meta_monitor_manager_xrandr_handle_xevent (monitor_manager_xrandr, event))
+    return TRUE;
+
+  return FALSE;
 }
 
 static void
@@ -387,21 +465,84 @@ meta_backend_x11_cm_translate_crossing_event (MetaBackendX11 *x11,
 }
 
 static void
+meta_backend_x11_cm_set_property (GObject      *object,
+                                  guint         prop_id,
+                                  const GValue *value,
+                                  GParamSpec   *pspec)
+{
+  MetaBackendX11Cm *backend_x11_cm = META_BACKEND_X11_CM (object);
+
+  switch (prop_id)
+    {
+    case PROP_DISPLAY_NAME:
+      backend_x11_cm->display_name = g_value_dup_string (value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+    }
+}
+
+static void
+meta_backend_x11_cm_finalize (GObject *object)
+{
+  MetaBackendX11Cm *x11_cm = META_BACKEND_X11_CM (object);
+
+  g_clear_pointer (&x11_cm->display_name, g_free);
+
+  G_OBJECT_CLASS (meta_backend_x11_cm_parent_class)->finalize (object);
+}
+
+static void
+meta_backend_x11_cm_constructed (GObject *object)
+{
+  MetaBackendX11Cm *x11_cm = META_BACKEND_X11_CM (object);
+  const char *display_name;
+
+  if (x11_cm->display_name)
+    display_name = (const char *) x11_cm->display_name;
+  else
+    display_name = g_getenv ("MUTTER_DISPLAY");
+
+  if (display_name)
+    g_setenv ("DISPLAY", display_name, TRUE);
+
+  G_OBJECT_CLASS (meta_backend_x11_cm_parent_class)->constructed (object);
+}
+
+static void
 meta_backend_x11_cm_init (MetaBackendX11Cm *backend_x11_cm)
 {
+  MetaGpuXrandr *gpu_xrandr;
+
+  /*
+   * The X server deals with multiple GPUs for us, so we just see what the X
+   * server gives us as one single GPU, even though it may actually be backed
+   * by multiple.
+   */
+  gpu_xrandr = meta_gpu_xrandr_new (META_BACKEND_X11 (backend_x11_cm));
+  meta_backend_add_gpu (META_BACKEND (backend_x11_cm),
+                        META_GPU (gpu_xrandr));
 }
 
 static void
 meta_backend_x11_cm_class_init (MetaBackendX11CmClass *klass)
 {
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
   MetaBackendClass *backend_class = META_BACKEND_CLASS (klass);
   MetaBackendX11Class *backend_x11_class = META_BACKEND_X11_CLASS (klass);
 
+  object_class->set_property = meta_backend_x11_cm_set_property;
+  object_class->finalize = meta_backend_x11_cm_finalize;
+  object_class->constructed = meta_backend_x11_cm_constructed;
+
   backend_class->post_init = meta_backend_x11_cm_post_init;
+  backend_class->get_capabilities = meta_backend_x11_cm_get_capabilities;
   backend_class->create_renderer = meta_backend_x11_cm_create_renderer;
   backend_class->create_monitor_manager = meta_backend_x11_cm_create_monitor_manager;
-  backend_class->create_cursor_renderer = meta_backend_x11_cm_create_cursor_renderer;
-  backend_class->create_input_settings = meta_backend_x11_cm_create_input_settings;
+  backend_class->get_cursor_renderer = meta_backend_x11_cm_get_cursor_renderer;
+  backend_class->create_cursor_tracker = meta_backend_x11_cm_create_cursor_tracker;
+  backend_class->get_input_settings = meta_backend_x11_cm_get_input_settings;
   backend_class->update_screen_size = meta_backend_x11_cm_update_screen_size;
   backend_class->select_stage_events = meta_backend_x11_cm_select_stage_events;
   backend_class->lock_layout_group = meta_backend_x11_cm_lock_layout_group;
@@ -410,5 +551,13 @@ meta_backend_x11_cm_class_init (MetaBackendX11CmClass *klass)
   backend_x11_class->handle_host_xevent = meta_backend_x11_cm_handle_host_xevent;
   backend_x11_class->translate_device_event = meta_backend_x11_cm_translate_device_event;
   backend_x11_class->translate_crossing_event = meta_backend_x11_cm_translate_crossing_event;
+
+  obj_props[PROP_DISPLAY_NAME] =
+    g_param_spec_string ("display-name", NULL, NULL,
+                         NULL,
+                         G_PARAM_WRITABLE |
+                         G_PARAM_CONSTRUCT_ONLY |
+                         G_PARAM_STATIC_STRINGS);
+  g_object_class_install_properties (object_class, N_PROPS, obj_props);
 }
 

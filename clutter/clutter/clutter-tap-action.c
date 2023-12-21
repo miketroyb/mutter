@@ -32,38 +32,33 @@
  */
 
 /**
- * SECTION:clutter-tap-action
- * @Title: ClutterTapAction
- * @Short_Description: Action for tap gestures
+ * ClutterTapAction:
+ * 
+ * Action for tap gestures
  *
- * #ClutterTapAction is a sub-class of #ClutterGestureAction that implements
+ * #ClutterTapAction is a sub-class of [class@GestureAction] that implements
  * the logic for recognizing mouse clicks and touch tap gestures.
  *
  * The simplest usage of #ClutterTapAction consists in adding it to
- * a #ClutterActor, setting it as reactive and connecting a
- * callback for the #ClutterTapAction::tap signal, along the lines of the
+ * a [class@Actor], setting it as reactive and connecting a
+ * callback for the [signal@TapAction::tap] signal, along the lines of the
  * following code:
  *
- * |[
+ * ```c
  *   clutter_actor_add_action (actor, clutter_tap_action_new ());
  *   clutter_actor_set_reactive (actor, TRUE);
  *   g_signal_connect (action, "tap", G_CALLBACK (on_tap_callback), NULL);
- * ]|
- *
- * Since: 1.14
+ * ```
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
-#include "clutter-tap-action.h"
+#include "clutter/clutter-tap-action.h"
 
-#include "clutter-debug.h"
-#include "clutter-enum-types.h"
-#include "clutter-gesture-action-private.h"
-#include "clutter-marshal.h"
-#include "clutter-private.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-enum-types.h"
+#include "clutter/clutter-marshal.h"
+#include "clutter/clutter-private.h"
 
 enum
 {
@@ -115,17 +110,14 @@ clutter_tap_action_class_init (ClutterTapActionClass *klass)
    * @action: the #ClutterTapAction that emitted the signal
    * @actor: the #ClutterActor attached to the @action
    *
-   * The ::tap signal is emitted when the tap gesture is complete.
-   *
-   * Since: 1.14
+   * The signal is emitted when the tap gesture is complete.
    */
   tap_signals[TAP] =
     g_signal_new (I_("tap"),
                   G_TYPE_FROM_CLASS (klass),
                   G_SIGNAL_RUN_LAST,
                   G_STRUCT_OFFSET (ClutterTapActionClass, tap),
-                  NULL, NULL,
-                  _clutter_marshal_VOID__OBJECT,
+                  NULL, NULL, NULL,
                   G_TYPE_NONE, 1,
                   CLUTTER_TYPE_ACTOR);
 }
@@ -141,8 +133,6 @@ clutter_tap_action_init (ClutterTapAction *self)
  * Creates a new #ClutterTapAction instance
  *
  * Return value: the newly created #ClutterTapAction
- *
- * Since: 1.14
  */
 ClutterAction *
 clutter_tap_action_new (void)

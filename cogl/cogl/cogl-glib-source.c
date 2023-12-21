@@ -28,12 +28,10 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
-#include "cogl-glib-source.h"
-#include "cogl-poll.h"
+#include "cogl/cogl-glib-source.h"
+#include "cogl/cogl-poll.h"
 
 typedef struct _CoglGLibSource
 {
@@ -47,7 +45,7 @@ typedef struct _CoglGLibSource
   int64_t expiration_time;
 } CoglGLibSource;
 
-static CoglBool
+static gboolean
 cogl_glib_source_prepare (GSource *source, int *timeout)
 {
   CoglGLibSource *cogl_source = (CoglGLibSource *) source;
@@ -111,7 +109,7 @@ cogl_glib_source_prepare (GSource *source, int *timeout)
   return *timeout == 0;
 }
 
-static CoglBool
+static gboolean
 cogl_glib_source_check (GSource *source)
 {
   CoglGLibSource *cogl_source = (CoglGLibSource *) source;
@@ -131,7 +129,7 @@ cogl_glib_source_check (GSource *source)
   return FALSE;
 }
 
-static CoglBool
+static gboolean
 cogl_glib_source_dispatch (GSource *source,
                            GSourceFunc callback,
                            void *user_data)
@@ -173,6 +171,7 @@ cogl_glib_renderer_source_new (CoglRenderer *renderer,
 
   source = g_source_new (&cogl_glib_source_funcs,
                          sizeof (CoglGLibSource));
+  g_source_set_name (source, "[mutter] Cogl");
   cogl_source = (CoglGLibSource *) source;
 
   cogl_source->renderer = renderer;

@@ -29,15 +29,13 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
-#include "cogl-object.h"
+#include "cogl/cogl-object.h"
 
-#include "cogl-swap-chain-private.h"
-#include "cogl-swap-chain.h"
-#include "cogl-gtype-private.h"
+#include "cogl/cogl-swap-chain-private.h"
+#include "cogl/cogl-swap-chain.h"
+#include "cogl/cogl-gtype-private.h"
 
 static void _cogl_swap_chain_free (CoglSwapChain *swap_chain);
 
@@ -48,24 +46,17 @@ COGL_GTYPE_DEFINE_CLASS (SwapChain, swap_chain);
 static void
 _cogl_swap_chain_free (CoglSwapChain *swap_chain)
 {
-  g_slice_free (CoglSwapChain, swap_chain);
+  g_free (swap_chain);
 }
 
 CoglSwapChain *
 cogl_swap_chain_new (void)
 {
-  CoglSwapChain *swap_chain = g_slice_new0 (CoglSwapChain);
+  CoglSwapChain *swap_chain = g_new0 (CoglSwapChain, 1);
 
   swap_chain->length = -1; /* no preference */
 
   return _cogl_swap_chain_object_new (swap_chain);
-}
-
-void
-cogl_swap_chain_set_has_alpha (CoglSwapChain *swap_chain,
-                               CoglBool has_alpha)
-{
-  swap_chain->has_alpha = has_alpha;
 }
 
 void

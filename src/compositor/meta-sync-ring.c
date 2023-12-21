@@ -28,18 +28,18 @@
  * Authors: James Jones <jajones@nvidia.com>
  */
 
-#include <string.h>
+#include "config.h"
 
+#include "compositor/meta-sync-ring.h"
+
+#include <string.h>
 #include <GL/gl.h>
 #include <GL/glx.h>
 #include <X11/extensions/sync.h>
 
-#include <cogl/cogl.h>
-#include <clutter/clutter.h>
-
-#include <meta/util.h>
-
-#include "meta-sync-ring.h"
+#include "clutter/clutter.h"
+#include "cogl/cogl.h"
+#include "meta/util.h"
 
 /* Theory of operation:
  *
@@ -138,7 +138,7 @@ load_gl_symbol (const char  *name,
   *func = cogl_get_proc_address (name);
   if (!*func)
     {
-      meta_verbose ("MetaSyncRing: failed to resolve required GL symbol \"%s\"\n", name);
+      meta_verbose ("MetaSyncRing: failed to resolve required GL symbol \"%s\"", name);
       return FALSE;
     }
   return TRUE;
@@ -179,13 +179,6 @@ check_gl_extensions (void)
 
         return arb_sync && x11_sync_object;
       }
-    case COGL_DRIVER_GL:
-      {
-        const char *extensions = meta_gl_get_string (GL_EXTENSIONS);
-        return (extensions != NULL &&
-                strstr (extensions, "GL_ARB_sync") != NULL &&
-                strstr (extensions, "GL_EXT_x11_sync_object") != NULL);
-      }
     default:
       break;
     }
@@ -215,7 +208,7 @@ load_required_symbols (void)
 
   if (!check_gl_extensions ())
     {
-      meta_verbose ("MetaSyncRing: couldn't find required GL extensions\n");
+      meta_verbose ("MetaSyncRing: couldn't find required GL extensions");
       goto out;
     }
 
@@ -394,7 +387,7 @@ meta_sync_free (MetaSync *self)
         XIfEvent (self->xdisplay, &event, alarm_event_predicate, (XPointer) self);
         meta_sync_handle_event (self, (XSyncAlarmNotifyEvent *) &event);
       }
-      /* fall through */
+      G_GNUC_FALLTHROUGH;
     case META_SYNC_STATE_READY:
       XSyncTriggerFence (self->xdisplay, self->xfence);
       XFlush (self->xdisplay);
@@ -497,7 +490,7 @@ meta_sync_ring_reboot (Display *xdisplay)
 
   if (!meta_sync_ring_get ())
     {
-      meta_warning ("MetaSyncRing: Too many reboots -- disabling\n");
+      meta_warning ("MetaSyncRing: Too many reboots -- disabling");
       return FALSE;
     }
 
@@ -522,13 +515,13 @@ meta_sync_ring_after_frame (void)
       GLenum status = meta_sync_check_update_finished (sync_to_reset, 0);
       if (status == GL_TIMEOUT_EXPIRED)
         {
-          meta_warning ("MetaSyncRing: We should never wait for a sync -- add more syncs?\n");
+          meta_warning ("MetaSyncRing: We should never wait for a sync -- add more syncs?");
           status = meta_sync_check_update_finished (sync_to_reset, MAX_SYNC_WAIT_TIME);
         }
 
       if (status != GL_ALREADY_SIGNALED && status != GL_CONDITION_SATISFIED)
         {
-          meta_warning ("MetaSyncRing: Timed out waiting for sync object.\n");
+          meta_warning ("MetaSyncRing: Timed out waiting for sync object.");
           return meta_sync_ring_reboot (ring->xdisplay);
         }
 
@@ -559,7 +552,7 @@ meta_sync_ring_insert_wait (void)
 
   if (ring->current_sync->state != META_SYNC_STATE_READY)
     {
-      meta_warning ("MetaSyncRing: Sync object is not ready -- were events handled properly?\n");
+      meta_warning ("MetaSyncRing: Sync object is not ready -- were events handled properly?");
       if (!meta_sync_ring_reboot (ring->xdisplay))
         return FALSE;
     }

@@ -14,9 +14,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
 /*
@@ -42,13 +40,13 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef META_WAYLAND_KEYBOARD_H
-#define META_WAYLAND_KEYBOARD_H
+#pragma once
 
-#include <clutter/clutter.h>
 #include <wayland-server.h>
 #include <xkbcommon/xkbcommon.h>
 
+#include "clutter/clutter.h"
+#include "core/meta-anonymous-file.h"
 #include "wayland/meta-wayland-types.h"
 
 #define META_TYPE_WAYLAND_KEYBOARD (meta_wayland_keyboard_get_type ())
@@ -74,9 +72,7 @@ typedef struct
 {
   struct xkb_keymap *keymap;
   struct xkb_state *state;
-  int keymap_fd;
-  size_t keymap_size;
-  char *keymap_area;
+  MetaAnonymousFile *keymap_rofile;
 } MetaWaylandXkbInfo;
 
 struct _MetaWaylandKeyboard
@@ -89,7 +85,14 @@ struct _MetaWaylandKeyboard
   MetaWaylandSurface *focus_surface;
   struct wl_listener focus_surface_listener;
   uint32_t focus_serial;
-  uint32_t key_serial;
+
+  uint32_t key_down_keycode;
+  uint32_t key_down_serial;
+
+  uint32_t key_up_keycode;
+  uint32_t key_up_serial;
+
+  struct wl_array pressed_keys;
 
   MetaWaylandXkbInfo xkb_info;
   enum xkb_state_component mods_changed;
@@ -100,7 +103,6 @@ struct _MetaWaylandKeyboard
   MetaWaylandKeyboardGrab default_grab;
 
   GSettings *settings;
-  GSettings *gsd_settings;
 };
 
 void meta_wayland_keyboard_enable (MetaWaylandKeyboard *keyboard);
@@ -127,6 +129,9 @@ void meta_wayland_keyboard_create_new_resource (MetaWaylandKeyboard *keyboard,
                                                 struct wl_resource  *seat_resource,
                                                 uint32_t id);
 
+gboolean meta_wayland_keyboard_can_grab_surface (MetaWaylandKeyboard *keyboard,
+                                                 MetaWaylandSurface  *surface,
+                                                 uint32_t             serial);
 gboolean meta_wayland_keyboard_can_popup (MetaWaylandKeyboard *keyboard,
                                           uint32_t             serial);
 
@@ -134,4 +139,4 @@ void meta_wayland_keyboard_start_grab (MetaWaylandKeyboard     *keyboard,
                                        MetaWaylandKeyboardGrab *grab);
 void meta_wayland_keyboard_end_grab   (MetaWaylandKeyboard     *keyboard);
 
-#endif /* META_WAYLAND_KEYBOARD_H */
+gboolean meta_wayland_keyboard_is_grabbed (MetaWaylandKeyboard *keyboard);

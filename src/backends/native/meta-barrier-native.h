@@ -14,55 +14,34 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jonas Ådahl <jadahl@gmail.com>
  */
 
-#ifndef META_BARRIER_NATIVE_H
-#define META_BARRIER_NATIVE_H
+#pragma once
 
 #include "backends/meta-barrier-private.h"
 
 G_BEGIN_DECLS
 
-#define META_TYPE_BARRIER_IMPL_NATIVE            (meta_barrier_impl_native_get_type ())
-#define META_BARRIER_IMPL_NATIVE(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), META_TYPE_BARRIER_IMPL_NATIVE, MetaBarrierImplNative))
-#define META_BARRIER_IMPL_NATIVE_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  META_TYPE_BARRIER_IMPL_NATIVE, MetaBarrierImplNativeClass))
-#define META_IS_BARRIER_IMPL_NATIVE(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), META_TYPE_BARRIER_IMPL_NATIVE))
-#define META_IS_BARRIER_IMPL_NATIVE_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  META_TYPE_BARRIER_IMPL_NATIVE))
-#define META_BARRIER_IMPL_NATIVE_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  META_TYPE_BARRIER_IMPL_NATIVE, MetaBarrierImplNativeClass))
-
-typedef struct _MetaBarrierImplNative        MetaBarrierImplNative;
-typedef struct _MetaBarrierImplNativeClass   MetaBarrierImplNativeClass;
-typedef struct _MetaBarrierImplNativePrivate MetaBarrierImplNativePrivate;
+#define META_TYPE_BARRIER_IMPL_NATIVE (meta_barrier_impl_native_get_type ())
+G_DECLARE_FINAL_TYPE (MetaBarrierImplNative,
+                      meta_barrier_impl_native,
+                      META, BARRIER_IMPL_NATIVE,
+                      MetaBarrierImpl)
 
 typedef struct _MetaBarrierManagerNative     MetaBarrierManagerNative;
 
-struct _MetaBarrierImplNative
-{
-  MetaBarrierImpl parent;
-};
-
-struct _MetaBarrierImplNativeClass
-{
-  MetaBarrierImplClass parent_class;
-};
-
-GType meta_barrier_impl_native_get_type (void) G_GNUC_CONST;
 
 MetaBarrierImpl *meta_barrier_impl_native_new (MetaBarrier *barrier);
 
 MetaBarrierManagerNative *meta_barrier_manager_native_new (void);
-void meta_barrier_manager_native_process (MetaBarrierManagerNative *manager,
-                                          ClutterInputDevice       *device,
-                                          guint32                   time,
-                                          float                    *x,
-                                          float                    *y);
+void meta_barrier_manager_native_process_in_impl (MetaBarrierManagerNative *manager,
+                                                  ClutterInputDevice       *device,
+                                                  guint32                   time,
+                                                  float                    *x,
+                                                  float                    *y);
 
 G_END_DECLS
-
-#endif /* META_BARRIER_NATIVE_H */

@@ -22,37 +22,25 @@
  *   Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_ANIMATABLE_H__
-#define __CLUTTER_ANIMATABLE_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-types.h>
+#include "clutter/clutter-types.h"
 
 G_BEGIN_DECLS
 
-#define CLUTTER_TYPE_ANIMATABLE                 (clutter_animatable_get_type ())
-#define CLUTTER_ANIMATABLE(obj)                 (G_TYPE_CHECK_INSTANCE_CAST ((obj), CLUTTER_TYPE_ANIMATABLE, ClutterAnimatable))
-#define CLUTTER_IS_ANIMATABLE(obj)              (G_TYPE_CHECK_INSTANCE_TYPE ((obj), CLUTTER_TYPE_ANIMATABLE))
-#define CLUTTER_ANIMATABLE_GET_IFACE(obj)       (G_TYPE_INSTANCE_GET_INTERFACE ((obj), CLUTTER_TYPE_ANIMATABLE, ClutterAnimatableIface))
+#define CLUTTER_TYPE_ANIMATABLE (clutter_animatable_get_type ())
 
-typedef struct _ClutterAnimatableIface          ClutterAnimatableIface;
-
-/**
- * ClutterAnimatable:
- *
- * #ClutterAnimatable is an opaque structure whose members cannot be directly
- * accessed
- *
- * Since: 1.0
- */
+CLUTTER_EXPORT
+G_DECLARE_INTERFACE (ClutterAnimatable, clutter_animatable,
+                     CLUTTER, ANIMATABLE,
+                     GObject)
 
 /**
- * ClutterAnimatableIface:
- * @animate_property: virtual function for custom interpolation of a
- *   property. This virtual function is deprecated
+ * ClutterAnimatableInterface:
  * @find_property: virtual function for retrieving the #GParamSpec of
  *   an animatable property
  * @get_initial_state: virtual function for retrieving the initial
@@ -61,25 +49,14 @@ typedef struct _ClutterAnimatableIface          ClutterAnimatableIface;
  *   animatable property
  * @interpolate_value: virtual function for interpolating the progress
  *   of a property
- *
- * Base interface for #GObject<!-- -->s that can be animated by a
- * a #ClutterAnimation.
- *
- * Since: 1.0
+ * @get_actor: virtual function for getting associated actor
  */
-struct _ClutterAnimatableIface
+struct _ClutterAnimatableInterface
 {
   /*< private >*/
   GTypeInterface parent_iface;
 
   /*< public >*/
-  gboolean    (* animate_property)  (ClutterAnimatable *animatable,
-                                     ClutterAnimation  *animation,
-                                     const gchar       *property_name,
-                                     const GValue      *initial_value,
-                                     const GValue      *final_value,
-                                     gdouble            progress,
-                                     GValue            *value);
   GParamSpec *(* find_property)     (ClutterAnimatable *animatable,
                                      const gchar       *property_name);
   void        (* get_initial_state) (ClutterAnimatable *animatable,
@@ -93,29 +70,28 @@ struct _ClutterAnimatableIface
                                      ClutterInterval   *interval,
                                      gdouble            progress,
                                      GValue            *value);
+  ClutterActor * (* get_actor)      (ClutterAnimatable *animatable);
 };
 
-CLUTTER_AVAILABLE_IN_1_0
-GType clutter_animatable_get_type (void) G_GNUC_CONST;
-
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 GParamSpec *clutter_animatable_find_property     (ClutterAnimatable *animatable,
                                                   const gchar       *property_name);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void        clutter_animatable_get_initial_state (ClutterAnimatable *animatable,
                                                   const gchar       *property_name,
                                                   GValue            *value);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void        clutter_animatable_set_final_state   (ClutterAnimatable *animatable,
                                                   const gchar       *property_name,
                                                   const GValue      *value);
-CLUTTER_AVAILABLE_IN_1_8
+CLUTTER_EXPORT
 gboolean    clutter_animatable_interpolate_value (ClutterAnimatable *animatable,
                                                   const gchar       *property_name,
                                                   ClutterInterval   *interval,
                                                   gdouble            progress,
                                                   GValue            *value);
 
-G_END_DECLS
+CLUTTER_EXPORT
+ClutterActor * clutter_animatable_get_actor      (ClutterAnimatable *animatable);
 
-#endif /* __CLUTTER_ANIMATABLE_H__ */
+G_END_DECLS

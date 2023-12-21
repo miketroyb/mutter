@@ -26,29 +26,17 @@
  * SOFTWARE.
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
 
-#ifndef __COGL_CLUTTER_H__
-#define __COGL_CLUTTER_H__
-
-COGL_BEGIN_DECLS
-
-#define cogl_clutter_check_extension cogl_clutter_check_extension_CLUTTER
-COGL_DEPRECATED_IN_1_16
-CoglBool
-cogl_clutter_check_extension (const char *name, const char *ext);
+G_BEGIN_DECLS
 
 #define cogl_clutter_winsys_has_feature cogl_clutter_winsys_has_feature_CLUTTER
 COGL_DEPRECATED_FOR (cogl_has_feature)
-CoglBool
+COGL_EXPORT gboolean
 cogl_clutter_winsys_has_feature (CoglWinsysFeature feature);
 
-#define cogl_onscreen_clutter_backend_set_size cogl_onscreen_clutter_backend_set_size_CLUTTER
-void
-cogl_onscreen_clutter_backend_set_size (int width, int height);
-
-COGL_END_DECLS
-
-#endif /* __COGL_CLUTTER_H__ */
+G_END_DECLS

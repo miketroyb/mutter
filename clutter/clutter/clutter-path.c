@@ -22,13 +22,12 @@
  */
 
 /**
- * SECTION:clutter-path
- * @short_description: An object describing a path with straight lines
- * and bezier curves.
+ * ClutterPath:
+ * 
+ * An object describing a path with straight lines and bezier curves.
  *
  * A #ClutterPath contains a description of a path consisting of
- * straight lines and bezier curves. This can be used in a
- * #ClutterBehaviourPath to animate an actor moving along the path.
+ * straight lines and bezier curves.
  *
  * The path consists of a series of nodes. Each node is one of the
  * following four types:
@@ -43,7 +42,7 @@
  *  - %CLUTTER_PATH_CURVE_TO, creates a bezier curve. The end of the
  *  last node is used as the first control point and the three
  *  subsequent coordinates given in the node as used as the other three.
- *  -%CLUTTER_PATH_CLOSE, creates a straight line from the last node to
+ *  - %CLUTTER_PATH_CLOSE, creates a straight line from the last node to
  *  the last %CLUTTER_PATH_MOVE_TO node. This can be used to close a
  *  path so that it will appear as a loop when animated.
  *
@@ -54,26 +53,22 @@
  * direct screen positions.
  *
  * You can build a path using the node adding functions such as
- * clutter_path_add_line_to(). Alternatively the path can be described
+ * [method@Path.add_line_to]. Alternatively the path can be described
  * in a string using a subset of the SVG path syntax. See
- * clutter_path_add_string() for details.
- *
- * #ClutterPath is available since Clutter 1.0
+ * [method@Path.add_string] for details.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
 #include <string.h>
 #include <stdarg.h>
 #include <math.h>
 #include <glib-object.h>
 
-#include "clutter-path.h"
-#include "clutter-types.h"
-#include "clutter-bezier.h"
-#include "clutter-private.h"
+#include "clutter/clutter-path.h"
+#include "clutter/clutter-types.h"
+#include "clutter/clutter-bezier.h"
+#include "clutter/clutter-private.h"
 
 #define CLUTTER_PATH_NODE_TYPE_IS_VALID(t) \
   ((((t) & ~CLUTTER_PATH_RELATIVE) >= CLUTTER_PATH_MOVE_TO      \
@@ -188,18 +183,13 @@ clutter_path_class_init (ClutterPathClass *klass)
   gobject_class->set_property = clutter_path_set_property;
   gobject_class->finalize = clutter_path_finalize;
 
-  pspec = g_param_spec_string ("description",
-                               "Description",
-                               "SVG-style description of the path",
+  pspec = g_param_spec_string ("description", NULL, NULL,
                                "",
                                CLUTTER_PARAM_READWRITE);
   obj_props[PROP_DESCRIPTION] = pspec;
   g_object_class_install_property (gobject_class, PROP_DESCRIPTION, pspec);
 
-  pspec = g_param_spec_uint ("length",
-                             "Length",
-                             "An approximation of the total length "
-                             "of the path.",
+  pspec = g_param_spec_uint ("length", NULL, NULL,
                              0, G_MAXUINT, 0,
                              CLUTTER_PARAM_READABLE);
   obj_props[PROP_LENGTH] = pspec;
@@ -216,19 +206,26 @@ static void
 clutter_value_transform_path_string (const GValue *src,
                                      GValue       *dest)
 {
-  gchar *string = clutter_path_get_description (src->data[0].v_pointer);
+  if (src->data[0].v_pointer != NULL)
+    {
+      gchar *string = clutter_path_get_description (src->data[0].v_pointer);
 
-  g_value_take_string (dest, string);
+      g_value_take_string (dest, string);
+    }
 }
 
 static void
 clutter_value_transform_string_path (const GValue *src,
                                      GValue       *dest)
 {
-  ClutterPath *new_path;
+  const char *str;
 
-  new_path = clutter_path_new_with_description (g_value_get_string (src));
-  g_value_take_object (dest, new_path);
+  str = g_value_get_string (src);
+  if (str != NULL)
+    {
+      ClutterPath *new_path = clutter_path_new_with_description (str);
+      g_value_take_object (dest, new_path);
+    }
 }
 
 static void
@@ -246,12 +243,7 @@ clutter_path_finalize (GObject *object)
  *
  * Creates a new #ClutterPath instance with no nodes.
  *
- * The object has a floating reference so if you add it to a
- * #ClutterBehaviourPath then you do not need to unref it.
- *
  * Return value: the newly created #ClutterPath
- *
- * Since: 1.0
  */
 ClutterPath *
 clutter_path_new (void)
@@ -266,15 +258,10 @@ clutter_path_new (void)
  * @desc: a string describing the path
  *
  * Creates a new #ClutterPath instance with the nodes described in
- * @desc. See clutter_path_add_string() for details of the format of
+ * @desc. See [method@Path.add_string] for details of the format of
  * the string.
  *
- * The object has a floating reference so if you add it to a
- * #ClutterBehaviourPath then you do not need to unref it.
- *
  * Return value: the newly created #ClutterPath
- *
- * Since: 1.0
  */
 ClutterPath *
 clutter_path_new_with_description (const gchar *desc)
@@ -289,16 +276,13 @@ clutter_path_new_with_description (const gchar *desc)
  * @path: a #ClutterPath
  *
  * Removes all nodes from the path.
- *
- * Since: 1.0
  */
 void
 clutter_path_clear (ClutterPath *path)
 {
   ClutterPathPrivate *priv = path->priv;
 
-  g_slist_foreach (priv->nodes, (GFunc) clutter_path_node_full_free, NULL);
-  g_slist_free (priv->nodes);
+  g_slist_free_full (priv->nodes, (GDestroyNotify) clutter_path_node_full_free);
 
   priv->nodes = priv->nodes_tail = NULL;
   priv->nodes_dirty = TRUE;
@@ -324,7 +308,7 @@ clutter_path_add_node_full (ClutterPath         *path,
   priv->nodes_dirty = TRUE;
 }
 
-/* Helper function to make the rest of teh add_* functions shorter */
+/* Helper function to make the rest of the add_* functions shorter */
 static void
 clutter_path_add_node_helper (ClutterPath         *path,
                               ClutterPathNodeType  type,
@@ -361,8 +345,6 @@ clutter_path_add_node_helper (ClutterPath         *path,
  * Adds a %CLUTTER_PATH_MOVE_TO type node to the path. This is usually
  * used as the first node in a path. It can also be used in the middle
  * of the path to cause the actor to jump to the new coordinate.
- *
- * Since: 1.0
  */
 void
 clutter_path_add_move_to (ClutterPath *path,
@@ -380,10 +362,8 @@ clutter_path_add_move_to (ClutterPath *path,
  * @x: the x coordinate
  * @y: the y coordinate
  *
- * Same as clutter_path_add_move_to() except the coordinates are
+ * Same as [method@Path.add_move_to] except the coordinates are
  * relative to the previous node.
- *
- * Since: 1.0
  */
 void
 clutter_path_add_rel_move_to (ClutterPath *path,
@@ -403,8 +383,6 @@ clutter_path_add_rel_move_to (ClutterPath *path,
  *
  * Adds a %CLUTTER_PATH_LINE_TO type node to the path. This causes the
  * actor to move to the new coordinates in a straight line.
- *
- * Since: 1.0
  */
 void
 clutter_path_add_line_to (ClutterPath *path,
@@ -422,10 +400,8 @@ clutter_path_add_line_to (ClutterPath *path,
  * @x: the x coordinate
  * @y: the y coordinate
  *
- * Same as clutter_path_add_line_to() except the coordinates are
+ * Same as [method@Path.add_line_to] except the coordinates are
  * relative to the previous node.
- *
- * Since: 1.0
  */
 void
 clutter_path_add_rel_line_to (ClutterPath *path,
@@ -450,8 +426,6 @@ clutter_path_add_rel_line_to (ClutterPath *path,
  * Adds a %CLUTTER_PATH_CURVE_TO type node to the path. This causes
  * the actor to follow a bezier from the last node to (@x_3, @y_3) using
  * (@x_1, @y_1) and (@x_2,@y_2) as control points.
- *
- * Since: 1.0
  */
 void
 clutter_path_add_curve_to (ClutterPath *path,
@@ -480,10 +454,8 @@ clutter_path_add_curve_to (ClutterPath *path,
  * @x_3: the x coordinate of the third control point
  * @y_3: the y coordinate of the third control point
  *
- * Same as clutter_path_add_curve_to() except the coordinates are
+ * Same as [method@Path.add_curve_to] except the coordinates are
  * relative to the previous node.
- *
- * Since: 1.0
  */
 void
 clutter_path_add_rel_curve_to (ClutterPath *path,
@@ -509,8 +481,6 @@ clutter_path_add_rel_curve_to (ClutterPath *path,
  * Adds a %CLUTTER_PATH_CLOSE type node to the path. This creates a
  * straight line from the last node to the last %CLUTTER_PATH_MOVE_TO
  * type node.
- *
- * Since: 1.0
  */
 void
 clutter_path_add_close (ClutterPath *path)
@@ -661,8 +631,7 @@ clutter_path_parse_description (const gchar  *p,
   return TRUE;
 
  fail:
-  g_slist_foreach (nodes, (GFunc) clutter_path_node_full_free, NULL);
-  g_slist_free (nodes);
+  g_slist_free_full (nodes, (GDestroyNotify) clutter_path_node_full_free);
   return FALSE;
 }
 
@@ -709,17 +678,15 @@ clutter_path_add_nodes (ClutterPath *path,
  * For example, to move an actor in a 100 by 100 pixel square centered
  * on the point 300,300 you could use the following path:
  *
- * |[
+ * ```
  *   M 250,350 l 0 -100 L 350,250 l 0 100 z
- * ]|
+ * ```
  *
  * If the path description isn't valid %FALSE will be returned and no
  * nodes will be added.
  *
  * Return value: %TRUE is the path description was valid or %FALSE
  * otherwise.
- *
- * Since: 1.0
  */
 gboolean
 clutter_path_add_string (ClutterPath *path,
@@ -746,8 +713,6 @@ clutter_path_add_string (ClutterPath *path,
  * @node: a #ClutterPathNode
  *
  * Adds @node to the end of the path.
- *
- * Since: 1.0
  */
 void
 clutter_path_add_node (ClutterPath           *path,
@@ -766,129 +731,12 @@ clutter_path_add_node (ClutterPath           *path,
 }
 
 /**
- * clutter_path_add_cairo_path:
- * @path: a #ClutterPath
- * @cpath: a Cairo path
- *
- * Add the nodes of the Cairo path to the end of @path.
- *
- * Since: 1.0
- */
-void
-clutter_path_add_cairo_path (ClutterPath        *path,
-                             const cairo_path_t *cpath)
-{
-  int num_data;
-  const cairo_path_data_t *p;
-
-  g_return_if_fail (CLUTTER_IS_PATH (path));
-  g_return_if_fail (cpath != NULL);
-
-  /* Iterate over each command in the cairo path */
-  for (num_data = cpath->num_data, p = cpath->data;
-       num_data > 0;
-       num_data -= p->header.length, p += p->header.length)
-    {
-      switch (p->header.type)
-        {
-        case CAIRO_PATH_MOVE_TO:
-          g_assert (p->header.length >= 2);
-
-          clutter_path_add_move_to (path, p[1].point.x, p[1].point.y);
-          break;
-
-        case CAIRO_PATH_LINE_TO:
-          g_assert (p->header.length >= 2);
-
-          clutter_path_add_line_to (path, p[1].point.x, p[1].point.y);
-          break;
-
-        case CAIRO_PATH_CURVE_TO:
-          g_assert (p->header.length >= 4);
-
-          clutter_path_add_curve_to (path,
-                                     p[1].point.x, p[1].point.y,
-                                     p[2].point.x, p[2].point.y,
-                                     p[3].point.x, p[3].point.y);
-          break;
-
-        case CAIRO_PATH_CLOSE_PATH:
-          clutter_path_add_close (path);
-        }
-    }
-}
-
-static void
-clutter_path_add_node_to_cairo_path (const ClutterPathNode *node,
-                                     gpointer               data)
-{
-  cairo_t *cr = data;
-
-  switch (node->type)
-    {
-    case CLUTTER_PATH_MOVE_TO:
-      cairo_move_to (cr, node->points[0].x, node->points[0].y);
-      break;
-
-    case CLUTTER_PATH_LINE_TO:
-      cairo_line_to (cr, node->points[0].x, node->points[0].y);
-      break;
-
-    case CLUTTER_PATH_CURVE_TO:
-      cairo_curve_to (cr,
-                      node->points[0].x, node->points[0].y,
-                      node->points[1].x, node->points[1].y,
-                      node->points[2].x, node->points[2].y);
-      break;
-
-    case CLUTTER_PATH_REL_MOVE_TO:
-      cairo_rel_move_to (cr, node->points[0].x, node->points[0].y);
-      break;
-
-    case CLUTTER_PATH_REL_LINE_TO:
-      cairo_rel_line_to (cr, node->points[0].x, node->points[0].y);
-      break;
-
-    case CLUTTER_PATH_REL_CURVE_TO:
-      cairo_rel_curve_to (cr,
-                          node->points[0].x, node->points[0].y,
-                          node->points[1].x, node->points[1].y,
-                          node->points[2].x, node->points[2].y);
-      break;
-
-    case CLUTTER_PATH_CLOSE:
-      cairo_close_path (cr);
-    }
-}
-
-/**
- * clutter_path_to_cairo_path:
- * @path: a #ClutterPath
- * @cr: a Cairo context
- *
- * Add the nodes of the ClutterPath to the path in the Cairo context.
- *
- * Since: 1.0
- */
-void
-clutter_path_to_cairo_path (ClutterPath *path,
-                            cairo_t     *cr)
-{
-  g_return_if_fail (CLUTTER_IS_PATH (path));
-  g_return_if_fail (cr != NULL);
-
-  clutter_path_foreach (path, clutter_path_add_node_to_cairo_path, cr);
-}
-
-/**
  * clutter_path_get_n_nodes:
  * @path: a #ClutterPath
  *
  * Retrieves the number of nodes in the path.
  *
  * Return value: the number of nodes.
- *
- * Since: 1.0
  */
 guint
 clutter_path_get_n_nodes (ClutterPath *path)
@@ -909,8 +757,6 @@ clutter_path_get_n_nodes (ClutterPath *path)
  * @node: (out): a location to store a copy of the node
  *
  * Retrieves the node of the path indexed by @index.
- *
- * Since: 1.0
  */
 void
 clutter_path_get_node (ClutterPath     *path,
@@ -935,16 +781,15 @@ clutter_path_get_node (ClutterPath     *path,
  * clutter_path_get_nodes:
  * @path: a #ClutterPath
  *
- * Returns a #GSList of #ClutterPathNode<!-- -->s. The list should be
- * freed with g_slist_free(). The nodes are owned by the path and
- * should not be freed. Altering the path may cause the nodes in the
- * list to become invalid so you should copy them if you want to keep
- * the list.
+ * Returns a #GSList of [struct@PathNode]s.
+ * 
+ * The list should be freed with g_slist_free(). The nodes are owned 
+ * by the path and should not be freed. Altering the path may cause
+ * the nodes in the list to become invalid so you should copy them
+ * if you want to keep the list.
  *
  * Return value: (transfer container) (element-type Clutter.PathNode): a
  *   list of nodes in the path.
- *
- * Since: 1.0
  */
 GSList *
 clutter_path_get_nodes (ClutterPath *path)
@@ -965,8 +810,6 @@ clutter_path_get_nodes (ClutterPath *path)
  * @user_data: user data to pass to the function
  *
  * Calls a function for each node of the path.
- *
- * Since: 1.0
  */
 void
 clutter_path_foreach (ClutterPath         *path,
@@ -990,8 +833,6 @@ clutter_path_foreach (ClutterPath         *path,
  *
  * Inserts @node into the path before the node at the given offset. If
  * @index_ is negative it will append the node to the end of the path.
- *
- * Since: 1.0
  */
 void
 clutter_path_insert_node (ClutterPath           *path,
@@ -1026,8 +867,6 @@ clutter_path_insert_node (ClutterPath           *path,
  * @index_: index of the node to remove
  *
  * Removes the node at the given offset from the path.
- *
- * Since: 1.0
  */
 void
 clutter_path_remove_node (ClutterPath *path,
@@ -1068,8 +907,6 @@ clutter_path_remove_node (ClutterPath *path,
  * @node: the replacement node
  *
  * Replaces the node at offset @index_ with @node.
- *
- * Since: 1.0
  */
 void
 clutter_path_replace_node (ClutterPath           *path,
@@ -1099,14 +936,12 @@ clutter_path_replace_node (ClutterPath           *path,
  * @str: a string describing the path
  *
  * Replaces all of the nodes in the path with nodes described by
- * @str. See clutter_path_add_string() for details of the format.
+ * @str. See [method@Path.add_string] for details of the format.
  *
  * If the string is invalid then %FALSE is returned and the path is
  * unaltered.
  *
  * Return value: %TRUE is the path was valid, %FALSE otherwise.
- *
- * Since: 1.0
  */
 gboolean
 clutter_path_set_description (ClutterPath *path,
@@ -1133,11 +968,9 @@ clutter_path_set_description (ClutterPath *path,
  * @path: a #ClutterPath
  *
  * Returns a newly allocated string describing the path in the same
- * format as used by clutter_path_add_string().
+ * format as used by [method@Path.add_string].
  *
  * Return value: a string description of the path. Free with g_free().
- *
- * Since: 1.0
  */
 gchar *
 clutter_path_get_description (ClutterPath *path)
@@ -1349,8 +1182,6 @@ clutter_path_ensure_node_data (ClutterPath *path)
  * interpolated position is then stored in @position.
  *
  * Return value: index of the node used to calculate the position.
- *
- * Since: 1.0
  */
 guint
 clutter_path_get_position (ClutterPath *path,
@@ -1441,8 +1272,6 @@ clutter_path_get_position (ClutterPath *path,
  * Retrieves an approximation of the total length of the path.
  *
  * Return value: the length of the path.
- *
- * Since: 1.0
  */
 guint
 clutter_path_get_length (ClutterPath *path)
@@ -1457,7 +1286,7 @@ clutter_path_get_length (ClutterPath *path)
 static ClutterPathNodeFull *
 clutter_path_node_full_new (void)
 {
-  return g_slice_new0 (ClutterPathNodeFull);
+  return g_new0 (ClutterPathNodeFull, 1);
 }
 
 static void
@@ -1466,7 +1295,7 @@ clutter_path_node_full_free (ClutterPathNodeFull *node)
   if (node->bezier)
     _clutter_bezier_free (node->bezier);
 
-  g_slice_free (ClutterPathNodeFull, node);
+  g_free (node);
 }
 
 /**
@@ -1476,13 +1305,11 @@ clutter_path_node_full_free (ClutterPathNodeFull *node)
  * Makes an allocated copy of a node.
  *
  * Return value: the copied node.
- *
- * Since: 1.0
  */
 ClutterPathNode *
 clutter_path_node_copy (const ClutterPathNode *node)
 {
-  return g_slice_dup (ClutterPathNode, node);
+  return g_memdup2 (node, sizeof (ClutterPathNode));
 }
 
 /**
@@ -1490,14 +1317,12 @@ clutter_path_node_copy (const ClutterPathNode *node)
  * @node: a #ClutterPathNode
  *
  * Frees the memory of an allocated node.
- *
- * Since: 1.0
  */
 void
 clutter_path_node_free (ClutterPathNode *node)
 {
   if (G_LIKELY (node))
-    g_slice_free (ClutterPathNode, node);
+    g_free (node);
 }
 
 /**
@@ -1509,8 +1334,6 @@ clutter_path_node_free (ClutterPathNode *node)
  * same coordinates.
  *
  * Return value: %TRUE if the nodes are the same.
- *
- * Since: 1.0
  */
 gboolean
 clutter_path_node_equal (const ClutterPathNode *node_a,
@@ -1552,8 +1375,6 @@ G_DEFINE_BOXED_TYPE (ClutterKnot, clutter_knot,
  * Makes an allocated copy of a knot.
  *
  * Return value: the copied knot.
- *
- * Since: 0.2
  */
 ClutterKnot *
 clutter_knot_copy (const ClutterKnot *knot)
@@ -1561,7 +1382,7 @@ clutter_knot_copy (const ClutterKnot *knot)
   if (G_UNLIKELY (knot == NULL))
     return NULL;
 
-  return g_slice_dup (ClutterKnot, knot);
+  return g_memdup2 (knot, sizeof (ClutterKnot));
 }
 
 /**
@@ -1569,14 +1390,12 @@ clutter_knot_copy (const ClutterKnot *knot)
  * @knot: a #ClutterKnot
  *
  * Frees the memory of an allocated knot.
- *
- * Since: 0.2
  */
 void
 clutter_knot_free (ClutterKnot *knot)
 {
   if (G_LIKELY (knot != NULL))
-    g_slice_free (ClutterKnot, knot);
+    g_free (knot);
 }
 
 /**
@@ -1587,8 +1406,6 @@ clutter_knot_free (ClutterKnot *knot)
  * Compares to knot and checks if the point to the same location.
  *
  * Return value: %TRUE if the knots point to the same location.
- *
- * Since: 0.2
  */
 gboolean
 clutter_knot_equal (const ClutterKnot *knot_a,

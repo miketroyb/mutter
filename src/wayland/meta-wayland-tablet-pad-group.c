@@ -14,31 +14,23 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#define _GNU_SOURCE
-
 #include "config.h"
 
 #include <wayland-server.h>
+
+#include "compositor/meta-surface-actor-wayland.h"
+#include "wayland/meta-wayland-tablet-pad-group.h"
+#include "wayland/meta-wayland-tablet-pad-ring.h"
+#include "wayland/meta-wayland-tablet-pad-strip.h"
+#include "wayland/meta-wayland-tablet-pad.h"
+#include "wayland/meta-wayland-tablet-seat.h"
+
 #include "tablet-unstable-v2-server-protocol.h"
-
-#include "meta-surface-actor-wayland.h"
-#include "meta-wayland-tablet-seat.h"
-#include "meta-wayland-tablet-pad.h"
-#include "meta-wayland-tablet-pad-group.h"
-#include "meta-wayland-tablet-pad-ring.h"
-#include "meta-wayland-tablet-pad-strip.h"
-
-#ifdef HAVE_NATIVE_BACKEND
-#include <clutter/evdev/clutter-evdev.h>
-#include "backends/native/meta-backend-native.h"
-#endif
 
 static void
 unbind_resource (struct wl_resource *resource)
@@ -51,7 +43,7 @@ meta_wayland_tablet_pad_group_new (MetaWaylandTabletPad *pad)
 {
   MetaWaylandTabletPadGroup *group;
 
-  group = g_slice_new0 (MetaWaylandTabletPadGroup);
+  group = g_new0 (MetaWaylandTabletPadGroup, 1);
   wl_list_init (&group->resource_list);
   wl_list_init (&group->focus_resource_list);
   group->pad = pad;
@@ -73,7 +65,7 @@ meta_wayland_tablet_pad_group_free (MetaWaylandTabletPadGroup *group)
   g_list_free (group->rings);
   g_list_free (group->strips);
 
-  g_slice_free (MetaWaylandTabletPadGroup, group);
+  g_free (group);
 }
 
 static void
@@ -105,44 +97,18 @@ meta_wayland_tablet_pad_group_create_new_resource (MetaWaylandTabletPadGroup *gr
   return resource;
 }
 
-struct wl_resource *
-meta_wayland_tablet_pad_group_lookup_resource (MetaWaylandTabletPadGroup *group,
-                                               struct wl_client          *client)
-{
-  struct wl_resource *resource;
-
-  resource = wl_resource_find_for_client (&group->resource_list, client);
-
-  if (!resource)
-    resource = wl_resource_find_for_client (&group->focus_resource_list, client);
-
-  return resource;
-}
-
 gboolean
 meta_wayland_tablet_pad_group_has_button (MetaWaylandTabletPadGroup *group,
                                           guint                      button)
 {
-  MetaBackend *backend = meta_get_backend ();
+  int n_group = g_list_index (group->pad->groups, group);
 
-#ifdef HAVE_NATIVE_BACKEND
-  if (META_IS_BACKEND_NATIVE (backend))
-    {
-      struct libinput_device *libinput_device;
-      struct libinput_tablet_pad_mode_group *mode_group;
-      guint n_group;
+  if (clutter_input_device_get_pad_feature_group (group->pad->device,
+                                                  CLUTTER_PAD_FEATURE_BUTTON,
+                                                  button) == n_group)
+    return TRUE;
 
-      libinput_device = clutter_evdev_input_device_get_libinput_device (group->pad->device);
-      n_group = g_list_index (group->pad->groups, group);
-      mode_group = libinput_device_tablet_pad_get_mode_group (libinput_device, n_group);
-
-      return libinput_tablet_pad_mode_group_has_button (mode_group, button);
-    }
-  else
-#endif
-    {
-      return g_list_length (group->pad->groups) == 1;
-    }
+  return FALSE;
 }
 
 static void
@@ -221,12 +187,17 @@ void
 meta_wayland_tablet_pad_group_update (MetaWaylandTabletPadGroup *group,
                                       const ClutterEvent        *event)
 {
-  switch (event->type)
+  switch (clutter_event_type (event))
     {
     case CLUTTER_PAD_BUTTON_PRESS:
     case CLUTTER_PAD_BUTTON_RELEASE:
-      if (meta_wayland_tablet_pad_group_is_mode_switch_button (group, event->pad_button.button))
-        group->current_mode = event->pad_button.mode;
+      if (meta_wayland_tablet_pad_group_is_mode_switch_button (group,
+                                                               clutter_event_get_button (event)))
+        {
+          clutter_event_get_pad_details (event, NULL,
+                                         &group->current_mode,
+                                         NULL, NULL);
+        }
       break;
     default:
       break;
@@ -238,11 +209,13 @@ handle_pad_ring_event (MetaWaylandTabletPadGroup *group,
                        const ClutterEvent        *event)
 {
   MetaWaylandTabletPadRing *ring;
+  uint32_t number;
 
-  if (event->type != CLUTTER_PAD_RING)
+  if (clutter_event_type (event) != CLUTTER_PAD_RING)
     return FALSE;
 
-  ring = g_list_nth_data (group->rings, event->pad_ring.ring_number);
+  clutter_event_get_pad_details (event, &number, NULL, NULL, NULL);
+  ring = g_list_nth_data (group->rings, number);
 
   if (!ring)
     return FALSE;
@@ -255,11 +228,13 @@ handle_pad_strip_event (MetaWaylandTabletPadGroup *group,
                         const ClutterEvent        *event)
 {
   MetaWaylandTabletPadStrip *strip;
+  uint32_t number;
 
-  if (event->type != CLUTTER_PAD_STRIP)
+  if (clutter_event_type (event) != CLUTTER_PAD_STRIP)
     return FALSE;
 
-  strip = g_list_nth_data (group->strips, event->pad_strip.strip_number);
+  clutter_event_get_pad_details (event, &number, NULL, NULL, NULL);
+  strip = g_list_nth_data (group->strips, number);
 
   if (!strip)
     return FALSE;
@@ -303,9 +278,10 @@ meta_wayland_tablet_pad_group_handle_event (MetaWaylandTabletPadGroup *group,
     {
     case CLUTTER_PAD_BUTTON_PRESS:
     case CLUTTER_PAD_BUTTON_RELEASE:
-      if (meta_wayland_tablet_pad_group_is_mode_switch_button (group, event->pad_button.button))
+      if (meta_wayland_tablet_pad_group_is_mode_switch_button (group,
+                                                               clutter_event_get_button (event)))
         {
-          if (event->type == CLUTTER_PAD_BUTTON_PRESS)
+          if (clutter_event_type (event) == CLUTTER_PAD_BUTTON_PRESS)
             broadcast_group_mode (group, clutter_event_get_time (event));
           return TRUE;
         }

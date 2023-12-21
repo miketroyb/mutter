@@ -1,7 +1,7 @@
 /**
- * SECTION:clutter-settings
- * @Title: ClutterSettings
- * @Short_Description: Settings configuration
+ * ClutterSettings:
+ * 
+ * Settings configuration
  *
  * Clutter depends on some settings to perform operations like detecting
  * multiple button press events, or font options to render text.
@@ -13,15 +13,11 @@
  * also possible, for toolkit developers, to retrieve the settings from
  * the #ClutterSettings properties when implementing new UI elements,
  * for instance the default font name.
- *
- * #ClutterSettings is available since Clutter 1.4
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
-#include "clutter-settings.h"
+#include "clutter/clutter-settings.h"
 
 #ifdef HAVE_PANGO_FT2
 /* for pango_fc_font_map_cache_clear() */
@@ -29,11 +25,12 @@
 #include <pango/pangofc-fontmap.h>
 #endif /* HAVE_PANGO_FT2 */
 
-#include "clutter-debug.h"
-#include "clutter-settings-private.h"
-#include "clutter-stage-private.h"
-#include "clutter-private.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-settings-private.h"
+#include "clutter/clutter-stage-private.h"
+#include "clutter/clutter-private.h"
 
+#include <gdesktop-enums.h>
 #include <stdlib.h>
 
 #define DEFAULT_FONT_NAME       "Sans 12"
@@ -42,19 +39,26 @@
 #define CLUTTER_IS_SETTINGS_CLASS(klass)        (G_TYPE_CHECK_CLASS_TYPE ((klass), CLUTTER_TYPE_SETTINGS))
 #define CLUTTER_SETTINGS_GET_CLASS(obj)         (G_TYPE_INSTANCE_GET_CLASS ((obj), CLUTTER_TYPE_SETTINGS, ClutterSettingsClass))
 
-/**
- * ClutterSettings:
- *
- * `ClutterSettings` is an opaque structure whose
- * members cannot be directly accessed.
- *
- * Since: 1.4
- */
+typedef struct
+{
+  cairo_antialias_t cairo_antialias;
+  gint clutter_font_antialias;
+
+  cairo_hint_style_t cairo_hint_style;
+  const char *clutter_font_hint_style;
+
+  cairo_subpixel_order_t cairo_subpixel_order;
+  const char *clutter_font_subpixel_order;
+} FontSettings;
+
 struct _ClutterSettings
 {
   GObject parent_instance;
 
   ClutterBackend *backend;
+  GSettings *font_settings;
+  GSettings *mouse_settings;
+  GSettings *mouse_a11y_settings;
 
   gint double_click_time;
   gint double_click_distance;
@@ -88,8 +92,6 @@ struct _ClutterSettingsClass
 enum
 {
   PROP_0,
-
-  PROP_BACKEND,
 
   PROP_DOUBLE_CLICK_TIME,
   PROP_DOUBLE_CLICK_DISTANCE,
@@ -270,6 +272,316 @@ settings_update_fontmap (ClutterSettings *self,
 }
 
 static void
+get_font_gsettings (GSettings    *settings,
+                    FontSettings *output)
+{
+  /* org.gnome.desktop.GDesktopFontAntialiasingMode */
+  static const struct
+  {
+    cairo_antialias_t cairo_antialias;
+    gint clutter_font_antialias;
+  }
+  antialiasings[] =
+  {
+    /* none=0      */ {CAIRO_ANTIALIAS_NONE,     0},
+    /* grayscale=1 */ {CAIRO_ANTIALIAS_GRAY,     1},
+    /* rgba=2      */ {CAIRO_ANTIALIAS_SUBPIXEL, 1},
+  };
+
+  /* org.gnome.desktop.GDesktopFontHinting */
+  static const struct
+  {
+    cairo_hint_style_t cairo_hint_style;
+    const char *clutter_font_hint_style;
+  }
+  hintings[] =
+  {
+    /* none=0   */ {CAIRO_HINT_STYLE_NONE,   "hintnone"},
+    /* slight=1 */ {CAIRO_HINT_STYLE_SLIGHT, "hintslight"},
+    /* medium=2 */ {CAIRO_HINT_STYLE_MEDIUM, "hintmedium"},
+    /* full=3   */ {CAIRO_HINT_STYLE_FULL,   "hintfull"},
+  };
+
+  /* org.gnome.desktop.GDesktopFontRgbaOrder */
+  static const struct
+  {
+    cairo_subpixel_order_t cairo_subpixel_order;
+    const char *clutter_font_subpixel_order;
+  }
+  rgba_orders[] =
+  {
+    /* rgba=0 */ {CAIRO_SUBPIXEL_ORDER_RGB,  "rgb"}, /* XXX what is 'rgba'? */
+    /* rgb=1  */ {CAIRO_SUBPIXEL_ORDER_RGB,  "rgb"},
+    /* bgr=2  */ {CAIRO_SUBPIXEL_ORDER_BGR,  "bgr"},
+    /* vrgb=3 */ {CAIRO_SUBPIXEL_ORDER_VRGB, "vrgb"},
+    /* vbgr=4 */ {CAIRO_SUBPIXEL_ORDER_VBGR, "vbgr"},
+  };
+  guint i;
+
+  i = g_settings_get_enum (settings, "font-hinting");
+  if (i < G_N_ELEMENTS (hintings))
+    {
+      output->cairo_hint_style = hintings[i].cairo_hint_style;
+      output->clutter_font_hint_style = hintings[i].clutter_font_hint_style;
+    }
+  else
+    {
+      output->cairo_hint_style = CAIRO_HINT_STYLE_DEFAULT;
+      output->clutter_font_hint_style = NULL;
+    }
+
+  i = g_settings_get_enum (settings, "font-antialiasing");
+  if (i < G_N_ELEMENTS (antialiasings))
+    {
+      output->cairo_antialias = antialiasings[i].cairo_antialias;
+      output->clutter_font_antialias = antialiasings[i].clutter_font_antialias;
+    }
+  else
+    {
+      output->cairo_antialias = CAIRO_ANTIALIAS_DEFAULT;
+      output->clutter_font_antialias = -1;
+    }
+
+  i = g_settings_get_enum (settings, "font-rgba-order");
+  if (i < G_N_ELEMENTS (rgba_orders))
+    {
+      output->cairo_subpixel_order = rgba_orders[i].cairo_subpixel_order;
+      output->clutter_font_subpixel_order = rgba_orders[i].clutter_font_subpixel_order;
+    }
+  else
+    {
+      output->cairo_subpixel_order = CAIRO_SUBPIXEL_ORDER_DEFAULT;
+      output->clutter_font_subpixel_order = NULL;
+    }
+
+  if (output->cairo_antialias == CAIRO_ANTIALIAS_GRAY)
+    output->clutter_font_subpixel_order = "none";
+}
+
+static void
+init_font_options (ClutterSettings *self)
+{
+  GSettings *settings = self->font_settings;
+  cairo_font_options_t *options = cairo_font_options_create ();
+  FontSettings fs;
+
+  get_font_gsettings (settings, &fs);
+
+  cairo_font_options_set_hint_style (options, fs.cairo_hint_style);
+  cairo_font_options_set_antialias (options, fs.cairo_antialias);
+  cairo_font_options_set_subpixel_order (options, fs.cairo_subpixel_order);
+
+  clutter_backend_set_font_options (self->backend, options);
+
+  cairo_font_options_destroy (options);
+}
+
+static void
+sync_mouse_options (ClutterSettings *self)
+{
+  int double_click;
+  int drag_threshold;
+
+  double_click = g_settings_get_int (self->mouse_settings, "double-click");
+  drag_threshold = g_settings_get_int (self->mouse_settings, "drag-threshold");
+
+  g_object_set (self,
+		"double-click-time", double_click,
+		"dnd-drag-threshold", drag_threshold,
+                NULL);
+}
+
+static gboolean
+on_font_settings_change_event (GSettings *settings,
+			       gpointer   keys,
+			       gint       n_keys,
+			       gpointer   user_data)
+{
+  ClutterSettings *self = CLUTTER_SETTINGS (user_data);
+  FontSettings fs;
+  gint hinting;
+
+  get_font_gsettings (settings, &fs);
+  hinting = fs.cairo_hint_style == CAIRO_HINT_STYLE_NONE ? 0 : 1;
+  g_object_set (self,
+                "font-hinting",        hinting,
+                "font-hint-style",     fs.clutter_font_hint_style,
+                "font-antialias",      fs.clutter_font_antialias,
+                "font-subpixel-order", fs.clutter_font_subpixel_order,
+                NULL);
+
+  return FALSE;
+}
+
+static gboolean
+on_mouse_settings_change_event (GSettings *settings,
+				gpointer   keys,
+				gint       n_keys,
+				gpointer   user_data)
+{
+  ClutterSettings *self = CLUTTER_SETTINGS (user_data);
+
+  sync_mouse_options (self);
+
+  return FALSE;
+}
+
+struct _pointer_a11y_settings_flags_pair {
+  const char *name;
+  ClutterPointerA11yFlags flag;
+} pointer_a11y_settings_flags_pair[] = {
+  { "secondary-click-enabled", CLUTTER_A11Y_SECONDARY_CLICK_ENABLED },
+  { "dwell-click-enabled",     CLUTTER_A11Y_DWELL_ENABLED },
+};
+
+static ClutterPointerA11yDwellDirection
+pointer_a11y_dwell_direction_from_setting (ClutterSettings *self,
+                                           const char      *key)
+{
+  GDesktopMouseDwellDirection dwell_gesture_direction;
+
+  dwell_gesture_direction = g_settings_get_enum (self->mouse_a11y_settings,
+                                                 key);
+  switch (dwell_gesture_direction)
+    {
+    case G_DESKTOP_MOUSE_DWELL_DIRECTION_LEFT:
+      return CLUTTER_A11Y_DWELL_DIRECTION_LEFT;
+      break;
+    case G_DESKTOP_MOUSE_DWELL_DIRECTION_RIGHT:
+      return CLUTTER_A11Y_DWELL_DIRECTION_RIGHT;
+      break;
+    case G_DESKTOP_MOUSE_DWELL_DIRECTION_UP:
+      return CLUTTER_A11Y_DWELL_DIRECTION_UP;
+      break;
+    case G_DESKTOP_MOUSE_DWELL_DIRECTION_DOWN:
+      return CLUTTER_A11Y_DWELL_DIRECTION_DOWN;
+      break;
+    default:
+      break;
+    }
+  return CLUTTER_A11Y_DWELL_DIRECTION_NONE;
+}
+
+static void
+sync_pointer_a11y_settings (ClutterSettings *self,
+                            ClutterSeat     *seat)
+{
+  ClutterPointerA11ySettings pointer_a11y_settings;
+  GDesktopMouseDwellMode dwell_mode;
+  int i;
+
+  clutter_seat_get_pointer_a11y_settings (seat, &pointer_a11y_settings);
+  pointer_a11y_settings.controls = 0;
+  for (i = 0; i < G_N_ELEMENTS (pointer_a11y_settings_flags_pair); i++)
+    {
+      if (!g_settings_get_boolean (self->mouse_a11y_settings,
+                                   pointer_a11y_settings_flags_pair[i].name))
+        continue;
+
+      pointer_a11y_settings.controls |=
+        pointer_a11y_settings_flags_pair[i].flag;
+    }
+
+  /* "secondary-click-time" is expressed in seconds */
+  pointer_a11y_settings.secondary_click_delay =
+    (1000 * g_settings_get_double (self->mouse_a11y_settings,
+                                   "secondary-click-time"));
+  /* "dwell-time" is expressed in seconds */
+  pointer_a11y_settings.dwell_delay =
+    (1000 * g_settings_get_double (self->mouse_a11y_settings, "dwell-time"));
+  pointer_a11y_settings.dwell_threshold =
+    g_settings_get_int (self->mouse_a11y_settings, "dwell-threshold");
+
+  dwell_mode = g_settings_get_enum (self->mouse_a11y_settings, "dwell-mode");
+  if (dwell_mode == G_DESKTOP_MOUSE_DWELL_MODE_WINDOW)
+    pointer_a11y_settings.dwell_mode = CLUTTER_A11Y_DWELL_MODE_WINDOW;
+  else
+    pointer_a11y_settings.dwell_mode = CLUTTER_A11Y_DWELL_MODE_GESTURE;
+
+  pointer_a11y_settings.dwell_gesture_single =
+    pointer_a11y_dwell_direction_from_setting (self, "dwell-gesture-single");
+  pointer_a11y_settings.dwell_gesture_double =
+    pointer_a11y_dwell_direction_from_setting (self, "dwell-gesture-double");
+  pointer_a11y_settings.dwell_gesture_drag =
+    pointer_a11y_dwell_direction_from_setting (self, "dwell-gesture-drag");
+  pointer_a11y_settings.dwell_gesture_secondary =
+    pointer_a11y_dwell_direction_from_setting (self, "dwell-gesture-secondary");
+
+  clutter_seat_set_pointer_a11y_settings (seat, &pointer_a11y_settings);
+}
+
+static gboolean
+on_mouse_a11y_settings_change_event (GSettings *settings,
+                                     gpointer   keys,
+                                     int        n_keys,
+                                     gpointer   user_data)
+{
+  ClutterSettings *self = CLUTTER_SETTINGS (user_data);
+  ClutterSeat *seat = clutter_backend_get_default_seat (self->backend);
+
+  sync_pointer_a11y_settings (self, seat);
+
+  return FALSE;
+}
+
+static void
+load_initial_settings (ClutterSettings *self)
+{
+  static const gchar *font_settings_path = "org.gnome.desktop.interface";
+  static const gchar *mouse_settings_path = "org.gnome.desktop.peripherals.mouse";
+  static const char *mouse_a11y_settings_path = "org.gnome.desktop.a11y.mouse";
+  GSettingsSchemaSource *source = g_settings_schema_source_get_default ();
+  GSettingsSchema *schema;
+
+  schema = g_settings_schema_source_lookup (source, font_settings_path, TRUE);
+  if (!schema)
+    {
+      g_warning ("Failed to find schema: %s", font_settings_path);
+    }
+  else
+    {
+      self->font_settings = g_settings_new_full (schema, NULL, NULL);
+      if (self->font_settings)
+        {
+          init_font_options (self);
+          g_signal_connect (self->font_settings, "change-event",
+                            G_CALLBACK (on_font_settings_change_event),
+                            self);
+        }
+    }
+
+  schema = g_settings_schema_source_lookup (source, mouse_settings_path, TRUE);
+  if (!schema)
+    {
+      g_warning ("Failed to find schema: %s", mouse_settings_path);
+    }
+  else
+    {
+      self->mouse_settings = g_settings_new_full (schema, NULL, NULL);
+      if (self->mouse_settings)
+        {
+          sync_mouse_options (self);
+          g_signal_connect (self->mouse_settings, "change-event",
+                            G_CALLBACK (on_mouse_settings_change_event),
+                            self);
+        }
+    }
+
+  schema = g_settings_schema_source_lookup (source, mouse_a11y_settings_path, TRUE);
+  if (!schema)
+    {
+      g_warning ("Failed to find schema: %s", mouse_settings_path);
+    }
+  else
+    {
+      self->mouse_a11y_settings = g_settings_new_full (schema, NULL, NULL);
+      g_signal_connect (self->mouse_a11y_settings, "change-event",
+                        G_CALLBACK (on_mouse_a11y_settings_change_event),
+                        self);
+    }
+}
+
+static void
 clutter_settings_finalize (GObject *gobject)
 {
   ClutterSettings *self = CLUTTER_SETTINGS (gobject);
@@ -277,6 +589,10 @@ clutter_settings_finalize (GObject *gobject)
   g_free (self->font_name);
   g_free (self->xft_hint_style);
   g_free (self->xft_rgba);
+
+  g_clear_object (&self->font_settings);
+  g_clear_object (&self->mouse_settings);
+  g_clear_object (&self->mouse_a11y_settings);
 
   G_OBJECT_CLASS (clutter_settings_parent_class)->finalize (gobject);
 }
@@ -291,10 +607,6 @@ clutter_settings_set_property (GObject      *gobject,
 
   switch (prop_id)
     {
-    case PROP_BACKEND:
-      self->backend = g_value_get_object (value);
-      break;
-
     case PROP_DOUBLE_CLICK_TIME:
       self->double_click_time = g_value_get_int (value);
       break;
@@ -457,35 +769,13 @@ clutter_settings_class_init (ClutterSettingsClass *klass)
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
 
   /**
-   * ClutterSettings:backend:
-   *
-   * A back pointer to the #ClutterBackend
-   *
-   * Since: 1.4
-   *
-   * Deprecated: 1.10
-   */
-  obj_props[PROP_BACKEND] =
-    g_param_spec_object ("backend",
-                         "Backend",
-                         "A pointer to the backend",
-                         CLUTTER_TYPE_BACKEND,
-                         CLUTTER_PARAM_WRITABLE |
-                         G_PARAM_DEPRECATED |
-                         G_PARAM_CONSTRUCT_ONLY);
-
-  /**
    * ClutterSettings:double-click-time:
    *
    * The time, in milliseconds, that should elapse between button-press
    * events in order to increase the click count by 1.
-   *
-   * Since: 1.4
    */
   obj_props[PROP_DOUBLE_CLICK_TIME] =
-    g_param_spec_int ("double-click-time",
-                      P_("Double Click Time"),
-                      P_("The time between clicks necessary to detect a multiple click"),
+    g_param_spec_int ("double-click-time", NULL, NULL,
                       0, G_MAXINT,
                       250,
                       CLUTTER_PARAM_READWRITE);
@@ -495,13 +785,9 @@ clutter_settings_class_init (ClutterSettingsClass *klass)
    *
    * The maximum distance, in pixels, between button-press events that
    * determines whether or not to increase the click count by 1.
-   *
-   * Since: 1.4
    */
   obj_props[PROP_DOUBLE_CLICK_DISTANCE] =
-    g_param_spec_int ("double-click-distance",
-                      P_("Double Click Distance"),
-                      P_("The distance between clicks necessary to detect a multiple click"),
+    g_param_spec_int ("double-click-distance", NULL, NULL,
                       0, G_MAXINT,
                       5,
                       CLUTTER_PARAM_READWRITE);
@@ -511,13 +797,9 @@ clutter_settings_class_init (ClutterSettingsClass *klass)
    *
    * The default distance that the cursor of a pointer device
    * should travel before a drag operation should start.
-   *
-   * Since: 1.8
    */
   obj_props[PROP_DND_DRAG_THRESHOLD] =
-    g_param_spec_int ("dnd-drag-threshold",
-                      P_("Drag Threshold"),
-                      P_("The distance the cursor should travel before starting to drag"),
+    g_param_spec_int ("dnd-drag-threshold", NULL, NULL,
                       1, G_MAXINT,
                       8,
                       CLUTTER_PARAM_READWRITE);
@@ -526,14 +808,10 @@ clutter_settings_class_init (ClutterSettingsClass *klass)
    * ClutterSettings:font-name:
    *
    * The default font name that should be used by text actors, as
-   * a string that can be passed to pango_font_description_from_string().
-   *
-   * Since: 1.4
+   * a string that can be passed to [func@Pango.FontDescription.from_string].
    */
   obj_props[PROP_FONT_NAME] =
-    g_param_spec_string ("font-name",
-                         P_("Font Name"),
-                         P_("The description of the default font, as one that could be parsed by Pango"),
+    g_param_spec_string ("font-name", NULL, NULL,
                          NULL,
                          CLUTTER_PARAM_READWRITE);
 
@@ -543,13 +821,9 @@ clutter_settings_class_init (ClutterSettingsClass *klass)
    * Whether or not to use antialiasing when rendering text; a value
    * of 1 enables it unconditionally; a value of 0 disables it
    * unconditionally; and -1 will use the system's default.
-   *
-   * Since: 1.4
    */
   obj_props[PROP_FONT_ANTIALIAS] =
-    g_param_spec_int ("font-antialias",
-                      P_("Font Antialias"),
-                      P_("Whether to use antialiasing (1 to enable, 0 to disable, and -1 to use the default)"),
+    g_param_spec_int ("font-antialias", NULL, NULL,
                       -1, 1,
                       -1,
                       CLUTTER_PARAM_READWRITE);
@@ -560,21 +834,15 @@ clutter_settings_class_init (ClutterSettingsClass *klass)
    * The DPI used when rendering text, as a value of 1024 * dots/inch.
    *
    * If set to -1, the system's default will be used instead
-   *
-   * Since: 1.4
    */
   obj_props[PROP_FONT_DPI] =
-    g_param_spec_int ("font-dpi",
-                      P_("Font DPI"),
-                      P_("The resolution of the font, in 1024 * dots/inch, or -1 to use the default"),
+    g_param_spec_int ("font-dpi", NULL, NULL,
                       -1, 1024 * 1024,
                       -1,
                       CLUTTER_PARAM_READWRITE);
 
   obj_props[PROP_UNSCALED_FONT_DPI] =
-    g_param_spec_int ("unscaled-font-dpi",
-                      P_("Font DPI"),
-                      P_("The resolution of the font, in 1024 * dots/inch, or -1 to use the default"),
+    g_param_spec_int ("unscaled-font-dpi", NULL, NULL,
                       -1, 1024 * 1024,
                       -1,
                       CLUTTER_PARAM_WRITABLE);
@@ -585,13 +853,9 @@ clutter_settings_class_init (ClutterSettingsClass *klass)
    * Whether or not to use hinting when rendering text; a value of 1
    * unconditionally enables it; a value of 0 unconditionally disables
    * it; and a value of -1 will use the system's default.
-   *
-   * Since: 1.4
    */
   obj_props[PROP_FONT_HINTING] =
-    g_param_spec_int ("font-hinting",
-                      P_("Font Hinting"),
-                      P_("Whether to use hinting (1 to enable, 0 to disable and -1 to use the default)"),
+    g_param_spec_int ("font-hinting", NULL, NULL,
                       -1, 1,
                       -1,
                       CLUTTER_PARAM_READWRITE);
@@ -606,13 +870,9 @@ clutter_settings_class_init (ClutterSettingsClass *klass)
    *   - hintslight
    *   - hintmedium
    *   - hintfull
-   *
-   * Since: 1.4
    */
   obj_props[PROP_FONT_HINT_STYLE] =
-    g_param_spec_string ("font-hint-style",
-                         P_("Font Hint Style"),
-                         P_("The style of hinting (hintnone, hintslight, hintmedium, hintfull)"),
+    g_param_spec_string ("font-hint-style", NULL, NULL,
                          NULL,
                          CLUTTER_PARAM_READWRITE);
 
@@ -627,13 +887,9 @@ clutter_settings_class_init (ClutterSettingsClass *klass)
    *   - bgr
    *   - vrgb
    *   - vbgr
-   *
-   * Since: 1.4
    */
   obj_props[PROP_FONT_RGBA] =
-    g_param_spec_string ("font-subpixel-order",
-                         P_("Font Subpixel Order"),
-                         P_("The type of subpixel antialiasing (none, rgb, bgr, vrgb, vbgr)"),
+    g_param_spec_string ("font-subpixel-order", NULL, NULL,
                          NULL,
                          CLUTTER_PARAM_READWRITE);
 
@@ -643,22 +899,16 @@ clutter_settings_class_init (ClutterSettingsClass *klass)
    * Sets the minimum duration for a press to be recognized as a long press
    * gesture. The duration is expressed in milliseconds.
    *
-   * See also #ClutterClickAction:long-press-duration.
-   *
-   * Since: 1.8
+   * See also [property@ClickAction:long-press-duration].
    */
   obj_props[PROP_LONG_PRESS_DURATION] =
-    g_param_spec_int ("long-press-duration",
-                      P_("Long Press Duration"),
-                      P_("The minimum duration for a long press gesture to be recognized"),
+    g_param_spec_int ("long-press-duration", NULL, NULL,
                       0, G_MAXINT,
                       500,
                       CLUTTER_PARAM_READWRITE);
 
   obj_props[PROP_FONTCONFIG_TIMESTAMP] =
-    g_param_spec_uint ("fontconfig-timestamp",
-                       P_("Fontconfig configuration timestamp"),
-                       P_("Timestamp of the current fontconfig configuration"),
+    g_param_spec_uint ("fontconfig-timestamp", NULL, NULL,
                        0, G_MAXUINT,
                        0,
                        CLUTTER_PARAM_WRITABLE);
@@ -667,16 +917,12 @@ clutter_settings_class_init (ClutterSettingsClass *klass)
    * ClutterText:password-hint-time:
    *
    * How long should Clutter show the last input character in editable
-   * ClutterText actors. The value is in milliseconds. A value of 0
+   * [class@Text] actors. The value is in milliseconds. A value of 0
    * disables showing the password hint. 600 is a good value for
    * enabling the hint.
-   *
-   * Since: 1.10
    */
   obj_props[PROP_PASSWORD_HINT_TIME] =
-    g_param_spec_uint ("password-hint-time",
-                       P_("Password Hint Time"),
-                       P_("How long to show the last input character in hidden entries"),
+    g_param_spec_uint ("password-hint-time", NULL, NULL,
                        0, G_MAXUINT,
                        0,
                        CLUTTER_PARAM_READWRITE);
@@ -720,8 +966,6 @@ clutter_settings_init (ClutterSettings *self)
  * Return value: (transfer none): the instance of #ClutterSettings. The
  *   returned object is owned by Clutter and it should not be unreferenced
  *   directly
- *
- * Since: 1.4
  */
 ClutterSettings *
 clutter_settings_get_default (void)
@@ -742,107 +986,13 @@ _clutter_settings_set_backend (ClutterSettings *settings,
   g_assert (CLUTTER_IS_BACKEND (backend));
 
   settings->backend = backend;
+
+  load_initial_settings (settings);
 }
 
-#define SETTINGS_GROUP  "Settings"
-
 void
-_clutter_settings_read_from_key_file (ClutterSettings *settings,
-                                      GKeyFile        *keyfile)
+clutter_settings_ensure_pointer_a11y_settings (ClutterSettings *settings,
+                                               ClutterSeat     *seat)
 {
-  GObjectClass *settings_class;
-  GObject *settings_obj;
-  GParamSpec **pspecs;
-  guint n_pspecs, i;
-
-  if (!g_key_file_has_group (keyfile, SETTINGS_GROUP))
-    return;
-
-  settings_obj = G_OBJECT (settings);
-  settings_class = G_OBJECT_GET_CLASS (settings);
-  pspecs = g_object_class_list_properties (settings_class, &n_pspecs);
-
-  for (i = 0; i < n_pspecs; i++)
-    {
-      GParamSpec *pspec = pspecs[i];
-      const gchar *p_name = pspec->name;
-      GType p_type = G_TYPE_FUNDAMENTAL (pspec->value_type);
-      GValue value = G_VALUE_INIT;
-      GError *key_error = NULL;
-
-      g_value_init (&value, p_type);
-
-      switch (p_type)
-        {
-        case G_TYPE_INT:
-        case G_TYPE_UINT:
-          {
-            gint val;
-
-            val = g_key_file_get_integer (keyfile,
-                                          SETTINGS_GROUP, p_name,
-                                          &key_error);
-            if (p_type == G_TYPE_INT)
-              g_value_set_int (&value, val);
-            else
-              g_value_set_uint (&value, val);
-          }
-          break;
-
-        case G_TYPE_BOOLEAN:
-          {
-            gboolean val;
-
-            val = g_key_file_get_boolean (keyfile,
-                                          SETTINGS_GROUP, p_name,
-                                          &key_error);
-            g_value_set_boolean (&value, val);
-          }
-          break;
-
-        case G_TYPE_FLOAT:
-        case G_TYPE_DOUBLE:
-          {
-            gdouble val;
-
-            val = g_key_file_get_double (keyfile,
-                                         SETTINGS_GROUP, p_name,
-                                         &key_error);
-            if (p_type == G_TYPE_FLOAT)
-              g_value_set_float (&value, val);
-            else
-              g_value_set_double (&value, val);
-          }
-          break;
-
-        case G_TYPE_STRING:
-          {
-            gchar *val;
-
-            val = g_key_file_get_string (keyfile,
-                                         SETTINGS_GROUP, p_name,
-                                         &key_error);
-            g_value_take_string (&value, val);
-          }
-          break;
-        }
-
-      if (key_error != NULL &&
-          key_error->domain != G_KEY_FILE_ERROR &&
-          key_error->code != G_KEY_FILE_ERROR_KEY_NOT_FOUND)
-        {
-          g_critical ("Unable to read the value for setting '%s': %s",
-                      p_name,
-                      key_error->message);
-        }
-
-      if (key_error == NULL)
-        g_object_set_property (settings_obj, p_name, &value);
-      else
-        g_error_free (key_error);
-
-      g_value_unset (&value);
-    }
-
-  g_free (pspecs);
+  sync_pointer_a11y_settings (settings, seat);
 }

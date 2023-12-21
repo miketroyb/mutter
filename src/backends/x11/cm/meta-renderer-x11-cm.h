@@ -14,14 +14,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#ifndef META_RENDERER_X11_CM_H
-#define META_RENDERER_X11_CM_H
+#pragma once
 
 #include "backends/x11/meta-renderer-x11.h"
 
@@ -30,4 +27,11 @@ G_DECLARE_FINAL_TYPE (MetaRendererX11Cm, meta_renderer_x11_cm,
                       META, RENDERER_X11_CM,
                       MetaRendererX11)
 
-#endif /* META_RENDERER_X11_CM_H */
+void meta_renderer_x11_cm_init_screen_view (MetaRendererX11Cm *renderer_x11_cm,
+                                            CoglOnscreen      *onscreen,
+                                            int                width,
+                                            int                height);
+
+void meta_renderer_x11_cm_resize (MetaRendererX11Cm *renderer_x11_cm,
+                                  int                width,
+                                  int                height);

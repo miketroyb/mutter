@@ -17,15 +17,15 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_DND_H
-#define META_DND_H
+#pragma once
 
 #include <glib-object.h>
 #include <string.h>
 
-#include "meta/types.h"
+#include <meta/common.h>
+#include <meta/types.h>
 
 #define META_TYPE_DND (meta_dnd_get_type ())
-G_DECLARE_FINAL_TYPE (MetaDnd, meta_dnd, META, DND, GObject)
 
-#endif /* META_DND_H */
+META_EXPORT
+G_DECLARE_FINAL_TYPE (MetaDnd, meta_dnd, META, DND, GObject)

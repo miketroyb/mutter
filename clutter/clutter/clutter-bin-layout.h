@@ -22,14 +22,13 @@
  *   Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_BIN_LAYOUT_H__
-#define __CLUTTER_BIN_LAYOUT_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-layout-manager.h>
+#include "clutter/clutter-layout-manager.h"
 
 G_BEGIN_DECLS
 
@@ -44,14 +43,6 @@ typedef struct _ClutterBinLayout                ClutterBinLayout;
 typedef struct _ClutterBinLayoutPrivate         ClutterBinLayoutPrivate;
 typedef struct _ClutterBinLayoutClass           ClutterBinLayoutClass;
 
-/**
- * ClutterBinLayout:
- *
- * The #ClutterBinLayout structure contains only private data
- * and should be accessed using the provided API
- *
- * Since: 1.2
- */
 struct _ClutterBinLayout
 {
   /*< private >*/
@@ -65,8 +56,6 @@ struct _ClutterBinLayout
  *
  * The #ClutterBinLayoutClass structure contains only private
  * data and should be accessed using the provided API
- *
- * Since: 1.2
  */
 struct _ClutterBinLayoutClass
 {
@@ -74,13 +63,11 @@ struct _ClutterBinLayoutClass
   ClutterLayoutManagerClass parent_class;
 };
 
-CLUTTER_AVAILABLE_IN_1_2
+CLUTTER_EXPORT
 GType clutter_bin_layout_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_2
+CLUTTER_EXPORT
 ClutterLayoutManager *  clutter_bin_layout_new  (ClutterBinAlignment x_align,
                                                  ClutterBinAlignment y_align);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_BIN_LAYOUT_H__ */

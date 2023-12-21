@@ -12,9 +12,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Olivier Fourdan <ofourdan@redhat.com>
@@ -24,11 +22,12 @@
 
 #include <wayland-server.h>
 
-#include "keyboard-shortcuts-inhibit-unstable-v1-server-protocol.h"
 #include "wayland/meta-wayland-private.h"
 #include "wayland/meta-wayland-versions.h"
 #include "wayland/meta-wayland-inhibit-shortcuts.h"
 #include "wayland/meta-wayland-inhibit-shortcuts-dialog.h"
+
+#include "keyboard-shortcuts-inhibit-unstable-v1-server-protocol.h"
 
 struct _MetaWaylandKeyboardShotscutsInhibit
 {
@@ -50,14 +49,14 @@ zwp_keyboard_shortcuts_inhibit_destructor (struct wl_resource *resource)
     {
       meta_wayland_surface_cancel_inhibit_shortcuts_dialog (shortcut_inhibit->surface);
 
-      g_signal_handler_disconnect (shortcut_inhibit->surface,
-                                   shortcut_inhibit->surface_destroyed_handler);
+      g_clear_signal_handler (&shortcut_inhibit->surface_destroyed_handler,
+                              shortcut_inhibit->surface);
 
-      g_signal_handler_disconnect (shortcut_inhibit->surface,
-                                   shortcut_inhibit->inhibit_shortcut_handler);
+      g_clear_signal_handler (&shortcut_inhibit->inhibit_shortcut_handler,
+                              shortcut_inhibit->surface);
 
-      g_signal_handler_disconnect (shortcut_inhibit->surface,
-                                   shortcut_inhibit->restore_shortcut_handler);
+      g_clear_signal_handler (&shortcut_inhibit->restore_shortcut_handler,
+                              shortcut_inhibit->surface);
 
       meta_wayland_surface_restore_shortcuts (shortcut_inhibit->surface,
                                               shortcut_inhibit->seat);

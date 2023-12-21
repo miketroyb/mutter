@@ -31,11 +31,10 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifndef _COGL_ATTRIBUTE_NOP_PRIVATE_H_
-#define _COGL_ATTRIBUTE_NOP_PRIVATE_H_
+#pragma once
 
-#include "cogl-types.h"
-#include "cogl-context-private.h"
+#include "cogl/cogl-types.h"
+#include "cogl/cogl-context-private.h"
 
 void
 _cogl_nop_flush_attributes_state (CoglFramebuffer *framebuffer,
@@ -44,5 +43,3 @@ _cogl_nop_flush_attributes_state (CoglFramebuffer *framebuffer,
                                   CoglDrawFlags flags,
                                   CoglAttribute **attributes,
                                   int n_attributes);
-
-#endif /* _COGL_ATTRIBUTE_NOP_PRIVATE_H_ */

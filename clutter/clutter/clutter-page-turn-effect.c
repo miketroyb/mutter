@@ -26,25 +26,21 @@
  */
 
 /**
- * SECTION:clutter-page-turn-effect
- * @Title: ClutterPageTurnEffect
- * @Short_Description: A page turning effect
+ * ClutterPageTurnEffect:
+ * 
+ * A page turning effect
  *
  * A simple page turning effect
- *
- * #ClutterPageTurnEffect is available since Clutter 1.4
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
 #include <math.h>
 
-#include "clutter-page-turn-effect.h"
+#include "clutter/clutter-page-turn-effect.h"
 
-#include "clutter-debug.h"
-#include "clutter-private.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-private.h"
 
 #define CLUTTER_PAGE_TURN_EFFECT_CLASS(k)       (G_TYPE_CHECK_CLASS_CAST ((k), CLUTTER_TYPE_PAGE_TURN_EFFECT, ClutterPageTurnEffectClass))
 #define CLUTTER_IS_PAGE_TURN_EFFECT_CLASS(k)    (G_TYPE_CHECK_CLASS_TYPE ((k), CLUTTER_TYPE_PAGE_TURN_EFFECT))
@@ -218,12 +214,8 @@ clutter_page_turn_effect_class_init (ClutterPageTurnEffectClass *klass)
    *
    * The period of the page turn, between 0.0 (no curling) and
    * 1.0 (fully curled)
-   *
-   * Since: 1.4
    */
-  pspec = g_param_spec_double ("period",
-                               "Period",
-                               "The period of the page turn",
+  pspec = g_param_spec_double ("period", NULL, NULL,
                                0.0, 1.0,
                                0.0,
                                CLUTTER_PARAM_READWRITE);
@@ -234,12 +226,8 @@ clutter_page_turn_effect_class_init (ClutterPageTurnEffectClass *klass)
    * ClutterPageTurnEffect:angle:
    *
    * The angle of the page rotation, in degrees, between 0.0 and 360.0
-   *
-   * Since: 1.4
    */
-  pspec = g_param_spec_double ("angle",
-                               "Angle",
-                               "The angle of the page rotation, in degrees",
+  pspec = g_param_spec_double ("angle", NULL, NULL,
                                0.0, 360.0,
                                0.0,
                                CLUTTER_PARAM_READWRITE);
@@ -250,12 +238,8 @@ clutter_page_turn_effect_class_init (ClutterPageTurnEffectClass *klass)
    * ClutterPageTurnEffect:radius:
    *
    * The radius of the page curl, in pixels
-   *
-   * Since: 1.4
    */
-  pspec = g_param_spec_float ("radius",
-                              "Radius",
-                              "The radius of the page curl",
+  pspec = g_param_spec_float ("radius", NULL, NULL,
                               -G_MAXFLOAT, G_MAXFLOAT,
                               24.0,
                               CLUTTER_PARAM_READWRITE);
@@ -282,8 +266,6 @@ clutter_page_turn_effect_init (ClutterPageTurnEffect *self)
  * Creates a new #ClutterPageTurnEffect instance with the given parameters
  *
  * Return value: the newly created #ClutterPageTurnEffect
- *
- * Since: 1.4
  */
 ClutterEffect *
 clutter_page_turn_effect_new (gdouble period,
@@ -307,8 +289,6 @@ clutter_page_turn_effect_new (gdouble period,
  *
  * Sets the period of the page curling, between 0.0 (no curling)
  * and 1.0 (fully curled)
- *
- * Since: 1.4
  */
 void
 clutter_page_turn_effect_set_period (ClutterPageTurnEffect *effect,
@@ -328,11 +308,9 @@ clutter_page_turn_effect_set_period (ClutterPageTurnEffect *effect,
  * clutter_page_turn_effect_get_period:
  * @effect: a #ClutterPageTurnEffect
  *
- * Retrieves the value set using clutter_page_turn_effect_get_period()
+ * Retrieves the value set using [method@PageTurnEffect.get_period]
  *
  * Return value: the period of the page curling
- *
- * Since: 1.4
  */
 gdouble
 clutter_page_turn_effect_get_period (ClutterPageTurnEffect *effect)
@@ -348,8 +326,6 @@ clutter_page_turn_effect_get_period (ClutterPageTurnEffect *effect)
  * @angle: the angle of the page curl, in degrees
  *
  * Sets the angle of the page curling, in degrees
- *
- * Since: 1.4
  */
 void
 clutter_page_turn_effect_set_angle (ClutterPageTurnEffect *effect,
@@ -369,11 +345,9 @@ clutter_page_turn_effect_set_angle (ClutterPageTurnEffect *effect,
  * clutter_page_turn_effect_get_angle:
  * @effect: a #ClutterPageTurnEffect:
  *
- * Retrieves the value set using clutter_page_turn_effect_get_angle()
+ * Retrieves the value set using [method@PageTurnEffect.get_angle]
  *
  * Return value: the angle of the page curling
- *
- * Since: 1.4
  */
 gdouble
 clutter_page_turn_effect_get_angle (ClutterPageTurnEffect *effect)
@@ -389,8 +363,6 @@ clutter_page_turn_effect_get_angle (ClutterPageTurnEffect *effect)
  * @radius: the radius of the page curling, in pixels
  *
  * Sets the radius of the page curling
- *
- * Since: 1.4
  */
 void
 clutter_page_turn_effect_set_radius (ClutterPageTurnEffect *effect,
@@ -409,11 +381,9 @@ clutter_page_turn_effect_set_radius (ClutterPageTurnEffect *effect,
  * clutter_page_turn_effect_get_radius:
  * @effect: a #ClutterPageTurnEffect
  *
- * Retrieves the value set using clutter_page_turn_effect_set_radius()
+ * Retrieves the value set using [method@PageTurnEffect.set_radius]
  *
  * Return value: the radius of the page curling
- *
- * Since: 1.4
  */
 gfloat
 clutter_page_turn_effect_get_radius (ClutterPageTurnEffect *effect)

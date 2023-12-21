@@ -31,15 +31,13 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
-#include "cogl-object-private.h"
-#include "cogl-indices.h"
-#include "cogl-indices-private.h"
-#include "cogl-context-private.h"
-#include "cogl-gtype-private.h"
+#include "cogl/cogl-object-private.h"
+#include "cogl/cogl-indices.h"
+#include "cogl/cogl-indices-private.h"
+#include "cogl/cogl-context-private.h"
+#include "cogl/cogl-gtype-private.h"
 
 static void _cogl_index_buffer_free (CoglIndexBuffer *indices);
 
@@ -52,7 +50,7 @@ COGL_GTYPE_DEFINE_CLASS (IndexBuffer, index_buffer);
 CoglIndexBuffer *
 cogl_index_buffer_new (CoglContext *context, size_t bytes)
 {
-  CoglIndexBuffer *indices = g_slice_new (CoglIndexBuffer);
+  CoglIndexBuffer *indices = g_new0 (CoglIndexBuffer, 1);
 
   /* parent's constructor */
   _cogl_buffer_initialize (COGL_BUFFER (indices),
@@ -71,7 +69,7 @@ _cogl_index_buffer_free (CoglIndexBuffer *indices)
   /* parent's destructor */
   _cogl_buffer_fini (COGL_BUFFER (indices));
 
-  g_slice_free (CoglIndexBuffer, indices);
+  g_free (indices);
 }
 
 /* XXX: do we want a convenience function like this as an alternative

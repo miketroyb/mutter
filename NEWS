@@ -1,3 +1,2040 @@
+45.2
+====
+* Disable HW cursor when inhibited by backend [Robert; !3412]
+* Fix disabling check-alive timeout [Sebastian K.; !3367]
+* Propagate focus appearance to all ancestors [Sebastian W.; !3356]
+* Fix tablets on X11 having the wrong device [Carlos; !3393]
+* Fixed crash [Carlos; !3370]
+
+Contributors:
+  Carlos Garnacho, Sebastian Keller, Robert Mader, Sebastian Wick
+
+Translators:
+  Ngọc Quân Trần [vi], Ekaterine Papava [ka]
+
+45.1
+====
+* Fix filtering keybinding events in presence of grabs [Sebastian K.; !3054]
+* Fix direct scanout support when using integer scaling [Daniel; !3290]
+* Fix capitalization of some keys when caps lock is on [Carlos; !3306]
+* Fix vsync regression [Robert; !3286]
+* Fix visibility of software cursors when using direct scanout [Robert; !3302]
+* Fix artifacts at the bottom of some surfaces [Robert; !3310]
+* Discard monitor configs with fractional scale when unusable [Jonas Å.; !3299]
+* Apply track point settings [Rohan; !3089]
+* xwayland: Enable XDG portal only when not nested [Olivier; !3303]
+* Inhibit real-time scheduling when mode setting [Ray; !3324]
+* Don't delay frame updates after idle period [Michel; !3174]
+* Fix running Xwayland in headless setup with nvidia driver [Olivier; !3320]
+* wayland: Send keyboard modifiers after the enter event  [Alexandros; !3341]
+* Fixed crashes [Carlos, Jonas D., Robert, Sebastian W., Jonas Å.; !3287, !3283,
+  !3311, !3322, !3318]
+* Misc. bug fixes and cleanups [Daniel, Corentin, Carlos, Jonas Å., Ivan,
+  Michel, Sebastian W., Robert, Barnabás, Peter; !3212, !3298, !3267, !3297,
+  !3313, !3316, !3317, !3323, !3325, !3326, !3328, !3330, !3332, !3319]
+
+Contributors:
+  Jonas Ådahl, Michel Dänzer, Jonas Dreßler, Olivier Fourdan,
+  Alexandros Frantzis, Carlos Garnacho, Peter Hutterer, Rohan Hendrik Jotz-Lean,
+  Sebastian Keller, Robert Mader, Ivan Molodetskikh, Florian Müllner,
+  Corentin Noël, Barnabás Pőcze, Ray Strode, Daniel van Vugt, Sebastian Wick
+
+Translators:
+  Kristjan SCHMIDT [eo], Rafael Fontenelle [pt_BR], Guillaume Bernard [fr],
+  Jordi Mas i Hernandez [ca], Florentina Mușat [ro]
+
+45.0
+====
+* Fix focus-follows-mouse mode [Carlos; !3256]
+* Optimize applying relative transformation matrix [Robert; !3259]
+* Add support for P010 YCbCr format [Robert; !3244]
+* Fix hardware cursor stuttering on Raspberry Pi [Daniel; !3279]
+* Fix input in multi-monitor remote desktop sessions with libei [Pascal; !3273]
+* Fixed crashes [Carlos, Daniel, Sebastian W.; !3252, !3253, !3255, !3160,
+  !3268, !3262, !3277]
+* Misc. bug fixes and cleanups [Florian, Joan, Jonas, Carlos, Sebastian W.,
+  Pascal; !3248, !3249, !3263, !3261, !3116, !3251, !3032, !3275, !3278]
+
+Contributors:
+  Jonas Ådahl, Carlos Garnacho, Sebastian Keller, Andre Klapper, Robert Mader,
+  Florian Müllner, Pascal Nowack, Joan Torres, Daniel van Vugt, Sebastian Wick
+
+Translators:
+  Sabri Ünal [tr], Quentin PAGÈS [oc], Anders Jonsson [sv],
+  Christian Kirbach [de], Ask Hjorth Larsen [da]
+
+45.rc
+=====
+* Fix possible redraw freeze in fullscreen windows [msizanoen; !3127]
+* Fix restoring focus when leaving the overview  [Jonas Å., Carlos; !3185]
+* Support alpha-composited window screencasts [Georges; !3175]
+* Fix some XWayland windows not getting mapped [Sebastian; !3194]
+* Fix cursor movement on rotated screens [Daniel; !3180]
+* Avoid global lock in stage signals [Christian; !3204]
+* Implemented suspended xdg_toplevel state [Jonas Å.; !3019, !3213]
+* Support idle_inhibit protocol [Charbel; !3145]
+* Do not trigger repick during relayout [Carlos; !3220]
+* Fix redraw issue when buffer age is unavailable [Carlos; !3221]
+* Add Meta Toolkit (MTK) library [Bilal; !3128]
+* Fix possible window freeze during resize operations [Carlos; !3189]
+* Fixes to tablet cursor visibility on Wayland [Carlos; !3218]
+* Improve support for input capture and emulated input [Jonas Å.; !3228]
+* Use headless mode when seat ID is unset [Joan; !3093]
+* Fix unresponsive touchscreen after titlebar drag [Carlos; !3059]
+* Fix absolute pointer events on virtual monitor streams [Jonas Å.; !3241]
+* Fix disabling CRTCs in disable-only mode updates [Jonas Å.; !3073]
+* Cache multi-texture shader snippets [Daniel; !3224]
+* Fixed crashes [Carlos, Jonas Å., Jonas D., Barnabás, Jeremy; !3183, !3219,
+  !3234, !3216, !3202, !3229, !3246]
+* Plugged leaks [Sebastian, Niels; !3188, !3203]
+* Misc. bug fixes and cleanups [Bilal, Michel, Jonas Å., Florian, Carlos,
+  Sebastian, Sandro, Daniel, Pascal, Georges, Jonas D., Uzair; !3087, !3154,
+  !3169, !3124, !3173, !3190, !3197, !3198, !3215, !3209, !3155, !3225, !3226,
+  !3223, !3231, !3187, !3230, !3210, !3227, !3233, !3235, !3237, !3238, !3236,
+  !3239, !3243, !3199, !3247, !3242]
+
+Contributors:
+  Jonas Ådahl, Uzair Ahmad, Charbel Assaad, Sandro Bonazzola, Jeremy Cline,
+  Michel Dänzer, Jonas Dreßler, Bilal Elmoussaoui, Carlos Garnacho,
+  Niels De Graef, Christian Hergert, Sebastian Keller, msizanoen,
+  Florian Müllner, Georges Basile Stavracas Neto, Pascal Nowack, Barnabás Pőcze,
+  Joan Torres, Daniel van Vugt
+
+Translators:
+  Kukuh Syafaat [id], Sabri Ünal [tr], Jiri Grönroos [fi],
+  Baurzhan Muftakhidinov [kk], Vasil Pupkin [be], Jordi Mas [ca],
+  Aurimas Černius [lt], A S Alam [pa], Nathan Follens [nl], Philipp Kiemle [de],
+  Milo Casagrande [it], Yaron Shahrabani [he], Gwan-gyeong Mun [ko],
+  Bruce Cowan [en_GB]
+
+45.beta.1
+=========
+* Fix blitting from premultiplied to opaque formats [Jonas; !3159]
+* Fix Super key not going to overview in GNOME Shell [Carlos; 3162]
+* Use ClutterEvent in ClutterActor class event vmethod signatures
+  [Carlos; 3163]
+* Misc. bug fixes and cleanups [Carlos, !3167, !3168]
+
+Contributors:
+  Jonas Ådahl, Carlos Garnacho
+
+Translators:
+  Piotr Drąg [pl], Daniel Mustieles [es]
+
+45.beta
+=======
+* Support input capture and emulated input with libei
+  [Jonas, Peter, Olivier; !2628]
+* Add KMS thread [Jonas; !2777]
+* Fix touch move operations on subsurfaces [Gergo; !3125]
+* Fix unexpected cursor changes over non-resizable windows [Michel; !3096]
+* Improve render time estimates [Michel; !3090]
+* Fix flickering when DRI driver isn't available [Daniel; !3117]
+* Fix restoring maximized state of SSD windows [Sebastian K.; !3035]
+* Add support for YUV formats [Niels, Robert; !2191]
+* Fix xwayland-allow-byte-swapped-clients setting [Olivier; !3156]
+* Misc. bug fixes and cleanups [Jonas, Florian, Bilal, Daniel, Robert,
+  Sebastian W., Michel, Carlos; !3111, !3100, !3112, !3065, !3101, !3129,
+  !3118, !3131, !3123, !3135, !3134, !3130, !3141, !3140, !3144, !3148, !3138,
+  !3150, !3005, !3103, !3126, !3147, !3157, !3153]
+
+Contributors:
+  Jonas Ådahl, Michel Dänzer, Bilal Elmoussaoui, Olivier Fourdan,
+  Carlos Garnacho, Niels De Graef, Peter Hutterer, Sebastian Keller,
+  Gergo Koteles, Robert Mader, Florian Müllner, Daniel van Vugt, Sebastian Wick
+
+Translators:
+  Yosef Or Boczko [he], Fabio Tomat [fur], Balázs Úr [hu],
+  Ekaterine Papava [ka], Yuri Chornoivan [uk], Artur So [ru],
+  Matej Urbančič [sl], Asier Sarasua Garmendia [eu], Danial Behzadi [fa],
+  Luming Zh [zh_CN], Hugo Carvalho [pt], Daniel Rusek [cs], Fran Dieguez [gl],
+  Daniel Mustieles [es]
+
+45.alpha
+========
+* Fix DND in some server-side decorated windows [Sebastian; !2978]
+* Optionally use libdisplay-info for EDID parsing [adarshgm; !2642]
+* Optimize partial surface updates [msizanoen1; !2965]
+* Fix redrawing regression in non-DMA remote sessions [Jonas Å.; !2987]
+* Avoid race condition in xwayland-on-demand [Marco; !2970]
+* Do not unminimize windows with initial IconicState [Carlos; !3001]
+* Implement physical pixel rounding of wayland surfaces [msizanoen1; !2726]
+* Fix mispositioning of some X11 fullscreen windows [Carlos; !2996]
+* Fix legacy fullscreen windows appearing on all monitors [Carlos; !2999]
+* Improve support for display-attached tablets [Carlos; !3012]
+* Fix stuck cursor in some clients [Carlos; !3025]
+* Avoid unexpected orientation changes around suspend/resume [Carlos; !3021]
+* Fix oversized input region around Xwayland windows [Jonas Å.; !3022]
+* Re-enable client modifiers with amdgpu driver [Robert; !3030]
+* Fix sysprof tracing in non-main threads [Jonas Å.; !2998]
+* Fix X11 client input region issues [Sebastian, Jonas Å.; !3031, !3045]
+* Optimize finish-layout step during stage updating [Robert, Jonas D.; !2679]
+* Fix profiling repeatedly [Jonas Å.; !3068]
+* Ensure preferred monitor mode is always included [Timotej; !3061]
+* Fully initialize input device state during init [Jonas Å.; !3070, !3071]
+* Forward modifiers to IM alongside regular key events [Carlos; !3044]
+* Fix window focus unexpectedly moving to secondary monitor when changing
+  workspaces [Sebastian W.; !2909]
+* Avoid rapidly toggling dynamic max render time [Daniel; !3074]
+* Fix dynamic max render time blocking with direct scanout [Dor; !3080]
+* Mirror window placement in RTL locales [Shmuel; !3009]
+* Fix screencast with fractionally scaled surfaces [msizanoen; !3053]
+* Reipmlement strict focus mode policy [Brendan; !3063]
+* Fixed crashes [Jonas Å., Barnabás, Carlos, Robert, Dor; !2992, !2995,
+  !3002, !3004, !3037, !3076, !3077, !3095, !3104]
+* Plugged leaks [Jonas Å., Dor; !2991, !3078]
+* Misc. bug fixes and cleanups [Marco, Andy, Sebastian K., Jonas Å., Robert,
+  Alexandre, Bilal, Georges, Florian, Dmitry, Michel, Pascal, Olivier, Carlos,
+  Daniel, Sebastian W., Corentin, Barnabás, Dor; !2903, !2983, !2986, !2985,
+  !2990, !2982, !3000, !2938, !2445, !3006, !3010, !2913, !2893, !2939, !3011,
+  !3007, !3018, !3016, !3024, !3020, !3029, !3034, !3036, !3040, !3046, !3051,
+  !3047, !3055, !3058, !3075, !3081] !3082, !3079, !2911, !3084, !3088, !3085,
+  !3052, !3094, !3083, !3092, !3008, !3098, !3091, !3062, !3108]
+
+Contributors:
+  Jonas Ådahl, adarshgm, Dor Askayo, Michel Dänzer, Jonas Dreßler,
+  Bilal Elmoussaoui, Olivier Fourdan, Alexandre Franke, Carlos Garnacho,
+  Andy Holmes, Sebastian Keller, Dmitry V. Levin, Robert Mader, Shmuel Melamud,
+  msizanoen, msizanoen1, Florian Müllner, Georges Basile Stavracas Neto,
+  Corentin Noël, Pascal Nowack, Barnabás Pőcze, Timotej Šulík,
+  Marco Trevisan (Treviño), Daniel van Vugt, Sebastian Wick, Brendan William
+
+Translators:
+  Danial Behzadi [fa], Simon Elst [fr], Rafael Fontenelle [pt_BR],
+  Sergej A [ru], Bruce Cowan [en_GB], Alexandre Franke [fr]
+
+44.1
+====
+* Fall back to the default, not the unknown color space [Sebastian W.; !2915]
+* Fix resizing windows via keyboard [Florian; !2908]
+* Fix possible screen freeze after resume with multiple monitors [Daniel; !2933]
+* Fix anchor position when dragging window [Carlos; !2942]
+* Fix applying XSettings to decorations on X11 [Marco; !2948]
+* Allow clipped redraws for headless backend [Salman; !2775]
+* Improve screencast support [Georges; !2804]
+* Fix focus-on-click for server-side decorated windows [Carlos; !2954]
+* Fix initial fullscreen state of server-side decorated windows [Carlos; !2961]
+* Fix feedback loop triggering bursts of excessive CPU load [Robert; !2823]
+* Enable modifiers by default on non-native backend [Robert; !2972]
+* Check EDID for supported sink Colorimetry [Sebastian W.; !2919]
+* Fix artifacts in titlebars on some hardware [Carlos; !2976]
+* Fix map transitions for X11 windows on wayland [Carlos; !2975]
+* Fixed crashes [Jonas Å., Sebastian K., Carlos, Michel, Daniel, Robert;
+  !2932, !2930, !2945, !2956, !2962, !2968, !2967, !2960, !2963]
+* Plugged leaks [Sebastian K., Jonas Å.; !2922, !2926, !2957]
+* Misc. bug fixes and cleanups [Daniel, Ivan, Emmanuele, Simon, Jonas D.,
+  Jonas Å., Chris, Florian, Corentin, msizanoen1, Sebastian K.; !2918, !2904,
+  !2928, !2929, !2900, !2856, !2944, !2935, !2947, !2949, !2951, !2940, !2953,
+  !2964, !2934, !2902, !2971]
+
+Contributors:
+  Jonas Ådahl, Emmanuele Bassi, Michel Dänzer, Jonas Dreßler, Carlos Garnacho,
+  Sebastian Keller, Robert Mader, Chris Mayo, Simon McVittie, Ivan Molodetskikh,
+  msizanoen1, Florian Müllner, Georges Basile Stavracas Neto, Corentin Noël,
+  Salman, Marco Trevisan (Treviño), Daniel van Vugt, Sebastian Wick
+
+Translators:
+  Boyuan Yang [zh_CN], Ngọc Quân Trần [vi], Nathan Follens [nl]
+
+44.0
+====
+* Fix state confusion and delay on startup [Carlos; !2906]
+* Fix night light regression [Sebastian; !2916]
+* Fix fullscreen regression with many SDL apps [Jonas; !2921]
+* Fixed crashes [Jonas; !2901, !2912]
+
+Contributors:
+  Jonas Ådahl, Carlos Garnacho, Sebastian Wick
+
+Translators:
+  Ask Hjorth Larsen [da], Piotr Drąg [pl], Marek Černocký [cs],
+  Gwan-gyeong Mun [ko]
+
+44.rc
+=====
+* Do not overwrite previously set offsets on attach [Matthias; !2843]
+* Fix Xwayland focus regressions [Carlos; !2841, !2878]
+* Stop parsing unused EDID parameters [adarshgm; !2825]
+* Fix partial updates on offscreen rotated screens [Robert; !2860]
+* Improve Xwayland RandR emulation compatibility [msizanoen1; !2725]
+* Fix touch window dragging on rotated monitors [Jonas D.; !2859]
+* Remove legacy OpenGL driver support [Jonas Å.; !2672]
+* Improve default scale factor selection [Adrian, Jonas Å.; !2653, !2880]
+* Handle all X11 window title fallbacks [Carlos; !2872]
+* Fix handling of keyboard-driven window resize [Carlos; !2871]
+* Fix recording windows on non-active workspaces [Robert; !2789]
+* Manage KMS updates more asynchronously [Jonas Å.; !2854, !2855]
+* Fix headless startup [Jonas Å.; !2821]
+* Remove support for window shading [Robert; !2884]
+* Move away from GTK3 [Carlos; !2864]
+* Restore zero-copy fast path for Xwayland fullscreen windows [Carlos; !2797]
+* Prevent clients from locking the compositor with cursor updates
+  [Olivier; !2849]
+* Add experimental development tool for HDR modes [Sebastian; !2879]
+* Account for linear sampling when calculating actor damage [msizanoen1; !2771]
+* wayland: Implement fractional_scale protocol [Robert; !2394]
+* Fixed crashes [Jonas D., Jonas Å., Robert; !2858, !2863, !2869, !2885, !2887]
+* Memory handling fixes
+  [Jonas Å., Carlos, Simon, Michel; !2853, !2868, !2877, !2886]
+* Misc. bug fixes and cleanups [Jonas Å., Florian, Robert, Carlos, Sebastian,
+  Jonas D.; !2846, !2840, !2850, !2829, !2862, !2779, !2861, !2713, !2865,
+  !2866, !2867, !2874, !2875, !2873, !2881, !2847, !2889, !2890, !2891, !2892,
+  !2894, !2895, !2899]
+
+Contributors:
+  Dor Askayo, Matthias Clasen, Jonas Dreßler, Michel Dänzer, Olivier Fourdan,
+  Carlos Garnacho, Robert Mader, Simon McVittie, Florian Müllner, Adrian Vovk,
+  Sebastian Wick, adarshgm, msizanoen1, Jonas Ådahl
+
+Translators:
+  Марко Костић [sr], Daniel [es], Fabio Tomat [fur], Matej Urbančič [sl],
+  Jiri Grönroos [fi], Balázs Úr [hu], Anders Jonsson [sv], Marek Černocký [cs],
+  Jürgen Benvenuti [de], Alexander Shopov [bg]
+
+44.beta
+=======
+* Don't disable KMS modifiers on newer i915 systems [Sameer; !2641]
+* Set LOD bias for sharper mipmaps  [Daniel; !2644]
+* Fix edge resistance and window snapping regression [John; !2687]
+* Avoid high-level udev queries for input caps and properties [Carlos; !2617]
+* Implement wl_output v3 and v4 [Robert; !2692]
+* Fix recalculating viewport after window resize [Sebastian Kr.; !2689]
+* Fix opaque cursors and LoDPI cursor on HiDPI screens [Jonas Å.; !2698]
+* Process device removing events immediately [Jonas D.; !2696]
+* Handle stage view updates without allocation more gracefully [Jonas D.; !2694]
+* Fix window screenshots being cut off at the bottom right [Sebastian K.; !2720]
+* wayland/subsurface: Avoid using buffers with unfinished client work
+  [Michel; !1880]
+* Move X11 window decorations to a separate client
+  [Carlos; !2175, !2735, !2756, !2791, !2796, !2758]
+* Fix cursor position in window screencasts [Georges; !2737]
+* Skip resize effects for tiled windows during user grabs [Michael; !2579]
+* Fix pointer constrains with subsurfaces [Robert; !2717]
+* Disable direct scanout during drag-n-drop operations [Robert; !2677]
+* Ignore unmapped subsurfaces in direct scanout check [Robert; !2755]
+* Fix cursor disappearing over windows during grabs [Carlos; !2754]
+* Make wl_output mode independent of the orientation [Sebastian W.; !2723]
+* Improve focus handling on workspace switches [Sebastian W.; !2747]
+* Fix initialization of keyboard accessibility [Carlos; !2750, !2778]
+* Refactor API to use well-defined ownership instead of singletons
+  [Jonas Å.; !2718]
+* Add support for xdg-foreign-v2 [Jason, Jonas Å.; !2770]
+* Add higher bit depth offscreen framebuffers support [Jonas Å., Naveen; !2461]
+* Overhaul dynamic max render time calculation [Michel; !2500]
+* Do not require a physical device to update pointer visibility [Carlos; !2766]
+* Allow building without xwayland support [Bilal; !2407, !2399]
+* Add Xwayland byte-swapped clients support [Olivier; !2785]
+* Fix freeze when crossing monitors under some conditions [Carlos; !2803]
+* Don't allow window activation to break global grabs
+  [Florian, Carlos; !2776, !2832]
+* Integrate window grab operations with new ClutterGrab API [Carlos; !2683]
+* Support selecting an acceleration profile for touchpad devices [Evan; !2426]
+* Enforce compliant surface buffer sizes [Robert; !2815]
+* Keep proportional position when moving window between rects [Sebastian; !2591]
+* Introduce implicit grabbing in Clutter [Jonas D.; !2342]
+* Fix unexpected window focus changes after global grabs [Sebastian W.; !2742]
+* Fix sloppy/mouse focus mode on wayland [Carlos; !2828]
+* Add service channel Wayland clients [Jonas Å.; !2810]
+* Fixed crashes [Sebastian W., Jonas Å., Bilal, Jonas D., msizanoen1, Georges,
+  Carlos, Daniel, Keyu; !2695, !2704, !2706, !2711, !2691, !2709, !2690, !2736,
+  !2745, !2674, !2793, !2794, !2827, !2831, !2834]
+* Plugged leaks [Niels; !2799, !2817]
+* Misc. bug fixes and cleanups [Jonas D., Jonas Å., Bilal, Florian, Corentin,
+  Bram, Georges, Hunor, Carlos, Robert, Michel, Christian, Olivier, Daniel,
+  Corey, Sebastian K., Jan, Anders, Simon, Sebastian W., Jake, Erico; !1492,
+  !2508, !2645, !2699, !2418, !2701, !2702, !2703, !2708, !2697, !2710, !2714,
+  !2715, !2716, !2719, 2724, 2739, 2740, 2733, 2753, 2741, !2680, !2727, !2757,
+  !2762, !2671, !2765, !2767, !2707, !2768, !2428, !2467, !2772, !2769, !2781,
+  !2784, !2786, !2780, !2788, !2792, !2783, !2798, !2795, !2800, !2805, !2790,
+  !2809, !2572, !2811, !2812, !2813, !2807, !2773, !2806, !2816, !2818, !2814,
+  !2819, !2782, !2822, !2087, !2824, !2826, !2621, !2748, !2091, !2833, !2808,
+  !2836]
+
+Contributors:
+  Corey Berla, Hunor Csomortáni, Jake Dane, Jonas Dreßler, Michel Dänzer,
+  Bilal Elmoussaoui, Olivier Fourdan, Jason Francis, Carlos Garnacho,
+  Evan Goode, Niels De Graef, Christian Hergert, Peter Hutterer, Anders Jonsson,
+  Sebastian Keller, Sebastian Krzyszkowiak, Naveen Kumar, Sameer Lattannavar,
+  Robert Mader, Simon McVittie, Florian Müllner, Georges Basile Stavracas Neto,
+  Corentin Noël, Erico Nunes, Bram Stolk, Keyu Tao, Jan Tojnar, Daniel van Vugt,
+  Michael Webster, Sebastian Wick, John Wudrick, msizanoen1, Jonas Ådahl
+
+Translators:
+  Dušan Kazik [sk], Aleksandr Melman [ru], Yuri Chornoivan [uk],
+  Hugo Carvalho [pt], Emin Tufan Çetin [tr], Kukuh Syafaat [id],
+  Fran Dieguez [gl], Yosef Or Boczko [he], Asier Sarasua Garmendia [eu],
+  Quentin PAGÈS [oc], Aurimas Černius [lt]
+
+43.1
+====
+* Add quirk to work around issue with Mali GPUs [Daniel; !2614]
+* Notify changes to night-light support over D-Bus [Sebastian W.; !2623]
+* Fix always-on-top windows unexpectedly taking focus [Sebastian W.; !2489]
+* Fix accidental direct scanout [Jonas Å.; !2624]
+* Disable client modifiers with amdgpu driver [Michel; !2637]
+* Cancel pointer gesture on wl_pointer.leave [Carlos; !2640]
+* Add black padding to fixed-size wayland fullscreen windows
+  [Jonas Å., Sebastian W.; !2338]
+* Stop sending frame callbacks to minimized clients [Robert; !2662]
+* Fix scrolling in clients with no hi-res scroll support in RDP [José; !2664]
+* Fix skipped low-res scroll events with some high-res mice [José; !2668]
+* Throttle interactive move and resize updates [Jonas Å.; !2652]
+* wayland-keyboard: Send pressed keys on enter [Jonas Å.; !2657]
+* Fix some X11 windows getting unredirected erroneously [Sebastian K.; !2651]
+* Fix Flatpak applications bypassing X11 permission [msizanoen1; !2633]
+* Fix always visible cursor in virtual streams [Salman; !2629]
+* Fixed crashes [Jonas Å., Sebastian W., Max, Carlos, Łukasz; !2616, !2627,
+  !2646, !2661, !2655, !2669, !2676]
+* Misc. bug fixes and cleanups [Daniel, Jonas Å., Sebastian W., Ivan, Marco,
+  Florian, Carlos, Jonas D.; !2615, !2619, !2590, !2630, !2515, !2656,
+  !2659, !2670, !2667, !2678]
+
+Contributors:
+  Marco Trevisan (Treviño), Jonas Dreßler, Michel Dänzer, José Expósito,
+  Carlos Garnacho, Sebastian Keller, Robert Mader, Salman Malik,
+  Ivan Molodetskikh, Florian Müllner, Łukasz Spintzyk, Daniel van Vugt,
+  Sebastian Wick, Max Zhao, msizanoen1, Jonas Ådahl
+
+Translators:
+  Baurzhan Muftakhidinov [kk], Sabri Ünal [tr], Pawan Chitrakar [ne],
+  Jürgen Benvenuti [de], Nart Tlisha [ab], Fabio Tomat [fur],
+  Quentin PAGÈS [oc], Freddy Cheng [zh_TW], Мирослав Николић [sr],
+  Nathan Follens [nl]
+
+43.0
+====
+* Fix stuttering in Xorg session [Daniel; !2625]
+* Make MetaBarrier type derivable again [Jonas; !2626]
+* Fixes crash [Jonas; !2622]
+
+Contributors:
+  Daniel van Vugt, Jonas Ådahl
+
+Translators:
+  Aleksandr Melman [ru], Fran Dieguez [gl], Daniel Mustieles [es],
+  Aurimas Černius [lt], Matej Urbančič [sl], Leônidas Araújo [pt_BR],
+  Kukuh Syafaat [id], Sveinn í Felli [is], Zurab Kargareteli [ka],
+  Rūdolfs Mazurs [lv], Yosef Or Boczko [he], Alexander Shopov [bg],
+  Alan Mortensen [da]
+
+43.rc
+=====
+* Remember monitor scale when switching configurations [Jonas Å.; !2479]
+* Embed wayland output name into screencast streams [Salman; !2540]
+* Limit precision of stored refresh rates [Daniel; !2465, !2602]
+* Add support for the "max bpc" connector property [Daniel; !2412]
+* Fix focus-tracking corner case [Jonas D.; !2329]
+* Add detail to ::event signal [Jonas D.; !2431]
+* Improve heuristics for adding fallback monitor modes [Mario; !2586]
+* Take over color management from gnome-settings-daemon
+  [Jonas Å.; !2141, !2164, !2165, !2166, !2568]
+* Allow scanout for offscreen rotated views [Robert; !2468]
+* Fix hot corner regression on X11 [Jonas Å.; !2604]
+* Fix losing IM focus in some circumstances [Carlos; !2585]
+* Avoid swapping redundant portions of buffers onscreen [Erico; !2241]
+* Animate windows moving between monitors [Alessandro; !2558]
+* Make NVIDIA + gbm use atomic mode setting [Jonas Å.; !2578]
+* Fixed crashes [Jonas Å., Steev, Carlos, Simon; !2554, !2577, !2592, !2182,
+  !2609, !2612]
+* Plugged memory leak [Alessandro; !2608]
+* Misc. bug fixes and cleanups [Florian, Carlos, Jordan, Simon, Jonas Å.,
+  Jonas D., Daniel, Sebastian K., Alberts, Bilal, Dor, Sebastian W.; !2566,
+  !2573, !2576, !2534, !2581, !2430, !2561, !2584, !2588, !2551, !2552, !2594,
+  !2596, !2598, !2601, !2603, !2589, !2587, !2375, !2486, !2606, !1354, !2605,
+  !2611]
+
+Contributors:
+  Dor Askayo, Alessandro Bono, Jonas Dreßler, Bilal Elmoussaoui,
+  Carlos Garnacho, Sebastian Keller, Steev Klimaszewski, Mario Limonciello,
+  Robert Mader, Salman Malik, Simon McVittie, Alberts Muktupāvels,
+  Florian Müllner, Erico Nunes, Jordan Petridis, Daniel van Vugt,
+  Sebastian Wick, Jonas Ådahl
+
+Translators:
+  Nart Tlisha [ab], Jiri Grönroos [fi], Goran Vidović [hr],
+  Yuri Chornoivan [uk], Jordi Mas [ca], Marek Černocký [cs], Balázs Úr [hu],
+  Emin Tufan Çetin [tr], Danial Behzadi [fa], Piotr Drąg [pl],
+  Rūdolfs Mazurs [lv], Hugo Carvalho [pt], Anders Jonsson [sv],
+  Boyuan Yang [zh_CN], Asier Sarasua Garmendia [eu]
+
+43.beta
+=======
+* Fix glitches in apps using subsurfaces [Robert; !2501, !2530]
+* Reduce client work when entering overview [Robert; !2502]
+* Support direct scanout on GPUs without modifiers support [Dor; !2510]
+* screencast: Set correct stride when using dmabufs [Pascal; !2513]
+* High-resolution scroll wheel support [José, Carlos; !1962]
+* screencast: Use flag to signal failed recording [columbarius; !2516]
+* Fix cursor visibility on X11 with only tablets as input [Carlos; !2518]
+* Notify about privacy screen changes via predictions [Jonas Å.; !2340, !2531]
+* Highlight actors becoming reactive under the pointer [Carlos; !2532]
+* Replace MetaTextureTower with native GL mipmapping [Daniel, Neil; !2506]
+* Add tool to pretty print display configuration [Jonas Å., Marco; !2448]
+* Remove mipmap framerate limiting [Daniel; !2538]
+* Fall back to ARGB if XRGB is not supported [Daniel; !2519]
+* Add basic color-scheme support for server-side decorations [Florian; !2541]
+* Don't skip frames after skipped KMS updates [Michel; !2498]
+* Add support for multi-monitor direct scanout [Dor; !2526]
+* Continue gi-docgen migration [Bilal; !2441]
+* Always send modifiers to clients if supported [Jonas Å.; !2546]
+* Defer and accumulate redraw-clip on scanout [Robert; !2480]
+* Add single pixel buffer support [Robert, Jonas Å.; !2246]
+* Report actual monitor transform [Robert; !344]
+* Better integrate cogl tests with existing infrastructure [Jonas Å.; !2555]
+* Fix registering as X11 window manager if GDK_BACKEND is set [Michel; !2496]
+* Don't skip vblank sync on missing presentation timestamp [Dor; !2481]
+* Fix cursor showing on Xilinx [Daniel; !2520]
+* Plugged leaks [Michel, Daniel; !2527, !2562]
+* Fixed crashes [Robert, Jonas Å.; !2459, !2553]
+* Misc. bug fixes and cleanups [columbarius, Daniel, Carlos, Michel, Jonas Å.,
+  Florian, Jonas D., Julia, Corentin; !2323, !2074, !2517, !2525, !2524, !2442,
+  !2523, !2535, !2348, !2537, !2456, !2542, !2547,  !2556,  !2559, !2564, !2511]
+
+Contributors:
+  Marco Trevisan (Treviño), Dor Askayo, Jonas Dreßler, Michel Dänzer,
+  Bilal Elmoussaoui, José Expósito, Carlos Garnacho, Julia Johannesen,
+  Robert Mader, Neil Moore, Florian Müllner, Pascal Nowack, Corentin Noël,
+  Nart Tlisha, Daniel van Vugt, columbarius, Jonas Ådahl
+
+Translators:
+  Nart Tlisha [ab]
+
+43.alpha
+========
+* Drop zenity dependency [Bilal; !2370]
+* Fix initialization of privacy mode in displays that support it [Marco; !2372]
+* Add NightLightSupported property to DisplayConfig [Jonas; !2310]
+* Don't use direct scanout for transparent windows [Sebastian K.; !2409]
+* Improve picking a window for direct scanout [Sebastian K.; !2413]
+* Drop support for obsolete wayland protocols [Fernando; !2207, !2184]
+* Fix --replace again [Jonas; !2432]
+* Do not allow windows to steal focus when the shell has a grab [Carlos; !2433]
+* Fix night light without GAMM_LUT property [Jonas; !2435]
+* Expose Cogl's Snippet API to introspection [Simon; !2422]
+* wayland: Fix rotation transform [Robert; !1055]
+* Build and deploy API documentation [Bilal; !2427]
+* Attach color state information to actors [Naveen; !2443]
+* Fix pointer confinement on HiDPI setups [Jonas; !2460]
+* Fix dma-bufu screencast regression [Jonas; !2462]
+* Fix monitor mirroring in some cases [Jonas; !2492]
+* Parse HDR and Colorimetry CTA-861 EDID extension blocks [Sebastian W.; !2351]
+* Fix cursor tracking during screencasts on X11 [George; !2474]
+* Fixed crashes [Jonas, Florian; !2415, !2364, !2491]
+* Plugged leaks [Michel, Sebastian K.; !2469, !2497]
+* Misc. bug fixes and cleanups [Kazuki, Dor, Jonas, Bilal, Sebastian K.,
+  Christian, Florian, Georges,, Sebastian W., Olivier; !2405, !2406, !2403,
+  !2416, !2398, !2414, !2425, !2354, !2436, !2447, !2446, !2355, !2429, !2417,
+  !2434, !2439, !2015, !2444, !2458, !2379, !2455, !2463, !2484, !2485, !2488,
+  !2499]
+
+Contributors:
+  Marco Trevisan (Treviño), Dor Askayo, George Barrett, Michel Dänzer,
+  Bilal Elmoussaoui, Olivier Fourdan, Carlos Garnacho, Kazuki Hashimoto,
+  Sebastian Keller, Naveen Kumar, Robert Mader, Fernando Monteiro,
+  Florian Müllner, Georges Basile Stavracas Neto, Christian Rauch,
+  Simon Schneegans, Sebastian Wick, Jonas Ådahl
+
+Translators:
+  Zurab Kargareteli [ka], Pawan Chitrakar [ne]
+
+42.1
+====
+* Send correct LEAVE events when entering windows [Jonas D.; !2321]
+* Be more forgiving with wrongly sized clients [Robert; !2335]
+* Add ClutterInputCapabilities enum and device property [Carlos; !2331]
+* Fall back if COPY_MODE_SECONDARY_GPU fails to init [Daniel; !2341]
+* Fix missing root window properties after XWayland start [Olivier; !2336]
+* wayland/shm: Add support for ABGR8888 and XBGR8888 formats [Jonas Å.; !2352]
+* Keep actors dirty if a redraw was queued up during paint() [Carlos; !2353]
+* Fix overview painting of shaped texture with layer snippets [Jonas Å.; !2278]
+* Survive missing GAMMA_LUT KMS property [Daniel; !2360]
+* Record current event when going through event filters [Jonas D.; !2327]
+* Pass events to pointer a11y before going through filters [Jonas D.; !2332]
+* Update cursor when scaled or transformed [Sebastian W.; !2363]
+* Fix screen cast when DMA buffer fails or can't be used [Jonas Å.; !2383]
+* Repick when pointer actor goes unmapped [Jonas D.; !2333]
+* Improve IM support [Carlos; !2365, !2384]
+* Allow using dumb buffers for cursor sprites [Jonas Å.; !2275]
+* wayland/dma-buf: Only advertise supported formats [Robert; !2386]
+* Fix screen cast cursor metadata with unthrottled input [Jonas Å.; !2393]
+* Fixed crashes [Olivier Daniel, Łukasz, Jonas D.; !2339, !2359, !2347, !2299]
+* Plugged memory leak [Sebastian K.; !2345]
+* Misc. bug fixes and cleanups [Christian, Jonas Å., Bartłomiej, Carlos, Daniel,
+  Sebastian W., Corentin, Jonas D., Sebastian K.; !2316, !2152, !2334, !2349,
+  !2325, !2357, !2362, !2373, !2374, !2361, !2366, !2350, !2377, !2382, !2391,
+  !2395, !2387, !2400, !2397, !2378]
+
+Contributors:
+  Jonas Dreßler, Bilal Elmoussaoui, Olivier Fourdan, Carlos Garnacho,
+  Christian Hergert, Sebastian Keller, Robert Mader, Florian Müllner,
+  Corentin Noël, Bartłomiej Piotrowski, Łukasz Spintzyk, Daniel van Vugt,
+  Sebastian Wick, Jonas Ådahl
+
+Translators:
+  Balázs Úr [hu], Charles Monzat [fr], Milo Casagrande [it], Марко Костић [sr],
+  Nathan Follens [nl], Jordi Mas [ca], Ngọc Quân Trần [vi]
+
+42.0
+====
+
+Translators:
+  Fabio Tomat [fur], Alexander Shopov [bg]
+
+42.rc
+=====
+* Fix X11 → wayland drops ending up in the wrong wayland client [Olivier; !2305]
+* Make xdg-activation interoperate with other startup sequences [Carlos; !2314]
+* Fix stuck grab feedback actor during compositor grabs [Jonas D.; !2308]
+* Make gnome-desktop dependency optional [Bilal; !2317]
+* Provide better profiling information [Ivan; !1928]
+* Drop ClutterEvent "source" field [Carlos; !2311]
+* Add support for xdg_toplevel.configure_bounds() [Jonas Å.; !2167]
+* Add support for wl_surface.offset [Jonas Å.; !1905]
+* Fix resizing of virtual monitors [Jonas Å.; !2270]
+* Include size in configure events of maximized clients [Sebastian K.; !2238]
+* Only allow direct scanouts for surfaces that aren't cropped, scaled or rotated
+  [Robert; !2276]
+* Fix pipewire screencasts [Ivan; !2322]
+* Plugged memory leak [Robert; !2297]
+* Fixed crash [Jonas; !2318]
+* Misc. bug fixes and cleanups [Bilal, Jonas Å., Florian, Dor, Alfonso,
+  Sebastian W., Carlos, Jonas D.; !2306, !2300, !2301, !2303, !2307, !2315,
+  !2319, !2298, !2320, !2324]
+
+Contributors:
+  Dor Askayo, Jonas Dreßler, Bilal Elmoussaoui, Olivier Fourdan,
+  Carlos Garnacho, Sebastian Keller, Robert Mader, Ivan Molodetskikh,
+  Florian Müllner, Alfonso Sánchez-Beato, Sebastian Wick, Jonas Ådahl
+
+Translators:
+  Emin Tufan Çetin [tr], Yosef Or Boczko [he], Quentin PAGÈS [oc],
+  Christian Kirbach [de], Aurimas Černius [lt], Danial Behzadi [fa],
+  Daniel Mustieles [es], Alan Mortensen [da], Goran Vidović [hr],
+  Tim Sabsch [de], Anders Jonsson [sv], Gwan-gyeong Mun [ko],
+  Daniel Șerbănescu [ro], Piotr Drąg [pl]
+
+42.beta
+=======
+* Implement a new Clutter grab API [Carlos; !2068, !2099, !2100]
+* Support KMS testing via QEMU [Jonas Å.; !2151]
+* Generate API references with gi-docgen [Andy; !2248]
+* Improve support for running from toolbx [Sebastian; !2254, !2261]
+* Add support for privacy screen [Marco; !1952]
+* Allow changing monitor configuration policy [Jonas Å.; !2030]
+* Add support for XFixes ClientDisconnectMode [Olivier; !1794]
+* Fix possible missed clicks on menus [Carlos; !2257]
+* Place popups on the same monitor as the anchor rect [Jonas Å.; !2252]
+* Announce DMA-BUF support via pipewire [columbarius; !1939]
+* Raise the file descriptor limit of the wayland compositor [Olivier; !2235]
+* Fix resetting idle time on lid open [Carlos; !2272]
+* Don't limit DMA buffer screen casting only to Intel [Jonas Å.; !2086]
+* Keep a single cursor sprite visible with tablets [Carlos; !285]
+* Sync keyboard LEDs after layout changes [Konstantin; !2279]
+* Honor window input area in picking [Carlos; !2283]
+* Handle mixture of keycombo/no action in pad rings/strips [Carlos; !2001]
+* Fixed crashes [Carlos, Jonas Å., Daniel; !2237, !2280, !2282, !2251]
+* Misc. bug fixes and cleanups [Björn, Jonas Å., Daniel, Michel, Robert,
+  Pascal, Florian, Olivier, Pabel, Carlos, Jonas D.; !2236, !2014, !2240,
+  !2230, !2232, !2255, !2245, !2242, !2159, !2253, !2258, !2263, !2266,
+  !2271, !2256, !2264, !2262, !2281, !2287, !2284]
+
+Contributors:
+  Marco Trevisan (Treviño), Björn Daase, Jonas Dreßler, Michel Dänzer,
+  Olivier Fourdan, Carlos Garnacho, Pablo Correa Gómez, Andy Holmes,
+  Konstantin Kharlamov, Robert Mader, Florian Müllner, Pascal Nowack,
+  Daniel van Vugt, Sebastian Wick, columbarius, Jonas Ådahl
+
+Translators:
+  Yaron Shahrabani [he], Boyuan Yang [zh_CN], Marek Černocký [cs],
+  Aurimas Černius [lt], Kukuh Syafaat [id], Daniel Mustieles [es],
+  Yuri Chornoivan [uk], Hugo Carvalho [pt], Yosef Or Boczko [he],
+  Fran Dieguez [gl], Matheus Barbosa [pt_BR], Aleksandr Melman [ru],
+  sicklylife [ja], Luming Zh [zh_CN], Matej Urbančič [sl],
+  Leônidas Araújo [pt_BR], Asier Sarasua Garmendia [eu],
+  Jordi Mas i Hernandez [ca]
+
+42.alpha
+========
+* Fix monitor screencast scanouts [Michel; !1914]
+* dma-buf: Use alpha-less pixel formats where appropriate [Robert; !1810]
+* wayland: Allow clients to maximize windows regardless of constraints
+  [Christian; !1997]
+* Handle hotplug events without relevant changes more effectively [Marco; !1964]
+* Improve error reporting when startup fails [Jonas; !1994]
+* dma-buf: Add support for ABGR and XBGR formats [Erfan; !1999]
+* Fix X11 middle button emulation setting [José; !2000]
+* Include server-side shadows in window screenshots [Robert; !1996]
+* Don't change workspaces of unmanaged windows [Sebastian; !2003]
+* Reset idletime when unplugging the power cable [Bastien; !2029]
+* xwayland: Avoid unnecessary _NET_WM_STATE events [Dor; !2032]
+* Fix videos in Firefox stuttering in overview [Robert; !2034]
+* Don't use atomic mode setting for virtio_gpu driver [Jonas; !2040]
+* Improve on-screen keyboard on X11 [Sebastian, Ray; !1955, !2039]
+* Fix text glitches after size changes [Sebastian; !2006]
+* Fix reporting output rotation to xwayland [Olivier; !2050]
+* wayland: Accept final preference of drop destination [Robert; !2043]
+* Only add paint volumes of mapped actors to stage clip [Robert; !2035]
+* Fix negative paint volume offscreen effect [Sebastian; !2031]
+* Introduce MetaRenderDevice [Jonas; !1854]
+* Prefer GBM over EGLStream where possible [Jonas; !2051, !2052]
+* Fix erratic scrolling in GTK apps [Carlos; !2059]
+* Use rtkit to get realtime priority [Carlos; !2060]
+* Turn experimental features into flags [Robert; !1961]
+* Add support for EGL_KHR_partial_update [Erico; !2023]
+* Use b/w unicode for tablet mode OSD [Carlos; !2064]
+* Fix tilt direction of pen/tablet inputs [Quytelda; !2065]
+* Sanitize event handling at gestures [Carlos; !2024]
+* Fix mapping tablet input to correct monitor [Jason; !1934]
+* Optionally run (and exit) with a command [Mark; !1982]
+* Fix key repeat of on-screen keyboard for 2nd-level keysyms [Ray; !2045]
+* Copy damage rectangles to secondary GPU [Piotr; !2033]
+* Fix window size after returning from fullscreen [Sebastian, Jonas; !2066]
+* Fix blank screen when unplugging docking station [Jonas; !2097]
+* Ensure constraints after client resize [Sebastian; !2103]
+* Improve anti-aliasing of background corners [Daniel; !2102]
+* Fix unredirected Xwayland windows not getting updated [Michel; !2112]
+* Fix DND between X11 and wayland clients [Carlos; !2124]
+* Add hold gestures [José; !1830]
+* Always snoop key events for a11y [Carlos; !1328]
+* Improve Wacom tablet mapping [Carlos; !2107]
+* Allow adding more streams to a screen cast session [Jonas; !2131]
+* Do not throttle input in wayland event delivery [Carlos; !1915]
+* Allow forcing EGLStream backend [Jonas; !2132]
+* Check keyboard serials for activation [Carlos; !2148]
+* Rebind the EGL image when handling damage [Neil; !2062]
+* Do not pass events to windows with modal transients [Florian; !2123]
+* Fix mixed up refresh rates in multi-monitor setups [Robert; !2169]
+* Fix orientation changes on devices with 90° [Hans, Marco; !2090]
+* Allow disabling HW cursors [Olivier; !2150]
+* Improve damage handling [Robert; !2168]
+* Consider xrandr flags for advertised modes [Robert; !2190]
+* Improve KMS fallback modes [Robert; !2189]
+* window-group: Disable culling when rendinging clone to offscreen buffer
+  [Sebastian; !2080]
+* Support DMA buffer feedback [Jonas, Robert; !2202, !1959]
+* Advance timelines according to presentation time [Daniel; !2161]
+* Drop deprecated wl-shell and text-input-v3 support [Fernando; !2183, !2185]
+* Fix workspace switch animation in default plugin [Mark, Erik; !2076, !2120]
+* Fix unfullscreening of window that were mapped fullscreen [Jonas; !2210]
+* Consider wayland subsurfaces for scanout [Robert; !2211]
+* Fix DMA-BUF screencasts with unredirected fullscreen windows [Georges; !2186]
+* Fixed crashes [Carlos, Jonas, Daniel; !2063, !2025, !2081, !2104, !1991,
+  !2111, !2127, !2147, !2181, !2216]
+* Plugged leaks [Sebastian, Jonas; !2193, !2192, !2225]
+* Misc. bug fixes and cleanups [Daniel, Jonas, Corentin, Robert, Georges,
+  Sebastian, Simon, Carlos, Pascal, Fernando, Joan, José, Florian, Alexander,
+  Ievgen; !1992, !2007, !2008, !2026, !2044, !2057, !2002, !2028, !2049, !2061,
+  !1796, !2079, !2084, !2088, !2093, !2009, !2094, !2108, !2125, !2133, !2128,
+  !2138, !2058, !2130, !2140, !2122, !2095, !2126, !2139, !2145, !2149, !2157,
+  !1966, !2163, !2158, !2134, !1993, !2142, !2162, !2173, !2187, !2199, !2203,
+  !2204, !2205, !2146, !1812, !2214, !2215, !2188, !2206]
+
+Contributors:
+  Marco Trevisan (Treviño), Erfan Abdi, Dor Askayo, Michel Dänzer,
+  José Expósito, Olivier Fourdan, Carlos Garnacho, Jason Gerecke, Hans de Goede,
+  JoseExposito, Quytelda Kahja, Sebastian Keller, Robert Mader, Mark,
+  Erik Massop, Simon McVittie, Alexander Mikhaylenko, Fernando Monteiro,
+  Florian Müllner, Georges Basile Stavracas Neto, Bastien Nocera, Pascal Nowack,
+  Corentin Noël, Erico Nunes, Ievgen Popovych, Christian Rauch, Neil Roberts,
+  Ray Strode, Joan Torres, Daniel van Vugt, Jonas Ådahl, Piotr Łopatka
+
+Translators:
+  eshagh shahidani [fa], Danial Behzadi [fa], Марко Костић [sr],
+  Zander Brown [en_GB], Ngọc Quân Trần [vi], Rūdolfs Mazurs [lv],
+  Yuri Chornoivan [uk], Fabio Tomat [fur], Hugo Carvalho [pt],
+  Milo Casagrande [it], Quentin PAGÈS [oc], Goran Vidović [hr],
+  Yaron Shahrabani [he], Daniel Mustieles [es], Aleksandr Melman [ru],
+  Aurimas Černius [lt], Sveinn í Felli [is], Kukuh Syafaat [id],
+  Asier Sarasua Garmendia [eu]
+
+41.0
+====
+* Avoid race in wl_seat capabilities [Olivier; !77]
+* Expose option groups/entries to introspection [Corentin; !1976]
+
+Contributors:
+  Olivier Fourdan, Corentin Noël
+
+Translators:
+  Daniel Șerbănescu [ro], Goran Vidović [hr], Luna Jernberg [sv],
+  eshagh shahidani [fa], Gwan-gyeong Mun [ko], Emin Tufan Çetin [tr],
+  Philipp Kiemle [de], Balázs Úr [hu], Piotr Drąg [pl], Nathan Follens [nl],
+  Jordi Mas [ca], Ask Hjorth Larsen [da]
+
+41.rc
+=====
+* Add clutter_stage_paint_to_content() [Ivan; !1899]
+* Add meta_cursor_tracker_get_scale() [Ivan; !1967]
+* wayland: Make each wl_output correspond to one monitor [Jonas; !1712]
+* Expose 'inactive-since' timestamp to uresourced [Nishal; !1960]
+* Pass dirty rects to secondary GPU [Piotr; !1879]
+* Support committing preedit string on focus loss [Carlos; !1940]
+* Improve auto-rotation support [Marco; !1233]
+* Add meta_window_actor_paint_to_content() [Robert; !1893]
+* Fixed crashes [Jonas, Ray, Robert; !1947, !1979, !1965, !1958]
+* Misc. bug fixes and cleanups [Florian, Carlos, Robert, Daniel, Erico, Dor;
+  !1957, !1924, !1970, !1971, !1972, !1973, !1974, !1977, !1978, !1975, !1886,
+  !1983, !1990, !1980]
+
+Contributors:
+  Marco Trevisan (Treviño), Dor Askayo, Carlos Garnacho, Nishal Kulkarni,
+  Piotr Lopatka, Robert Mader, Ivan Molodetskikh, Florian Müllner, Erico Nunes,
+  Ray Strode, Daniel van Vugt, Jonas Ådahl
+
+Translators:
+  Asier Sarasua Garmendia [eu], Claude Paroz [fr], Jiri Grönroos [fi],
+  Baurzhan Muftakhidinov [kk], Aurimas Černius [lt]
+
+41.beta
+=======
+* Fix mouse position in remote desktop with fractional scaling [Pascal; !1867]
+* Manage idle monitors via MetaIdleManager [Jonas Å.; !1859]
+* Disable KMS modifiers on radeon driver [Carlos; !1872]
+* Fix fd leak [Carlos; !1870]
+* Fix adding virtual monitor to physical session [Jonas Å.; !1891]
+* Unbreak press-drag-release to pop up and select right click menus
+  [Carlos; !1885]
+* Fix VKMS detection [Jonas Å.; !1892]
+* Fix swipe cancellation [JoseExposito; !1857]
+* Add ClutterTextureContent [Robert; !1888]
+* Fix mapping tablet to monitor [Christoph; !1887]
+* Fix area screencasts when window is unredirected [Michel; !1902]
+* Don't require a newly attached buffer to apply state [Christian, Jonas; !1795]
+* Close unused mode setting and rendering devices [Jonas Å.; !1828]
+* Only support super+scroll on wayland [Florian; !1922]
+* Implement the xdg-activation protocol [Carlos; !1845]
+* Reduce input latency by computing max render time heuristically [Ivan; !1762]
+* Apply dithering to dispatch time when needed [Daniel; !1826]
+* Introduce MetaContext [Jonas Å.; !1861]
+* x11: Compute monitor scale per output [Marco; !336]
+* Shrink and optimize the rounded-background-clip shader [Daniel; !1860]
+* remote-desktop: Handle non-responding selection owners [Pascal; !1874]
+* Improve sysprof support [Jonas Å.; !1700]
+* Allow clients to delegate titlebar gestures to the compositor [Florian; !1944]
+* Fix upside-down Xshape surface with EGLstream [Robert; !1937]
+* Fix 'kms-modifiers' experimental setting [Robert; !1953]
+* Make default focus window on each workspace appear focused [Alexander; !850]
+* Plugged memory leaks [Jonas Å.; !1869]
+* Fixed crashes crash [Daniel, Jonas Å., Florian; !1883, !1895,
+  !1910, !1925, !1956]
+* Misc. bug fixes and cleanups [Jonas Å., Marco, Daniel, Florian, Georges,
+  Zander, Carlos, Robert; !1833, !1863, !1876, !1873, !1884, !1890, !1900,
+  !1912, !1916, !1911, !1920, !1865, !1927, !1923, !1929, !1100, !1932, !1931,
+  !1862, !1933, !1930, !1935, !1936, !1878, !1938, !1942, !1951, !522, !1941]
+
+Contributors:
+  Marco Trevisan (Treviño), Zander Brown, Piotr Drąg, Michel Dänzer,
+  Carlos Garnacho, JoseExposito, Robert Mader, Alexander Mikhaylenko,
+  Ivan Molodetskikh, Florian Müllner, Georges Basile Stavracas Neto,
+  Pascal Nowack, Christian Rauch, Christoph Trassl, Daniel van Vugt, Jonas Ådahl
+
+Translators:
+  Pawan Chitrakar [ne], Charles Monzat [fr], Dušan Kazik [sk],
+  Quentin PAGÈS [oc], Alexey Rubtsov [ru], Alexander Shopov [bg],
+  Florentina Mușat [ro], Chao-Hsiung Liao [zh_TW], Yuri Chornoivan [uk],
+  Fran Dieguez [gl], Hugo Carvalho [pt], Rafael Fontenelle [pt_BR],
+  Fabio Tomat [fur], Kukuh Syafaat [id], Yaron Shahrabani [he],
+  Marek Černocký [cs], Matej Urbančič [sl], Boyuan Yang [zh_CN],
+  Daniel Mustieles [es]
+
+40.1
+====
+* Prevent clients from pasting old selection data [Carlos; !1772]
+* Fix forward_key IM functionality on wayland [Takao; !1802]
+* Ensure valid window texture size after viewport changes [Robert; !1799]
+* Only update cached paint volumes when necessary [Jonas D.; !1773, !1829]
+* Only disable KMS modifiers for drivers with known problems [Jonas Å; !1792]
+* Fix X11 client resize during moves [Olivier; !1777]
+* Fix performance drop during night light transition with Nvidia [Aaron; !1816]
+* kms: Don't add common modes that exceed the max bandwidth [Jonas Å.; !1834]
+* Create virtual input devices on demand [Jonas Å; !1800, !1858]
+* Fix wrong night light gamma when leaving power saving [Jonas Å.; !1835]
+* Fix picking edge case [Sebastian; !1842]
+* Properly tear down things when shutting down [Jonas Å.; !1822, !1856, !1853]
+* Fix monitor screencasting with fractional scaling [kirbykevinson; !1855]
+* Fixed crash [Carlos; !1849]
+* Plugged memory leak [Carlos; !1839]
+* Misc. bug fixes and cleanups [Carlos, Daniel, Jonas D., Jonas Å., Robert,
+  Aleksandr, Florian, Michel, Sebastian, Olivier; !1785, !1798, !1784,
+  !1791, !1801, !1807, !1786, !1793, !1804, !1820, !1824, !1819, !1803,
+  !1821, !1806, !1814, !1831, !1832, !1836, !1843, !1740, !1841, !1827,
+  !1844, !1852, !1850, !1851]
+
+Contributors:
+  Jonas Ådahl, Michel Dänzer, Jonas Dreßler, Olivier Fourdan, Takao Fujiwara,
+  Carlos Garnacho, Sebastian Keller, kirbykevinson, Robert Mader,
+  Aleksandr Mezin, Florian Müllner, Aaron Plattner, Daniel van Vugt
+
+Translators:
+  Bruce Cowan [en_GB], Ngọc Quân Trần [vi], Marek Černocký [cs],
+  Dz Chen [zh_CN], Yosef Or Boczko [he], Nathan Follens [nl],
+  Yuri Chornoivan [uk], Jordi Mas [ca], Piotr Drąg [pl], Tim Sabsch [de],
+  Luna Jernberg [sv], Hugo Carvalho [pt], Rafael Fontenelle [pt_BR],
+  Asier Sarasua Garmendia [eu], Quentin PAGÈS [oc], Matej Urbančič [sl]
+
+40.0
+====
+* xwayland: Check permissions on /tmp/.X11-unix [Olivier; !1787]
+
+Contributors:
+  Olivier Fourdan
+
+Translators:
+  Hugo Carvalho [pt], Tim Sabsch [de], Daniel Mustieles [es],
+  Matej Urbančič [sl], Марко Костић [sr], Fran Dieguez [gl]
+
+40.rc
+=====
+* Fix keyboard input from remote desktop in Xorg session [Pascal; !1732]
+* Fix restoring focus to windows using globally active input [Olivier; !1716]
+* Expose unaccalerated touchpad gesture deltas [Alexander; !1353]
+* Avoid relayout on text attribute changes when possible [Jonas D.; !1750]
+* Add remote desktop caps- and num-lock state properties [Jonas Å.; !1739]
+* Improve refresh rate calculation [Akihiko; !1737]
+* Implement presentation-time protocol [Ivan; !1484]
+* Disable double-buffered shadow buffering [Jonas Å.; !1724]
+* Fix missing cursor on tablet devices [Jonas D.; !1758]
+* Fix frame timings causing X11 clients to get stuck [Jonas Å.; !1754]
+* Fix applying input settings on X11 [Marco, Suryashankar; !1769, !1767]
+* Add headless native backend [Jonas Å.; !1698]
+* Fix high latency and stalls with proprietary nvidia driver [Daniel; !1726]
+* Fix maximized windows not reacting to strut changes [Aleksandr; !1755]
+* Only start XWayland on demand when running under systemd [Benjamin; !1771]
+* Sync LEDs when a new input device is added [Olivier; !1662]
+* Fix order in which subsurface placement operations are handled [Robert; !1768]
+* Fixed crashes [Jonas Å., Sebastian; !1745, !1747, !1759, !1748, !1776, !1775]
+* Plugged leaks [Philip, Sebastian; !1738, !1728]
+* Misc. bug fixes and cleanups [Jonas Å., Jonas D., Ivan, Florian, Marco,
+  Robert; !1688, !1744, !1736, !1749, !1752, !1753, !427, !1757, !1751, !1760,
+  !1765, !1770, !1763, !1774, !1780, !1779, !1783]
+
+Contributors:
+  Jonas Ådahl, Benjamin Berg, Suryashankar Das, Jonas Dreßler, Olivier Fourdan,
+  Sebastian Keller, Robert Mader, Aleksandr Mezin, Alexander Mikhaylenko,
+  Ivan Molodetskikh, Florian Müllner, Pascal Nowack, Akihiko Odaki,
+  Marco Trevisan (Treviño), Daniel van Vugt, Philip Withnall
+
+Translators:
+  Fran Dieguez [gl], Asier Sarasua Garmendia [eu], Claude Paroz [fr],
+  Piotr Drąg [pl], Hugo Carvalho [pt], Jordi Mas [ca], Fabio Tomat [fur],
+  Yuri Chornoivan [uk], Enrico Nicoletto [pt_BR], Emin Tufan Çetin [tr],
+  Daniel Șerbănescu [ro], Marek Černocký [cs], Balázs Úr [hu],
+  Aurimas Černius [lt], Kukuh Syafaat [id], A S Alam [pa], Anders Jonsson [sv],
+  Milo Casagrande [it], Gwan-gyeong Mun [ko]
+
+40.beta
+=======
+* Consider clients without mapped windows for xwayland auto-shutdown
+  [Olivier; !1671]
+* Let compositor to handle super+scroll events [Florian; !1674, !1695]
+* Default to starting Xwayland on demand [Olivier; !1673]
+* xwayland: Restore abstract socket support [James, Olivier; !1669]
+* Add support for atomic mode setting [Jonas Å.; !1488]
+* Fix clip region glitches when using fractional scaling [Daniel; !1554]
+* Default to horizontal workspace layout [Georges, Florian; !1684, !1706]
+* Do not ping unmanaging windows [Florian; gnome-shell#2467]
+* Handle monitor changes during screencasts [Jonas Å.; !1691]
+* Fix unexpected jumps after restoring misbehaving clients [Jonas Å.; !1445]
+* Fix newly opened X11 windows being invisible in overview [Olivier; !1678]
+* Fix viewport of offscreen effects [Daniel; !1053]
+* Fix drag cancel animation when using geometry scaling [Robert; !1683]
+* Improve touch-mode heuristics [Carlos; !1710]
+* Integrate clipboard with remote desktop sessions [Jonas Å.; !1552]
+* Fix stuck icon in DND operation between X11 and wayland [Carlos; !1720]
+* Automatically synchronize pointer position after modal grabs  [Carlos; !1659]
+* Reimplement support for CLUTTER_SHOW_FPS [Daniel; !154]
+* Only pick on events that may move the pointer [Jonas D.; !1729, !1733]
+* Emit discrete scroll events for accumulated smooth events in virtual
+  X11 devices [Pascal; !1727]
+* Add support for rounded clipping when drawing background [Jonas D.; !1717]
+* Plugged memory leaks [Sebastian; !1307, !1699]
+* Fixed crashes [Carlos, Thomas, Jonas Å., Olivier; !1677, !1685, !1692,
+  !1719, !1718, !1735]
+* Misc. bug fixes and cleanups [Jonas Å., Carlos, Olivier, Sebastian, Björn,
+  Jonas D., Ivan, Georges, Dor, Michel, Robert; !1670, !1679, !1680, !1682,
+  !1681, !1661, !1689, !1690, !1693, !1514, !1696, !1697, !1708, !1709, !1707,
+  !1701, !1702, !1715, !1725, !1734, !1512]
+
+Contributors:
+  Jonas Ådahl, Dor Askayo, Björn Daase, Michel Dänzer, Jonas Dreßler,
+  Olivier Fourdan, Carlos Garnacho, James Henstridge, Sebastian Keller,
+  Robert Mader, Ivan Molodetskikh, Thomas Mühlbacher, Florian Müllner,
+  Georges Basile Stavracas Neto, Pascal Nowack, Daniel van Vugt
+
+Translators:
+  Марко Костић [sr], Jordi Mas [ca], Yuri Chornoivan [uk],
+  Daniel Șerbănescu [ro], Hugo Carvalho [pt], Fran Dieguez [gl],
+  Matej Urbančič [sl], Marek Černocký [cs], Rafael Fontenelle [pt_BR],
+  Philipp Kiemle [de], A S Alam [pa], Balázs Úr [hu], Anders Jonsson [sv],
+  Daniel Mustieles [es], Emin Tufan Çetin [tr], Kukuh Syafaat [id],
+  Aurimas Černius [lt]
+
+40.alpha.1.1
+============
+* Adapt to settings moving to gsettings-desktop-schemas [Carlos; !1416]
+* Misc. bug fixes and cleanups [Georges; !1667]
+
+Contributors:
+  Carlos Garnacho, Georges Basile Stavracas Neto
+
+40.alpha.1
+==========
+* Base ClutterEffects on ClutterPaintNodes [Georges; !1340, !1355]
+* xwayland: Set xrandr primary output [Aleksandr; !1558]
+* Add paint node based blur support [Georges; !1627, !1646]
+* Disable CRTCs if there is no monitor [Kai-Heng; !1561]
+* Fix updates of mipmapped animated backgrounds [Daniel; !1664]
+* Allow remote desktop clients to specify scroll source [Pascal; !1636]
+* Support the color transform matrix RandR property on X11 [Aaron; !1048]
+* Plugged memory leaks [Jonas D.; !1632]
+* Fixed crashes [Jonas Å., Olivier, Carlos; !1557, !1648, !1643, !1654, !1663]
+* Misc. bug fixes and cleanups [Olivier, Niels, Carlos, Jonas Å., Florian,
+  Jonas D., Daniel, Georges, Michel, Sebastian, Marc-Antoine; !1621, !1622,
+  !1624, !1623, !1625, !1626, !1630, !1631, !1576, !1635, !1640, !1642,
+  !1639, !1644, !1637, !1615, !1647, !1633, !1634, !1651, !1652, !1657,
+  !1660, !1658, !1665, !1649, !1668, !1655]
+
+Contributors:
+  Jonas Ådahl, Michel Dänzer, Jonas Dreßler, Kai-Heng Feng, Olivier Fourdan,
+  Carlos Garnacho, Niels De Graef, Sebastian Keller, Aleksandr Mezin,
+  Florian Müllner, Georges Basile Stavracas Neto, Pascal Nowack,
+  Marc-Antoine Perennou, Aaron Plattner, Daniel van Vugt
+
+Translators:
+  Kjartan Maraas [nb], Juliano de Souza Camargo [pt], Florentina Mușat [ro],
+  Daniel Mustieles [es], Jordi Mas i Hernandez [ca], Fabio Tomat [fur],
+  Philipp Kiemle [de], Asier Sarasua Garmendia [eu], Aurimas Černius [lt],
+  Fran Dieguez [gl], Hugo Carvalho [pt], Matej Urbančič [sl]
+
+40.alpha
+========
+* Replace CoglMatrix with graphene_matrix [Georges; !1439]
+* Allow to specify debug topics in MUTTER_DEBUG [Jonas Å.; !1465]
+* Fix unwanted position changes on window resize
+  [Jonas Å., Olivier, Robert; !1477, !1495]
+* Do not disable the X Security extension by default [Olivier; !1485]
+* Fix _NET_WM_FRAME_DRAWN timestamps [Jonas Å.; !1494]
+* Fix tiling to the correct monitor [Florian; #1389]
+* Only snap to window edges when CTRL is pressed [Florian; #679609]
+* Add support for scroll button locking [Peter; !1432]
+* Clip Frustra [Georges; !1489]
+* Improve tablet-mode-switch support [Hans; !1506]
+* Fix missed redraws of newly-mapped actors [Jonas D.; !1366, #1494]
+* Gracefully handle Xwayland crashes [Carlos; !1447]
+* wayland: Provide previous window dimensions on restore [Christian; !801]
+* Remove the ClutterActor::paint signal [Jonas; !1522]
+* Fix background artifacts in magnifier [Daniel; #1480]
+* Use raycasting for picking [Georges; !1509]
+* Fix monitor tiling support on X11 [Jonas Å.; #1524]
+* Fix xwayland grabs for override-redirect windows [Olivier; !1254]
+* Fix device configuration not being picked up on X11 [Carlos; !1553]
+* Support tagging devices as primary GPU via udev [Jonas Å.; !1562]
+* Fix size hints with CSD [Olivier; !1594]
+* Fix unresponsive input after screen blank [Simon; !1601]
+* Cull actors when picking [Georges; !1520]
+* Handle input in a thread [Carlos; !1403]
+* Improve freezes when switching workspace [Jonas Å.; !1616]
+* Plugged memory leaks [Ray; !1225]
+* Fixed crashes [Christian, Olivier, Daniel, Robert, Jonas Å., Florian Z.,
+  Simon, Carlos; #1481, !1529, !1519, !1534, #1521, !1563, !1604, !1605,
+  !1607, !1612]
+* Misc. bug fixes and cleanups [Florian, Carlos, Olivier, Georges, Björn,
+  Jonas Å., Julius, Corentin, Bastien, Robert, Daniel, Niels, Jonas D., Uday,
+  Ian, Jordan, Piotr; !1473, !1472, !1438, #1449, !1475, !1474, !1481, !1466,
+  !1483, !1427, !1413, !1103, !1467, !1339, !1297, #1384, !1491, !528, !1496,
+  !1510, !1507, !1387, !1498, !1515, !1516, !1517, !1486, !1524, !1527, !1528,
+  !1531, !1532, !1521, !1535, #1490, !1545, !1555, !1564, !1549, !1567, !1565,
+  !1572, !1569, !1573, !1566, !1525, !1468, !1578, !1583, !1584, !1585, !1571,
+  !1327, !1586, !1590, !1588, !1050, !1596, !1592, !1587, !1599, !1577, !1511,
+  !1591, !1603, !1611, !1593, !1617, !1619]
+
+Contributors:
+  Björn Daase, Jonas Dreßler, Piotr Drąg, Olivier Fourdan, Carlos Garnacho,
+  Hans de Goede, Niels De Graef, Peter Hutterer, Julius Lehmann, Robert Mader,
+  Simon McVittie, Florian Müllner, Georges Basile Stavracas Neto,
+  Bastien Nocera, Corentin Noël, Jordan Petridis, Uday Kiran Pichika,
+  Christian Rauch, Ian Douglas Scott, Ray Strode, Daniel van Vugt,
+  Florian Zwoch, Jonas Ådahl
+
+Translators:
+  Juliano de Souza Camargo [pt], Ask Hjorth Larsen [da], Yuri Chornoivan [uk]
+
+3.38.1
+======
+* Fix Night Light updates after DPMS [Jonas, Benjamin; #1392]
+* Fix button scrolling on X11 [Peter; !1431]
+* Always use correct font-dpi setting on X11 [Marco; !1444]
+* Improve handling of scanout failures [Jonas; #1410]
+* Fix middle/right button mixup in scroll button assignment [Peter; !1433]
+* Fix resizing of attached modal dialogs on wayland [Jonas; !1446]
+* Enable KMS modifiers on devices that need them [Karol; !1443]
+* Fix IM handling on X11 [Carlos; #1413]
+* Fix glitches in "undefined" screencast areas [Jonas; !1459]
+* Fix visual glitches on background with fractional scaling [Daniel; !1464]
+* Fix using correct refresh rate [Jonas; #1430]
+* Misc. bug fixes and cleanups [Daniel, Carlos, Robert, Simon, Sergio; !1362,
+  !1448, !1452, !1273, !1454, !1429, !1460, !1458, !1463, !1462]
+* Plugged memory leaks [Ray; !1449, !1451]
+
+Contributors:
+  Marco Trevisan (Treviño), Benjamin Berg, Sergio Costas, Carlos Garnacho,
+  Karol Herbst, Peter Hutterer, Robert Mader, Simon McVittie, Ray Strode,
+  Daniel van Vugt, Jonas Ådahl
+
+Translators:
+  Juliano de Souza Camargo [pt], Rafael Fontenelle [pt_BR],
+  Yosef Or Boczko [he], Jordi Mas [ca]
+
+3.38.0
+======
+* screencast: Only use DMA buffers for i915 [Jonas; !1442]
+* Fixed crashes [Jonas, Simon; !1430, #1414]
+
+Contributors:
+  Simon McVittie, Jonas Ådahl
+
+Translators:
+  Anders Jonsson [sv], Gil Forcada [ca], Balázs Meskó [hu], Tim Sabsch [de],
+  Milo Casagrande [it], Bruce Cowan [en_GB], Rūdolfs Mazurs [lv]
+
+3.37.92
+=======
+* Fix stale cursor positions in remote desktop sessions [Georges; !1417]
+* xwayland: Add a setting to disable selected X extensions [Olivier; !1405]
+* Fix screencasting when using QXL [Jonas Å., Grey; !1318]
+* Cull actors that don't intersect with the redraw clip [Daniel; !1359]
+* Optimize painting of backgrounds when culling is unavailable [Daniel; !1363]
+* Improve support for Hangul input method [Carlos; !1286]
+* Support debug paint overlay for opaque regions [Robert; !1372]
+* Fix launching flatpak applications when autostarting Xwayland [Carlos; !1424]
+* Add support for capture scanouts in screencasts [Georges; !1421]
+* Allow integrated tablet devices to cycle outputs [Carlos; !1201]
+* Improve mapping input devices to the most relevant output [Carlos; !1202]
+* Only enable auto-rotation in touch mode [Carlos; !1311]
+* Fixed crashes [Pascal, Robert, Carlos, Benjamin, Marco; !1414, !1409, !1408,
+  !1415, #1395, !1392, !1371, #1345]
+* Misc. bug fixes and cleanups [Björn, Jonas D., Florian; !1410, !1358, !1425]
+
+Contributors:
+  Marco Trevisan (Treviño), Benjamin Berg, Grey Christoforo, Björn Daase,
+  Jonas Dreßler, Olivier Fourdan, Carlos Garnacho, Robert Mader,
+  Florian Müllner, Georges Basile Stavracas Neto, Pascal Nowack,
+  Daniel van Vugt, Jonas Ådahl
+
+Translators:
+  Marek Černocký [cs], Aurimas Černius [lt], Asier Sarasua Garmendia [eu],
+  Gwan-gyeong Mun [ko], Yuri Chornoivan [uk], Boyuan Yang [zh_CN],
+  Kukuh Syafaat [id], Piotr Drąg [pl], Rafael Fontenelle [pt_BR],
+  Марко Костић [sr], Matej Urbančič [sl], Fabio Tomat [fur],
+  Daniel Mustieles [es], Fran Dieguez [gl], Goran Vidović [hr],
+  Claude Paroz [fr], Andre Klapper [or, ug, te], Emin Tufan Çetin [tr]
+
+3.37.91
+=======
+* Fix initial state of display mode OSD [Jian-Hong; #1362]
+* Fixed crashes [Jonas Å., Robert; !1407, !1411]
+* Misc. bug fixes and cleanups [Jonas Å., Christian; !1404, !1364, #1331]
+
+Contributors:
+  Jonas Ådahl, Robert Mader, Jian-Hong Pan, Christian Rauch
+
+Translators:
+  Fran Dieguez [gl], Daniel Mustieles [es], Florentina Mușat [ro],
+  Kukuh Syafaat [id], Piotr Drąg [pl], Emin Tufan Çetin [tr], Марко Костић [sr],
+  Akarshan Biswas [bn_IN], Matej Urbančič [sl], Boyuan Yang [zh_CN],
+  Goran Vidović [hr], Rafael Fontenelle [pt_BR]
+
+3.37.90
+=======
+* Fix using NEAREST filter for backgrounds on scaled monitors [Daniel V.; !1346]
+* Screencast fixes and improvements [Jonas; !1361, !1377, !1391]
+* Support tap-button-map and tap-drag-lock touchpad settings [Giusy; !1319]
+* Fix wine copy & paste [Sebastian; !1369]
+* Fix shadows of server-side decorated XWayland windows [Olivier; #1358]
+* Replace some loaded terms with more descriptive ones [Olivier; !1396]
+* Add API to launch trusted wayland clients [Sergio; #741]
+* Skip displays with 'non-desktop' property set [Philipp; !1393]
+* Invalidate offscreen effect cache on video memory purge [Daniel V.; !1374]
+* Add wl_shm support for 10 bpc and 16 bpc half float formats [Jonas; !804]
+* Fixed crashes [Jonas, Erik, Martin; !1365, !1375, #1343]
+* Misc. bug fixes and cleanups [Daniel V., Carlos, Olivier, Christian,
+  Daniel * G., Jonas, Florian; !1370, !1376, !1385, !1352, !1386, !1390,
+  !1388, !1397, !1398, !1401]
+
+Contributors:
+  Jonas Ådahl, Sergio Costas, Olivier Fourdan, Carlos Garnacho,
+  Christian Hergert, Sebastian Keller, Erik Kurzinger, Giusy Margarita,
+  Daniel García Moreno, Florian Müllner, Daniel van Vugt, Martin Whitaker,
+  Philipp Zabel
+
+Translators:
+  Fabio Tomat [fur], Rafael Fontenelle [pt_BR], Jordi Mas [ca],
+  Yuri Chornoivan [uk], Alexandre Franke [fr]
+
+3.37.3
+======
+* Support custom keyboard layouts in $XDG_CONFIG_HOME/xkb [Peter; !936]
+* Optimize resource scale computation [Jonas D.; !1196, !1276, !1343]
+* Allow animating ClutterActor's content property [Georges; !1301]
+* Implement backgrounds as ClutterContent [Georges; !1302]
+* Add ClutterAlignConstraint:pivot-point property [Jonas D.; !737]
+* Fix crash on area screenshots with fractional scaling [Sebastian; !1320]
+* Do not paint textures of fully obscured windows [Robert; !1326]
+* Use a more appropriate combine function on opaque areas [Daniel; !1331]
+* Fix remote desktop being broken without screencast session [Olivier; #1307]
+* Remove more long-deprecated Clutter APIs [Adam, Georges; !1194, !1332]
+* Drive each monitor by its own frame clock [Jonas Å.; !1285]
+* Fix copy/paste failures on X11 [Carlos; !1350]
+* Mipmap background texture rendering [Daniel; !1347]
+* Plugged memory leaks [Sebastian, Jonas D.; !1293, !1281, !1304]
+* Misc. bug fixes and cleanups [Jonas Å., Jonas D., Daniel, Corentin, Carlos,
+  Sebastian, Michel, Robert, Florian; !1288, !1289, !1291, !1296, !1292, !1298,
+  !1300, !1303, !1290, !1287, !1306, !1305, !1308, !1313, !1250, !1314, !1267,
+  !1275, !1317, !1270, !1322, !1181, !1282, !1325, !1323, !1240, !1295, !1329,
+  !1333, !1334, !1336, !1341, #1312, !1345, !1349, !1356, #873, !1310, !1357]
+
+Contributors:
+  Jonas Dreßler, Michel Dänzer, Olivier Fourdan, Carlos Garnacho,
+  Peter Hutterer, Adam Jackson, Sebastian Keller, Robert Mader, Florian Müllner,
+  Georges Basile Stavracas Neto, Corentin Noël, Daniel van Vugt, Jonas Ådahl
+
+3.37.2
+======
+* Fix move-to-center keybinding with multiple monitors [Sergey; #1073]
+* Fix stuck buttons when a virtual device is destroyed [Carlos; !1239]
+* Use workarea when centering new windows [Akatsuki; #964]
+* Limit mipmap levels when rendering background [Daniel; !1003]
+* Broadcast clipboard/primary offers [Carlos; !1253]
+* Support primary-selection protocol from wayland-protocols [Carlos; !1255]
+* Fix monitor screen cast on X11 [Jonas Å.; !1251]
+* Support a "blank" cursor type [Florian; !1244]
+* Improve stage view damage tracking [Jonas Å.; !1237]
+* Implement touch-mode detecation for the X11 backend [Carlos; !1278]
+* Drop external keyboard detection from touch-mode heuristics [Carlos; !1277]
+* Optimize actor allocations [Jonas D.; !1247]
+* Fixed crashes [Daniel, Carlos, Jonas Å., Jonas D.; !1256, !1258, !1217, !1280]
+* Misc. bug fixes and cleanups [Christian, Jonas D., Olivier, Ting-Wei,
+  Jonas Å., Marco, Corentin, Daniel, Robert, Niels, Florian, Simon; !1231,
+  !1228, !1238, !1229, !1192, !1236, !1171, !1134, #1126, !1234, !1230, !1210,
+  !1242, !1243, !1252, !1113, !1232, !1259, !1245, !1265, !1180, !1261, !788,
+  !1264, !1235, !1218, !1150, !1274, !1271, !1279, !1283, !1272]
+
+Contributors:
+  Marco Trevisan (Treviño), Akatsuki, Jonas Dreßler, Olivier Fourdan,
+  Carlos Garnacho, Niels De Graef, Ting-Wei Lan, Robert Mader, Simon McVittie,
+  Florian Müllner, Corentin Noël, Christian Rauch, Daniel van Vugt,
+  Sergey Zigachev, Jonas Ådahl
+
+3.37.1
+======
+* Fix screencasting non-maximized windows [Jonas Å.; !1174]
+* Make window-aliveness checks less aggressive [Jonas Å.; !1182]
+* Fix stylus coordinates when using screen rotation [Jonas T.; #1118]
+* Preserve keyboard state on VT switch [Olivier; !1185]
+* Remove Clutter's drag and drop actions [Jonas D.; !789]
+* Cancel clicks/gestures actions on disable [Georges; !1188]
+* Fix various clipboard issues [Carlos; !1186, !1198, !1203, !1204, !1206]
+* Fix trackball button scrolling [Phillip; #1120]
+* Fix tiled monitor support [Jonas; !1199]
+* Support unredirecting fullscreen wayland surfaces [Jonas Å.; !798]
+* Support area screencasts [Jonas Å.; !1207]
+* Synchronize shadows to server-side decorations [Olivier; !1214]
+* Allow inhibiting remote access [Jonas Å.; !1212]
+* Fix overview key on X11 when using multiple keyboard layouts [Olivier; !1219]
+* Fixed crashes [Jonas, D., Carlos; !1173, !1183, !1012]
+* Misc. bug fixes and cleanups [Andre, Georges, Christian, Jonas Å., Andre,
+  Simon, Florian, Carlos, Adam, Marco, Thomas, Elias, Pekka, Jonas D.,
+  Laurent; !1169, !1168, !1166, !1170, !1167, !1172, !1175, !1176, !1184,
+  !1126, !1187, !1191, !1195, !1179, !1200, !1193, !1209, !1213, !1208,
+  #1074, !1223]
+
+Contributors:
+  Marco Trevisan (Treviño), Elias Aebi, Thomas Hindoe Paaboel Andersen,
+  Laurent Bigonville, Jonas Dreßler, Olivier Fourdan, Carlos Garnacho,
+  Adam Jackson, Andre Moreira Magalhaes, Simon McVittie, Florian Müllner,
+  Georges Basile Stavracas Neto, Pekka Paalanen, Christian Rauch, Jonas Troeger,
+  Phillip Wood, Jonas Ådahl
+
+Translators:
+  Dušan Kazik [sk], Christian Kirbach [de]
+
+3.36.0
+======
+* Fix placement of popup windows in multi-monitor setups [Jonas; !1110]
+* Fix invisible mouse cursor on some hardware [Jonas; !1079]
+
+Contributors:
+  Jonas Ådahl
+
+Translators:
+  Aurimas Černius [lt], Goran Vidović [hr], Anders Jonsson [sv],
+  Guillaume Bernard [fr], Milo Casagrande [it], Daniel Korostil [uk],
+  Andre Klapper [cy], Aman Alam [pa], Nathan Follens [nl]
+
+3.35.92
+=======
+* Fix visibility of initially hidden windows [Jonas Å.; !1066]
+* Avoid flicker when (un)redirecting windows [Sebastian; #997]
+* Let BindConstraints update the preferred size [Emmanuele; !1070]
+* Learn about GLES3 [Adam; !882]
+* Ping windows on every window focus [Jonas D.; !891]
+* Remove overhead from hot code paths [Christian;
+  #1056, !1081, !1083, !1071, !1087]
+* Allow remote desktop services to inhibit animations [Jonas Å.; !838]
+* Update screen-cast code to PipeWire 0.3 API [Wim; !1062]
+* Make check-alive timeouts configurable [Jonas Å.; !1080]
+* Make each stage view correspond to a single CRTC [Jonas Å.; !1042]
+* Implement scaled/transformed hardware cursors [Robert; !526]
+* Use DMA buffers for screencasting if possible [Georges; !1086]
+* Make Xwayland startup asynchronous [Carlos; !944]
+* Fix clipping glitches in long text entries [Jonas D.; !1096]
+* Add side channel for starting required X11 services [Carlos; !945]
+* Support synchronized wayland popup moving [Jonas Å.; !705]
+* Fixed crashes [Olivier, Jonas Å.; !1073, !1093]
+* Plugged memory leaks [Sebastian, Jonas Å.; !1089, !1095]
+* Misc. bug fixes and cleanups [Jonas Å, Olivier, Florian, Daniel, Jonas D.,
+  Robert, Sebastian, Christian, Arun, Carlos, worldofpeace; !1061, #1043,
+  !1067, !1068, !1065, !835, !1058, !1069, !1075, #1060, !1077, !423, !1090,
+  !1088, !1094, #1067, !1064, !1099, !957, !1000, !1082]
+
+Contributors:
+  Emmanuele Bassi, Jonas Dreßler, Olivier Fourdan, Carlos Garnacho,
+  Christian Hergert, Adam Jackson, Sebastian Keller, Robert Mader,
+  Florian Müllner, Georges Basile Stavracas Neto, Arun Raghavan, Wim Taymans,
+  Daniel van Vugt, worldofpeace, Jonas Ådahl
+
+Translators:
+  Yi-Jyun Pan [zh_TW], Asier Sarasua Garmendia [eu], Rafael Fontenelle [pt_BR],
+  Emin Tufan Çetin [tr], Daniel Mustieles [es], Balázs Úr [hu],
+  Gwan-gyeong Mun [ko], Marek Černocký [cs], Fran Dieguez [gl],
+  Kukuh Syafaat [id], Alan Mortensen [da], Piotr Drąg [pl], sicklylife [ja],
+  Matej Urbančič [sl]
+
+3.35.91
+=======
+* Honor accelerometer orientation on monitor config changes [Hans; !959]
+* Enable culling for integer-scaled actors [Robert; !1036]
+* Add ClutterSeat::touch-mode property [Carlos; !1044]
+* Fix mis-scaling when streaming windows [Olivier; !1022]
+* Make the cursor renderer use the transactional KMS API [Jonas; !930]
+* Advertise MetaMonitor as wl_output [Olivier; !994]
+* Fix culling of XWayland windows [Robert; !1049]
+* Only consider enabled effects when disabling culling [Robert; !1052]
+* Misc. bug fixes and cleanups [Olivier, Sergio, Adam, Carlos, Björn; !1040,
+  #985, !1024, !1039, !1051]
+
+Contributors:
+  Sergio Costas, Björn Daase, Olivier Fourdan, Carlos Garnacho, Hans de Goede,
+  Adam Jackson, Robert Mader, Jonas Ådahl
+
+Translators:
+  sicklylife [ja]
+
+3.35.90
+=======
+* Cull out clip region [Robert; !985]
+* Always enable tap-to-click/drag on opaque Wacom tablets [Carlos; !968]
+* Fix visual glitches with offscreen effects applied [Georges; !992]
+* Fix "sticky corner" in multi-head setups [Jonas D.; #774]
+* Fix black shadows around XWayland windows during resizes [Ray, Olivier; #858]
+* Zero-copy path for GPU-less secondary GPUs [Pekka; !810]
+* Cancel DND on Esc [Carlos; #1020]
+* Sync XWayland window shadows to frame during resizes [Olivier; !1009]
+* Add support for per-monitor workareas [Alberts; !370]
+* Ensure newly mapped wayland windows receive ENTER event [Olivier; !1026]
+* Add ClutterSeat object [Carlos; !852]
+* Honour CLUTTER_ACTOR_NO_LAYOUT flag more efficiently [Daniel; !575]
+* Fix interoperation with wl_data_device_manager v1 [Carlos; #965]
+* Favor text over images in clipboard manager [Carlos; #919]
+* Apply monitor scale after background texture creation [Daniel; !1004]
+* Plugged memory leaks [Sebastian, Adam; !991, #1000, !1011, !1020, !1030,
+  !1001, !1033]
+* Fixed crashes [Jonas Å., Florian, Olivier; !961, #1029, !1037]
+* Misc. bug fixes and cleanups [Björn, Jonas Å., Adam, Sebastian, Jonas D.,
+  Daniel, Carlos, Corentin, Sebastian, Robert, Daniel; #385, !998, !1007, !995,
+  !1016, !1018, !1017, !1005, !1019, !1025, !1028, !1029, !1031, !1015, !1032,
+  !1034, #1025]
+
+Contributors:
+  Björn Daase, Jonas Dreßler, Olivier Fourdan, Carlos Garnacho, Adam Jackson,
+  Sebastian Keller, Robert Mader, Alberts Muktupāvels, Florian Müllner,
+  Georges Basile Stavracas Neto, Corentin Noël, Pekka Paalanen, Ray Strode,
+  Daniel van Vugt, Jonas Ådahl
+
+Translators:
+  sicklylife [ja], Umarzuki Bin Mochlis Moktar [ms]
+
+3.35.3
+======
+* backends/native: Correct dy value in pinch gesture event [Yariv; !974]
+* Upload clipping rectangles in parallel [Daniel; !969]
+* More cogl API cleanups [Adam; !978, !977, !973]
+* Fix window recording on HiDPI [Pascal; !976]
+* Fix top-left pixel being insensitive to clicks [Sebastian; #893]
+* Misc. bug fixes and cleanups [Daniel, Adam; !979, !980]
+
+Contributors:
+  Yariv Barkan, Adam Jackson, Sebastian Keller, Pascal Nowack, Daniel van Vugt
+
+Translators:
+  Fran Dieguez [gl], Dz Chen [zh_CN]
+
+3.35.2
+======
+* Don't emit focus event after destruction [Marco; gnome-shell#1704, !860]
+* Add a notion of pixel format planes [Niels; !858]
+* Replace various Cogl/Clutter types with Graphene [Georges; !458]
+* Improve CoglJournal [Georges, Jasper; !402]
+* Split pick and paint [Georges; !865]
+* Remove deprecated/unused cogl/clutter APIs [Adam; !866, !878, !879, !880,
+  !885, !900, !902, !904, !896, !913, !922, !883, !903, !921, !933, !819]
+* Fix hang when opening not-responding dialog on Xorg [Carlos; !876]
+* Allow changing Clutter debug flags at runtime [Georges; !862]
+* Fix frozen grabs on Xorg after weeks of inactivity [Jonas; !886]
+* Fix triggering popups from stylus devices o wayland [Carlos; #886]
+* Fix fallback to GLES2 [Adam; #635]
+* Fix buffer age checks on multiple monitors [Carlos; !906]
+* Adjust to Sysprof API change [Christian; !908]
+* Improve support for (X11) fullscreen games under wayland [Hans; !739]
+* Support shadow framebuffers for offscreen rendering [Olivier; !877]
+* Fix hang after interacting with desktop icons on X11 [Marco; !909]
+* Don't double scale when getting absolute surface coordinates [Xiang; !915]
+* Respect NET_WM_TRANSIENT_FOR for override-redirect windows [Marco; !920]
+* Kill window effects on destroy [Robert; !924]
+* Remove deprecated ClutterTexture [Jonas; !932]
+* Use regions instead of bounding box for clipping and culling [Carlos; !867]
+* Use partial damage for dma-buf and EGLImage buffers on wayland [Robert; #947]
+* Do not stack transients underneath their always-on-top parent [Florian; #587]
+* Add explicit paint/pick contexts [Jonas; !935]
+* Fix KMS freeze after pageflip fallback [Pekka; !953]
+* Fixed crashes [Robert, Carlos, Jonas, Marco, Hans, Tim; !856, !869, !912,
+  !895, !928, #591, !823, !960]
+* Plugged memory leaks [Niels, Robert, Carlos, Marco; !847, !868, !873, #908]
+* Misc. bug fixes and cleanups [Niels, Robert, Jonas, Marco, Carlos, Daniel,
+  Jan, Adam, Cosimo, Florian, Thomas, Georges, Hans, Corentin, Christian,
+  Benjamin; !853, !822, !451, !854, !816, !857, !859, !734, !844, !851, #876,
+  !874, !673, !692, !888, !889, !894, !901, !905, !872, !898, !911, !918, !863,
+  #878, !811, !893, !925, !926, !890, !931, !927, !934, !938, !940, !947, !941,
+  !929, !949, !952, !871, !955, !956, !958, !907, !965, !964, !966]
+
+Contributors:
+  Marco Trevisan (Treviño), Jan Alexander Steffens (heftig),
+  Thomas Hindoe Paaboel Andersen, Benjamin Berg, Cosimo Cecchi, Tim Crawford,
+  Piotr Drąg, Xiang Fan, Olivier Fourdan, Carlos Garnacho, Hans de Goede,
+  Niels De Graef, Christian Hergert, Adam Jackson, Robert Mader,
+  Florian Müllner, Georges Basile Stavracas Neto, Bastien Nocera, Corentin Noël,
+  Pekka Paalanen, Jasper St. Pierre, Christian Rauch, Daniel van Vugt,
+  Jonas Ådahl
+
+Translators:
+  Bruce Cowan [en_GB]
+
+3.35.1
+======
+* Fix immediate screen blank after releaseing inhibitor [Tim; #573]
+* Respond to frame callbacks regardless of damage [Jonas; !839]
+* selection [Carlos; !842]
+* Fix Night Light on wayland [Jonas; !840]
+* Fix various copy+paste/DND regressions [Carlos; !848, #789, #842,
+  #793, #845, #854]
+* Misc. bug fixes and cleanups [Daniel, Marco, Jonas, Georges;
+  !841, !764, !837, !846]
+
+Contributors:
+  Marco Trevisan (Treviño), Carlos Garnacho, Tim Klocke,
+  Georges Basile Stavracas Neto, Daniel van Vugt, Jonas Ådahl
+
+3.34.1
+======
+* Fix startup of X11 session services on wayland [Carlos; #771]
+* Fix _NET_ACTIVE_WINDOW emission [Carlos; #751]
+* Fix initial view perspective [Marco; !803]
+* Fix screenshots and window animations when scaled [Robert; !758]
+* Re-enable coredumps when capabilities are set [Jonas; !811]
+* Fix scaling of DND surface actors [Robert; !780]
+* Optimize blitting of untransformed offscreen stage views [Olivier; !809, !820]
+* Fix freeze of pointer event delivery on X11 [Olivier; !821]
+* Fix scaling of stylus input coordinates with HiDPI [Dorian; !830]
+* Fix memory leak when using implicit animations [Jonas; !828]
+* Fix numlock state for native backend [Carlos; #769]
+* Fixed crashes [Marco, Olivier, Jonas Å.; !805, #823, !808, !825,
+  #844, !826, #779]
+* Misc. bug fixes and cleanups [Jonas Å., Georges, Jonas D., Michal, Daniel,
+  Iain, Adam, Marco, Carlos, Ting-Wei, Hans, Robert; !787, !795, !791, !797,
+  !772, !775, !799, !778, !785, !782, !796, #819, !814, !769, !817, !783, !786,
+  !829, !774, #822]
+
+Contributors:
+  Marco Trevisan (Treviño), Jonas Dreßler, Olivier Fourdan, Carlos Garnacho,
+  Hans de Goede, Adam Jackson, Ting-Wei Lan, Iain Lane, Michal Lazo,
+  Robert Mader, Georges Basile Stavracas Neto, Dorian Stoll, Daniel van Vugt,
+  Jonas Ådahl
+
+Translators:
+  Milo Casagrande [it], Nathan Follens [nl], Matej Urbančič [sl],
+  Ask Hjorth Larsen [da], Alan Mortensen [da], Jordi Mas [ca]
+
+3.34.0
+======
+* Fix xdg-output v3 support [Olivier; !771]
+* Fix crash when changing decoration state [Jonas; !773]
+* Add and remove connectors on hot-plug [Jonas; !743]
+
+Contributors:
+  Olivier Fourdan, Jonas Ådahl
+
+Translators:
+  Rafael Fontenelle [pt_BR], Gwan-gyeong Mun [ko], Christian Kirbach [de],
+  Claude Paroz [fr], Milo Casagrande [it], Emin Tufan Çetin [tr],
+  Ryuta Fujii [ja]
+
+3.33.92
+=======
+* Turn MetaShapedTexture into a ClutterContent implementation [Georges; !409]
+* Restore inhibit shortcut for overlay key [Olivier; #734]
+* Misc. pointer a11y improvements [Jonas D., Olivier; !746, !747, !745, !761]
+* Fix position of drag surfaces [Robert; !684]
+* Implement subsurface.place_below() for parents [Robert; !664]
+* Add meta_window_actor_get_image() [Jonas Å.; !752]
+* Revert faulty optimization from !719 [Jonas Å.; #735]
+* Add additional sysprof trace points [Jonas Å.; !757, !765]
+* Remove GLX "threaded swap wait" used on Nvidia [Daniel; !602]
+* Implement geometric picking [Daniel; !189]
+* Fix lost keyboard focus after DND [Olivier; #747]
+* Misc. bug fixes and cleanups [Florian, Carlos, Piotr, Hans, Georges, Robert,
+  Ray, Mart, Rémi; !740, !672, !749, !751, !753, !730, !755, !756, !750, !715,
+  #738944, !657, !768]
+
+Contributors:
+  Jonas Ådahl, Rémi Bernon, Piotr Drąg, Jonas Dreßler, Olivier Fourdan,
+  Carlos Garnacho, Hans de Goede, Robert Mader, Florian Müllner,
+  Georges Basile Stavracas Neto, Mart Raudsepp, Ray Strode, Daniel van Vugt
+
+Translators:
+  Piotr Drąg [pl], Марко Костић [sr], Rūdolfs Mazurs [lv], Matej Urbančič [sl],
+  Balázs Úr [hu], Fran Dieguez [gl], Jordi Mas [ca], Anders Jonsson [sv],
+  Trần Ngọc Quân [vi], Tim Sabsch [de], Fabio Tomat [fur], Goran Vidović [hr],
+  Marek Černocký [cs]
+
+3.33.91
+=======
+* Fix primary selection copy and paste between X11 and wayland [Hans; #702]
+* Improve monitor hotplug support [Hans; !713]
+* Remove a source of frame skips [Daniel; !719]
+* Fix windows being lowered after unmaximizing with double click [Olivier; #88]
+* Remove Clutter API for global grabs [Jonas D.; !536]
+* Improve processing of incompressible events [Daniel; !711]
+* Add xdg-output v3 support [Olivier; !704]
+* Misc. bug fixes and cleanups [Jonas Å., Marco, Carlos, Adam, Albert, Niels,
+  Olivier, Florian; !722, !385, !728, !726, !500, !731, !727, !700, !735, !738]
+
+Contributors:
+  Jonas Ådahl, Albert Vaca Cintora, Jonas Dreßler, Olivier Fourdan,
+  Carlos Garnacho, Hans de Goede, Niels De Graef, Adam Jackson, Florian Müllner,
+  Marco Trevisan (Treviño), Daniel van Vugt
+
+Translators:
+  Asier Sarasua Garmendia [eu], Kukuh Syafaat [id], Florentina Mușat [ro],
+  Aurimas Černius [lt], Daniel Mustieles [es]
+
+3.33.90
+=======
+* Fix visibility of clones with hidden source [Florian; #683]
+* Reduce freezes when opening some popup windows [Carlos; #556]
+* Be more thorough when excluding obscured areas from painting [Carlos; !698]
+* Make it possible to start Xwayland on demand [Carlos; !709]
+* clutter: Expose layout_manager to transitions [Florian; !716]
+* Misc. bug fixes and cleanups [Mark, Florian, Iain, Niels, Carlos, Ray; !671,
+  !691, !694, !696, !703, !707, !697, !710, !708, !714, #719, !721]
+
+Contributors:
+  Mark Blakeney, Carlos Garnacho, Niels De Graef, Iain Lane, Florian Müllner,
+  Ray Strode
+
+Translators:
+  Asier Sarasua Garmendia [eu], Rafael Fontenelle [pt_BR], Fabio Tomat [fur],
+  Florentina Mușat [ro]
+
+3.33.4
+======
+* Discard page flip retries on hotplug [Jonas; !630]
+* Add xdg-output v2 support [Olivier; #645]
+* Restore DRM format fallbacks [Jonas; !662]
+* Don't emit ::size-changed when only position changed [Daniel; !568]
+* Expose workspace layout properties [Florian; !618]
+* Don't use grab modifiers when shortcuts are inhibited [Olivier; #642]
+* Fix stuttering due to unchanged power save mode notifications [Georges; !674]
+* Add API to reorder workspaces [Adam; !670]
+* Make picking a new focus window more reliable [Marco; !669]
+* Defer actor allocation till shown [Carlos; !677]
+* Try to use primary GPU for copy instead of glReadPixels [Pekka; !615]
+* Unset pointer focus when the cursor is hidden [Jonas D.; !448]
+* Fix modifier-drag on wayland subsurfaces [Robert; !604]
+* Fix background corruption on Nvidia after resuming from suspend [Daniel; !600]
+* Only grab the locate-pointer key when necessary [Olivier; !685, #647]
+* Misc. bug fixes and cleanups [Florian, Jonas, Daniel, Robert, Olivier,
+  Georges, Marco, Carlos, Emmanuele; !648, !650, !647, !656, !658, !637,
+  !663, !660, !659, !665, !666, !668, !667, #667, !676, !678, #672, !680,
+  !683, !688, !689, !687]
+
+Contributors:
+  Jonas Ådahl, Emmanuele Bassi, Adam Bieńkowski, Piotr Drąg, Jonas Dreßler,
+  Olivier Fourdan, Carlos Garnacho, Robert Mader, Florian Müllner,
+  Georges Basile Stavracas Neto, Pekka Paalanen, Marco Trevisan (Treviño),
+  Daniel van Vugt
+
+Translators:
+  Fabio Tomat [fur], Kukuh Syafaat [id]
+
+3.33.3
+======
+* Prepare for running Xwayland on demand [Carlos; !420]
+* Fix text selection color rendering [Florian; #494]
+* Fix black shadows when using fractional scaling [Robert; #609]
+* Honor startup sequence workspace on wayland [Carlos; gnome-shell#674]
+* Only emit 'grab-op-end` signal after dropping grabs [Marco; !596]
+* Add a Sysprof-based profiler [Jonas, Georges; !197, !603]
+* Relax "xwayland-allow-grabs" setting [Olivier; #597]
+* Implement locate-pointer accessibility feature [Olivier; !453]
+* Implement mouse accessibility [Olivier; !512]
+* Consolidate frame throttling [Daniel, Georges; !363]
+* Fix setting blank cursor under wayland [Jonas; #630]
+* Pixel-align OpenGL cursors [Jonas; !610]
+* Handle returning from fullscreen/maximization better [Jonas; !621]
+* Improve screencast support on multi-monitor systems [Georges; !623]
+* Fix running X11 applications with sudo under wayland [Hans; #643]
+* Implement toggle-keys notification [Olivier; #637]
+* Add initial KMS transactional support [Jonas; !525]
+* Improve finding new focus window when the old one is closed [Marco; #308]
+* Misc. bug fixes and cleanups [Jonas, Carlos, Marco, Florian, Pekka, Robert,
+  Douglas, Georges, Daniel, Emil, Niels, Hans, Olivier, Ting-Wei, Corentin;
+  !591, #398, !592, !581, !597, !598, !593, !497, #591, !545, gtk#1675, !601,
+  #568, !564, !605, !609, !115, !214, !611, !617, !616, !619, !624, !622, !627,
+  !628, !629, !632, !633, !631, !636, !639, !638, !634, !640, !529, !644, !590]
+
+Contributors:
+  Jonas Ådahl, Piotr Drąg, Olivier Fourdan, Carlos Garnacho, Hans de Goede,
+  Niels De Graef, Ting-Wei Lan, Robert Mader, Florian Müllner,
+  Georges Basile Stavracas Neto, Corentin Noël, Pekka Paalanen, Douglas R. Reno,
+  Marco Trevisan (Treviño), Emil Velikov, Daniel van Vugt
+
+Translators:
+  Balázs Úr [hu], Daniel Mustieles [es], Nathan Follens [nl], Goran Vidović [hr]
+
+3.33.2
+======
+* Fix rendering lag on Xorg [Daniel; !520, !281]
+* Misc. bug fixes and cleanups [Carlos, Marco, Jonas D., Florian, Niels,
+  Daniel, Benjamin, Jonas Å., Ignacio, Vasilis; #598, !576, !547, !578,
+  !583, !582, !469, !524, !119, !571, !584, !585, !586, #425]
+
+Contributors:
+  Jonas Ådahl, Benjamin Berg, Jonas Dreßler, Carlos Garnacho, Niels De Graef,
+  Vasilis Liaskovitis, Florian Müllner, Ignacio Casal Quinteiro,
+  Marco Trevisan (Treviño), Daniel van Vugt
+
+Translators:
+  Daniel Mustieles [es]
+
+3.33.1
+======
+* Remove unused APIs and outdated driver support
+  [Adam; !481, !468, !489, !487, !546]
+* Enable EGL_IMG_context_priority [Adam; !454]
+* Disable mouse keys with Numlock on [Olivier; #530]
+* Fix crash when restarting on X11 [Marco; #576]
+* Implement clipboard manager [Carlos; !320]
+* Fix spurious idle signals that prevent session unblank [Jonas Å.; !543]
+* Fix mapping of touchscreens that don't report dimensions [Carlos; #581]
+* Fix propagating fractional scaling factor [Robert; !537]
+* Add experimental RT scheduling support [Carlos; !460]
+* Misc. bug fixes and cleanups [Robert, Carlos, Olivier, Ray, Marco, Jonas D.,
+  Georges, Daniel V., Daniel M; !467, !504, !551, !552, #575, #556, !557, !442,
+  !562, !535, !548, #586, !567, !396, !422, !507]
+
+Contributors:
+  Jonas Ådahl, Piotr Drąg, Jonas Dreßler, Olivier Fourdan, Carlos Garnacho,
+  Adam Jackson, Robert Mader, Daniel García Moreno, Florian Müllner,
+  Georges Basile Stavracas Neto, Ray Strode, Marco Trevisan (Treviño),
+  Daniel van Vugt
+
+Translators:
+  Daniel Mustieles [es], Fabio Tomat [fur], Kukuh Syafaat [id]
+
+3.32.1
+======
+* Fix fallback app menu on wayland [Florian; #493]
+* Fix elogind support [Tom; !491]
+* Fix startup notifications not timing out [Carlos; #501]
+* Fix keyboard accessibility toggle from keys
+  [Olivier, Carlos; !501, #529, !531]
+* Fix touchscreen input on rotated displays [Carlos; #514]
+* Work around hangul text input bug [Carlos; #1365]
+* Fix blurry wallpaper scaling [Daniel; !505]
+* Fix placement of window menu when using fractional scaling [Jan; #527]
+* Fix repaint issues of offscreen effects on secondary monitors [Daniel; !511]
+* Fix windows not getting focus after launch [Daniel; #505]
+* Properly advertise support for 'underscan' property [Jonas; !507]
+* Improve power-saving handling [Jonas; !506]
+* Fix moving windows by super+touch [Jonas D.; !495]
+* Misc. bug fixes and cleanups [Benjamin, Florian, Adam, Marco, Pablo,
+  Erik, Jonas, Heiher, Pekka, Daniel, Olivier, Carlos; !478, !475, !480,
+  !482, #490, !488, #491, #480, !477, !496, !492, !485, !515, !519, !521,
+  !216, !538, #541, #523]
+
+Contributors:
+  Jonas Ådahl, Pablo Barciela, Benjamin Berg, Tom Briden, Jonas Dreßler,
+  Olivier Fourdan, Carlos Garnacho, Jan Alexander Steffens (heftig), Heiher,
+  Adam Jackson, Erik Kurzinger, Florian Müllner, Pekka Paalanen,
+  Marco Trevisan (Treviño), Daniel van Vugt
+
+Translators:
+  Khaled Hosny [ar], Goran Vidović [hr], Daniel Mustieles [es]
+
+3.32.0
+======
+* Fix deadlock when cancelling a theme sound [Andrea; !474]
+* Stop swizzling BGRA buffers (bye-bye inverted colors in screenshots
+  and animations) [Carlos; !486]
+
+Contributors:
+  Andrea Azzarone, Carlos Garnacho, Robert Mader
+
+3.31.92
+=======
+* Fix flicker of apps that use multiple SHM buffers [Jonas Å.; #199]
+* Don't disable page flips after temporary failures [Jonas Å.; #460]
+* Improve redraw performance [Carlos; !196]
+* Add cursor-mode support to window screencasting [Jonas Å.; !413]
+* Add back support for system-wide monitor configurations [Jonas Å.; !253]
+* Add fractional scaling support [Marco, Jonas Å.; !3]
+* Consider remapped keys when guessing keycode from keysym [Andrea; #443]
+* Stop turning on-screen-keyboard off on focus changes [Carlos; !432]
+* Fix crashes [Robert, Carlos, Jonas D., Florian; !447, #361, !426, #479]
+* Misc. bug fixes and cleanups [Benjamin, Adam, Olivier, Niels, Piotr; !457,
+  !452, !459, !380, !361, !461, !464, !471, !473, !463]
+
+Contributors:
+  Jonas Ådahl, Andrea Azzarone, Benjamin Berg, Piotr Drąg, Jonas Dreßler,
+  Olivier Fourdan, Carlos Garnacho, Niels De Graef, Adam Jackson, Robert Mader,
+  Florian Müllner, Marco Trevisan (Treviño)
+
+Translators:
+  Milo Casagrande [it], Tim Sabsch [de], Trần Ngọc Quân [vi],
+  Gwan-gyeong Mun [ko], Марко Костић [sr], Daniel Mustieles [es],
+  Rūdolfs Mazurs [lv], Nathan Follens [nl]
+
+3.31.91
+=======
+* Fix infinite loop in EDID matching [Marco; #459]
+* wayland: Don't resetin text-input state prematurely [Carlos; !410]
+* wayland: Don't maximize windows if minimum size is too big [Olivier; #463]
+* Fix crash when using "restore shortcuts" without focus window [Olivier; #464]
+* Add flag parameter to grab accelerator API [Andrea; !169]
+* Reuse old CRTC if possible to avoid flicker on hotplug [Pekka, Emilio; #373]
+* Misc. bug fixes and cleanups [Marco, Jonas, Niels, Adam, Olivier; !436,
+  !421, #462, !439, !440, !444, !321, !445, !456]
+
+Contributors:
+  Jonas Ådahl, Andrea Azzarone, Olivier Fourdan, Carlos Garnacho,
+  Niels De Graef, Adam Jackson, Emilio Pozuelo Monfort, Pekka Paalanen,
+  Marco Trevisan (Treviño)
+
+Translators:
+  Jiri Grönroos [fi], Charles Monzat [fr], Claude Paroz [fr], Fran Dieguez [gl],
+  Emin Tufan Çetin [tr], Aurimas Černius [lt], Anders Jonsson [sv],
+  Matej Urbančič [sl], Marek Cernocky [cs], Daniel Șerbănescu [ro],
+  Alan Mortensen [da], Baurzhan Muftakhidinov [kk], Yi-Jyun Pan [zh_TW],
+  Daniel Mustieles [es], Rafael Fontenelle [pt_BR]
+
+3.31.90
+=======
+* Fix support of extended characters in on-screen keyboard [Andrea; #109]
+* Improve selection of the primary GPU [Pekka, Emilio; !271]
+* Screen-cast cursor updates as PipeWire stream metadata [Jonas; !357]
+* Fix rendering glitches in magnifier [Daniel; gnome-shell#387]
+* Fix monitor recording on HiDPI [Jonas; !415]
+* Honour secondary GPU supported pixel formats [Pekka; !341]
+* Fall back to CPU copy path when using a software renderer [Emilio; !325]
+* Remove fallback app menu [Florian; gnome-shell#624]
+* wayland: Add support for viewporter protocol [Robert; !323]
+* Misc. bug fixes and cleanups [Florian, Carlos, Olivier, Marco, Robert,
+  Daniel, Pekka, Jonas, Ole, Georges; !391, #335, #442, !406, !395, #447,
+  !375, gnome-shell#349, #451, !416, #784199, !408, !181, !405]
+
+Contributors:
+  Jonas Ådahl, Andrea Azzarone, Ole Jørgen Brønner, Piotr Drąg, Olivier Fourdan,
+  Dariusz Gadomski, Carlos Garnacho, Antoine Jacoutot, Iain Lane, Robert Mader,
+  Emilio Pozuelo Monfort, Florian Müllner, Georges Basile Stavracas Neto,
+  Pekka Paalanen, Marco Trevisan (Treviño), Josh Triplett, Daniel van Vugt
+
+Translators:
+  Fabio Tomat [fur], Balázs Úr [hu], Daniel Mustieles [es], Kukuh Syafaat [id],
+  Jordi Mas [ca], Piotr Drąg [pl]
+
+3.31.4
+======
+* keybindings: Limit corner move to current monitor [Jānis; #320]
+* xdg-output: Report rotated physical dimensions [Olivier; #369]
+* Add continuous integration pipeline [Jonas; #193]
+* Improve performance on secondary GPUs [Pekka; #323, !313]
+* Use the actual hardware refresh rate [Daniel; #781296]
+* Remove hide-titlebar-when-maximized support [Florian; !221]
+* wayland: Implement buffer transforms [Robert; !322]
+* Remove ability to externally set sync-to-vblank [Georges; !191]
+* Turn off touchscreens together with DPMS [Carlos; gnome-settings-daemon#29]
+* Mipmap the wallpaper when shrinking [Daniel; gnome-shell#254]
+* Implement RecordWindow method for screen-casts [Olivier; !306]
+* Fix EGLStream texture downloading [Jonas; !362]
+* Split out display-server-specific code from MetaWindowActor [Georges; !368]
+* Improve render performance on some KMS devices with software GL [Jonas; #106]
+* Fix damage area of transformed surfaces [Robert; !366]
+* Remove autotools support [George]
+* Misc. bug fixes and cleanups [Jonas, Alan, Olivier, Carlos, Javier, Peter,
+  Daniel, Robert, Florian; !309, #790207, #272, #393, #276, #404, #104, !343,
+  #765011, #786663, #342, !356, #414, #782344, #781034, #423, !374, !382, !383]
+
+Contributors:
+  Jonas Ådahl, Nikita Churaev, Alan Coopersmith, Jānis Džeriņš, Olivier Fourdan,
+  Carlos Garnacho, Niels De Graef, Peter Hutterer, Javier Jardón,
+  Abderrahim Kitouni, Andre Klapper, Ting-Wei Lan, Robert Mader,
+  Emilio Pozuelo Monfort, Florian Müllner, Georges Basile Stavracas Neto,
+  Pekka Paalanen, Daniel Stone, Marco Trevisan (Treviño), Daniel van Vugt
+
+3.31.2
+======
+* Fix handling of non-UTF8 encodings [Florian; !227]
+* Fix memory leaks introduced in 3.30.1 [Jonas; #653]
+* Fix regression when overriding workspace layout [Ron; #270]
+* Fix crash when restarting window manager [Andrea; gnome-shell#595]
+* Add meson build support [Jonas; !167]
+* Freeze clock when headless [Jonas; !170]
+* Fix crash on monitor hotplug [Olivier; #189]
+* Misc. bug fixes [Jonas; #353, !132, #382]
+
+Contributors:
+  Jonas Ådahl, Andrea Azzarone, Olivier Fourdan, Niels De Graef,
+  Alexander Mikhaylenko, Florian Müllner, Akira Nakajima,
+  Georges Basile Stavracas Neto, Pekka Paalanen, Peter Uithoven,
+  Daniel van Vugt, Ron Yorston
+
+3.30.1
+======
+* Improve trackball detection [Tony; #258]
+* Fix clipping of scaled surfaces [Jonas; #300]
+* Improve tracking of monitor switch configuration [Daniel; !213]
+* Fix parent-relative positioning of constrained windows [Jonas; #332]
+* Add clutter_input_method_forward_key() method [Carlos; gnome-shell#531]
+* Various crash fixes [Olivier, Jonas; #194, #336]
+* Misc. bug fixes [Carlos, Florian, Olivier, Jonas; gnome-shell#540, #294,
+  #221, !229, #30, #331]
+
+Contributors:
+  Jonas Ådahl, Daniel Drake, Olivier Fourdan, Carlos Garnacho, Peter Hutterer,
+  Ting-Wei Lan, Florian Müllner, Tony Novak, Pekka Paalanen, Sam Spilsbury
+
+Translators:
+  Yuras Shumovich [be], Марко Костић [sr], Marek Cernocky [cs]
+
+3.30.0
+======
+
+Translators:
+  Fran Dieguez [gl], Balázs Meskó [hu], Rūdolfs Mazurs [lv],
+  Trần Ngọc Quân [vi], Ask Hjorth Larsen [da], gogo [hr]
+
+3.29.92
+=======
+* Avoid crash when a cursor is not found [Sebastian; #254]
+* Fix screen rotation regression [Jonas; #216]
+* Handle requests to unmanaged windows gracefully [Jonas; #240]
+* Move popups together with their parent [Jonas; #274]
+* Fix non-lowercase letters on virtual key devices [Carlos; gnome-shell#135]
+* Misc. bug fixes [Iain, Jonas; #223, #192, #279]
+
+Contributors:
+  Jonas Ådahl, Carlos Garnacho, Sebastian Keller, Iain Lane, Robert Mader,
+  Daniel van Vugt
+
+Translators:
+  Gwan-gyeong Mun [ko], Kukuh Syafaat [id], Milo Casagrande [it],
+  Anders Jonsson [sv], Rafael Fontenelle [pt_BR], Marek Cernocky [cs]
+
+3.29.91
+=======
+* Various crash fixes [Olivier, Iain; #255, #223]
+* Fix lock up with some DRI drivers [Alex; #127]
+* Send correct button codes from virtual evdev devices [Jonas; !190]
+* Improve grab-device clock updates on X11 [Jeff; !174]
+* Fix popups closing immediately on key down [Jonas; !180]
+* Prevent clients from modifying the shared keymap [Jonas; #784206]
+
+Contributors:
+  Jonas Ådahl, Andrea Azzarone, Piotr Drąg, Olivier Fourdan, Carlos Garnacho,
+  Jan Grulich, Iain Lane, Alex Villacís Lasso, Jeff Smith, Daniel van Vugt
+
+Translators:
+  Matej Urbančič [sl], Mario Blättermann [de], Piotr Drąg [pl],
+  Aurimas Černius [lt], Yi-Jyun Pan [zh_TW], Emin Tufan Çetin [tr],
+  Fabio Tomat [fur], Bruce Cowan [en_GB]
+
+3.29.90
+=======
+* Various crash fixes [Olivier, Jonas, Florian; #189, #70, #194, #15, #130]
+* Don't expose resolutions that are below the minimum [Andrea; #793223]
+* Remove support for preference overrides [Florian; #786496]
+* Misc. bug fixes and cleanups [Daniel, Jonas, Florian; #131, #245, !176]
+
+Contributors:
+  Jonas Ådahl, Andrea Azzarone, Olivier Fourdan, Florian Müllner, Kevin Tamool,
+  Daniel van Vugt
+
+Translators:
+  Daniel Mustieles [es], Claude Paroz [fr]
+
+3.29.4
+======
+* Fix crash with parent-less modal dialogs [Olivier; #174]
+* Preserve paint volumes where possible to optimize CPU usage [Carlos; #782344]
+
+Contributors:
+  Jonas Ådahl, Olivier Fourdan, Carlos Garnacho, Iain Lane, Bastien Nocera
+
+Translators:
+  Daniel Șerbănescu [ro]
+
+3.29.3
+======
+* Fix Korean Hangul support on wayland [Changwoo; #152]
+* Improve support for proprietary Nvidia driver [Jonas; #790316]
+* Only upload HW cursor sprite to the GPU that will display them [Jonas; #77]
+* Improve EGLstream support [Miguel; #2, #782575]
+* Remove MetaScreen to prepare for non-mandatary X11 dependency
+  [Armin, Jonas; #759538]
+* Misc. bug fixes [Olivier, Jonas, Sam; #160, !130, #786929, #788834]
+
+Contributors:
+  Jonas Ådahl, Olivier Fourdan, Carlos Garnacho, Armin Krezović, Corentin Noël,
+  Changwoo Ryu, Sam Spilsbury, Daniel Stone, Marco Trevisan (Treviño),
+  Miguel A. Vico, Daniel van Vugt
+
+Translators:
+  Yi-Jyun Pan [zh_TW], Jordi Mas [ca], Daniel Șerbănescu [ro], Fabio Tomat [fur]
+
+3.29.2
+======
+* Fix size change animations on wayland [Georges; #780292]
+* Handle touch events on server-side titlebars [Carlos; #770185]
+* Misc. bug fixes [Florian, Olivier, Jonas, Georges; #134, #124, !96, #138,
+  !102, #781471, #150]
+
+Contributors:
+  Jonas Ådahl, Olivier Fourdan, Carlos Garnacho, Florian Müllner,
+  Georges Basile Stavracas Neto, Marco Trevisan (Treviño), Daniel van Vugt
+
+Translators:
+  Daniel Șerbănescu [ro], Marcos Lans [gl], Dz Chen [zh_CN]
+
+3.29.1
+======
+* Fix various input-method regressions [Carlos, Olivier; #65, #74, #66, #112]
+* Fix wayland build on FreeBSD [Ting-Wei; #792280, #792717]
+* Fix swapped colors in screenshots (again) [Carlos; #72]
+* Allow building with elogind [Rasmus; !46]
+* Consider display rotation for cursor [Olivier; #85]
+* Fall back to non-modifier GBM surfaces [Daniel; #84]
+* Take inhibitors into account for monitoring idle [Bastien; #705942]
+* Misc. bug fixes [handsome-feng, Olivier, Mario, Jonas; !45, #83, #104,
+  gnome-shell#157, #130, #21]
+
+Contributors:
+  Jonas Ådahl, Olivier Fourdan, Carlos Garnacho, handsome-feng, Yussuf Khalil,
+  Ting-Wei Lan, Aleksandr Mezin, Alberts Muktupāvels,
+  Georges Basile Stavracas Neto, Bastien Nocera, Benjamin Otte,
+  Mario Sanchez Prada, Daniel Stone, Ray Strode, Rasmus Thomsen,
+  Marco Trevisan (Treviño), Daniel van Vugt
+
+Translators:
+  Emin Tufan Çetin [tr], Dušan Kazik [sk], Matej Urbančič [sl]
+
+3.28.0
+======
+* Fix xdg-foreign regression [Carlos; #63]
+
+Contributors:
+  Carlos Garnacho, Georges Basile Stavracas Neto
+
+Translators:
+  Marek Cernocky [cs], Ask Hjorth Larsen [da], Chao-Hsiung Liao [zh_TW],
+  Anders Jonsson [sv], Mart Raudsepp [et]
+
+3.27.92
+=======
+* Fix use of modifiers with multi-GPU systems [Louis-Francis; #18]
+* Add xdg-shell stable support [Jonas; #791938]
+* Fix scaling of icons in titlebar buttons [Egmont; #23]
+* Implement missing wacom functionality on X11 [Carlos; #48]
+* Force 8-bit RGB config [Jonas; #2]
+* Misc. bug fixes [Jonas, Olivier, Robert; #6, #27, #792203]
+
+Contributors:
+  Jonas Ådahl, Olivier Fourdan, Carlos Garnacho, Egmont Koblinger, Robert Mader,
+  Bastien Nocera, Louis-Francis Ratté-Boulianne
+
+Translators:
+  Daniel Mustieles [es], Марко Костић [sr], Милош Поповић [sr@latin],
+  Fran Dieguez [gl], Balázs Úr [hu], Gwan-gyeong Mun [ko], Rūdolfs Mazurs [lv],
+  Milo Casagrande [it], Mario Blättermann [de], GNOME Translation Robot [gd,
+  nl], Claude Paroz [fr], Aurimas Černius [lt]
+
+3.27.91
+=======
+* Fix handling of trackball settings on wayland [Carlos; #787804]
+* Apply font settings on wayland [Daniel; #645433]
+* Fix keybindings getting mixed up with some layouts [Jonas; #789300]
+* Fix bluetooth mouse cursor disappearing after idle [Benoit; #761067]
+* Support platforms that export EGL_KHR_platform_gbm [memeka; #780668]
+* Add keyboard accessibility support on wayland [Olivier; #788564]
+* Fix missing cursor when using screen magnifier [Carlos; #754806]
+* Fix external monitor shutting off on wayland when lid closes [Jonas; #788915]
+* Add xdg-output support [Olivier; #787363]
+* Add Xwayland grab keyboard support [Olivier; #783342]
+* Allow shortcut inhibition of the super key [Olivier; #790627]
+* Take "panel orientation" drm_connector property into account [Hans; #782294]
+* Fix focus window ending up below other windows on wayland [Olivier; #780820]
+* Fix maximized windows restoring to a tiny size on wayland [Olivier; #783901]
+* Fix tap-and-drag setting on X11 [Jonas; #775755]
+* Fix handling of single-touch devices on wayland [Carlos; #792005]
+* Support tiled/compressed buffers [Daniel; #785779]
+* Port screencast support to pipewire 0.1.8 [Jonas; #792854]
+* Add support for third stylus button on newer tablets [Jason; #790033]
+* Fix background corruption regression on nvidia [Jonas; #739178]
+* Misc. bug fixes [Jonas, Rui, Michael, Marco, Carlos, Olivier, Philip, Piotr,
+  Ting-Wei, Daniel, Jeremy, Hans, Florian, Ray, Jeff, George, Gwan-gyeong;
+  #789153, #788493, #784314, #789227, #789223, #789277, #782344, #789552,
+  #789553, #788695, #789984, #788764, #789386, #784545, #790336, #790358,
+  #791022, #791006, #789070, #772218, #791383, #791809, #776220, #791916,
+  #792281, #790309, #791371, #792527, #792599, #788834, #792765, #792062,
+  #645460, #792853, !2, #792818, #8, #12, #789501, #10, #789961, #13, !15, #1,
+  #26, #28, #35, #36, #38]
+
+Contributors:
+  Jonas Ådahl, Jeremy Bicha, Michael Catanzaro, Piotr Drąg, Olivier Fourdan,
+  Carlos Garnacho, Jason Gerecke, Hans de Goede, Benoit Gschwind,
+  Peter Hutterer, George Kiagiadakis, Ting-Wei Lan, Rui Matos, memeka,
+  Florian Müllner, Gwan-gyeong Mun, Jeremy Nickurak, Marc-Antoine Perennou,
+  Jeff Smith, Daniel Stone, Ray Strode, Marco Trevisan (Treviño),
+  Daniel van Vugt, Philip Withnall
+
+Translators:
+  Khaled Hosny [ar], Kjartan Maraas [nb], Piotr Drąg [pl],
+  Rafael Fontenelle [pt_BR], Christian Kirbach [de], Anders Jonsson [sv],
+  Charles Monzat [fr], Marek Cernocky [cs], Muhammet Kara [tr],
+  Milo Casagrande [it], Pawan Chitrakar [ne], Yosef Or Boczko [he],
+  Kukuh Syafaat [id], Daniel Mustieles [es], Fabio Tomat [fur],
+  Kristjan SCHMIDT [eo], Balázs Úr [hu], Andika Triwidada [id],
+  Fran Dieguez [gl], gogo [hr]
+
 3.27.1
 ======
 * Work with clients that require older linux_dmabuf protocol [Daniel; #788558]
@@ -78,7 +2115,7 @@ Translations:
 =======
 * Reduce memory use of suspended instances [Jonas; #786299]
 * Make supported scales determination saner [Rui; #786474]
-* Fix crash on inhibit-shortcuts dialog reponse [Jonas; #786385]
+* Fix crash on inhibit-shortcuts dialog response [Jonas; #786385]
 * Support libinput's tag-and-drag setting [freeroot; #775755]
 * Avoid overlapping keybindings with multiple layouts [Jonas; #786408]
 * Fix non-transformed cursor on rotated monitors [Jonas; #786023]
@@ -397,7 +2434,7 @@ Translations:
 * Consider XDG_SESSION_TYPE when determining session type [Jouke; #759388]
 * Re-add support for edge scrolling on some touchpads [Bastien; #768245]
 * Support mouse and trackball acceleration profile [Jonas; #769179]
-* Draw monitor contentn to individual framebuffer [Jonas; #768976]
+* Draw monitor content to individual framebuffer [Jonas; #768976]
 * Support virtual input devices [Jonas, Carlos; #765009]
 * Set correct output scale on hotplug [Jonas; #769505]
 * Misc. bug fixes and cleanups [Florian, Jonas, Thomas, Bastien, Carlos;
@@ -1222,7 +3259,7 @@ Translations:
 * Ignore skip-taskbar hints on parentless dialogs [Giovanni; #673399]
 * Don't save pixbuf data in user data [Tim; #706777]
 * Don't queue redraws for obscured regions [Adel; #703332]
-* Suppor the opaque region hints for wayland clients [Jasper; #707019]
+* Support the opaque region hints for wayland clients [Jasper; #707019]
 * Turn blending off when drawing entirely opaque regions [Jasper; #707019]
 * Check event timestamps before reconfiguring [Giovanni; #706735]
 * Merge the DBus API for display configuration in the wayland branch [Giovanni]
@@ -1675,7 +3712,7 @@ Translations:
   wasn't usable from a GNOME Shell extension, so has been changed to take
   a GSettings object rather than the name of a schema [Jasper; #673014]
 * Don't try to auto-maximize not-maximizable windows; this fixes the problem
-  with the Nautilus desktop window being mis-positioned when enabled
+  with the Nautilus desktop window being mispositioned when enabled
   [Owen; #673566]
 * Fix a crash in the default plugin (not used in GNOME) [Giovanni; #673809]
 * Make the <Super> key work when set as the mouse button modifier
@@ -1707,7 +3744,7 @@ Translations:
 ======
 * Automaximize large windows on map [Adel; #671677]
 * When unmaximizing windows, make sure the unminimized size
-  is signficantly less than the maximized size [Adel; #671677]
+  is significantly less than the maximized size [Adel; #671677]
 * Don't offer maximize option for windows larger than the screen
   [Jasper; #643606]
 * Always focus the window immediately underneath without restacking
@@ -1790,7 +3827,7 @@ Translations:
 * Handle changes to workspaces-only-on-primary GSetting [Florian; #664853]
 * Don't use the Clutter default stage [Jasper; #664028]
 * Fix compilation with --disable-introspection [Lionel; #661871]
-* Fix problem where stage could end up mis-sized on startup with
+* Fix problem where stage could end up missized on startup with
   multiple monitors [Lionel]
 * Misc bug fixes [Adel, Lionel, Jasper; #666015]
 
@@ -1807,7 +3844,7 @@ Translations:
 * Move from GConf to GSettings for preferences [Florian; #635378]
 * Add meta_display_add_keybinding()/meta_display_remove_keybinding()
   to allow creating new keybindings at runtime [Florian; #663428]
-* Add suport for new _NET_WM_STATE_FOCUSED atom in _NET_WM_STATE
+* Add support for new _NET_WM_STATE_FOCUSED atom in _NET_WM_STATE
   to allow applications to draw unfocused windows differently
   [Rui; #661427]
 * Add meta_window_move_resize_frame() to allow specifying the
@@ -1919,7 +3956,7 @@ Contributors:
   for easy resizing with thin borders. (New draggable_border_width GConf key
   controls the total width of visible and invisible borders.)
   [Jasper; #644930]
-* Draw rounded window corners with antialising [Jasper; #628195]
+* Draw rounded window corners with antialiasing [Jasper; #628195]
 * Unredirect override-redirect fullscreen windows, such as full-screen
   3D games to avoid any performance impact [Adel; #597014]
 * Add :resizable and :above properties to MetaWindow. [Tim; #653858]
@@ -2012,7 +4049,7 @@ Translations:
 3.0.2.1
 =======
 * When saving the session, use the "program name" rather than
-  harcoding mutter, fixing session saving for gnome-shell [Matthias]
+  hardcoding mutter, fixing session saving for gnome-shell [Matthias]
   https://bugzilla.gnome.org/show_bug.cgi?id=648828
 
 Contributors:
@@ -2117,7 +4154,7 @@ Translations:
     meta_window_get_monitor()
     MetaWindow::window-entered-monitor, <etaWindow::window-left-monitor
     meta_window_move_to_monitor() [Florian]
- * Behavior improvemnts for attached modal dialogs:
+ * Behavior improvements for attached modal dialogs:
    - Allow dragging dragging on the titlebar to move the  parent ["Ron"]
    - Allow resizing [Florian]
    - Constrain to be on the current monitor [Florian]
@@ -2330,7 +4367,7 @@ Bugs fixed:
  634779 MetaWindowGroup: further optimize paints by using current scissor
  634833 Draw the root window background
  592382 improve shadow effect
- 628199 Add antialising to arc and line drawing operations
+ 628199 Add antialiasing to arc and line drawing operations
  633002 meta-actor-window: Use G_UNLIKELY for TFP check
  634771 MetaStackTracker: Avoid queueing resync for obvious no-ops
  635421 Fix crash in check_needs_shadow
@@ -2527,7 +4564,7 @@ Fixed Bugs:
   - Allow a theme to turn on title ellipsization
 * Performance enhancements:
   - Stream raw damage updates to ClutterX11TexturePixmap
-    to enable partial stage updates when windos change [Robert]
+    to enable partial stage updates when windows change [Robert]
   - Don't trap XErrors in meta_compositor_process_event [Adel]
 * Add meta_prefs_override_preference_location(); this allows
   a plugin like GNOME Shell to redirect preferences to a
@@ -2572,7 +4609,7 @@ Fixed Bugs:
  613136 - remove over-restrictive assert from meta_prefs_get_workspace_name()
  613398 - Don't trap XErrors in meta_compositor_process_event
  615586 - Allow redirecting preferences to a different GConf key
- 615672 - cant' compile mutter error: dereferencing pointer ‘p’ does break
+ 615672 - can't compile mutter error: dereferencing pointer ‘p’ does break
           strict-aliasing rules
  616050 - alt-tab infrastructure patches
  616274 - mutter from git fails with gcc 4.5 (on new warning)
@@ -2886,7 +4923,7 @@ Translations: none
 Thanks to Thomas Thurman for improvements in this version.
 
   - Add casts to fix failure to build from source on 64bit hosts (Thomas) (#562106)
-  - Added script to produce annoucements (Thomas)
+  - Added script to produce announcements (Thomas)
 
 Translations
   Jorge González (es)
@@ -3518,7 +5555,7 @@ Arthur Taylor, Elijah Newren, Josselin Mouette, Havoc Pennington,
 Benjamin Berg, and Carlo Wood for improvements in this release.
 
   - new icon for the force-quit dialog (Jaap) [#396655]
-  - add configureable mouse click action abilities, and clean up lots of
+  - add configurable mouse click action abilities, and clean up lots of
     related code (Linus) [#408899, #408902, others]
   - add schemeas for middle and right click titlebar actions (Charlie)
     [#408903]
@@ -4072,7 +6109,7 @@ this release.
    running with --disable-gconf.  Make --disable-gconf actually work.
    (Elijah) [#326661]
  - fix some reading-from-free'd-data errors (Søren) [#327575]
- - fix an unitialized value problem when in raise-on-click mode
+ - fix an uninitialized value problem when in raise-on-click mode
    (Søren) [#327572]
  - avoid flashing original-sized window when closing a maximized
    window (Elijah) [#317254]

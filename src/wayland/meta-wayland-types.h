@@ -12,13 +12,10 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_WAYLAND_TYPES_H
-#define META_WAYLAND_TYPES_H
+#pragma once
 
 typedef struct _MetaWaylandCompositor MetaWaylandCompositor;
 
@@ -37,6 +34,7 @@ typedef struct _MetaWaylandTouch MetaWaylandTouch;
 typedef struct _MetaWaylandDragDestFuncs MetaWaylandDragDestFuncs;
 typedef struct _MetaWaylandDataOffer MetaWaylandDataOffer;
 typedef struct _MetaWaylandDataDevice MetaWaylandDataDevice;
+typedef struct _MetaWaylandDataDevicePrimary MetaWaylandDataDevicePrimary;
 
 typedef struct _MetaWaylandTabletManager MetaWaylandTabletManager;
 typedef struct _MetaWaylandTabletSeat MetaWaylandTabletSeat;
@@ -51,11 +49,27 @@ typedef struct _MetaWaylandBuffer MetaWaylandBuffer;
 typedef struct _MetaWaylandRegion MetaWaylandRegion;
 
 typedef struct _MetaWaylandSurface MetaWaylandSurface;
+typedef struct _MetaWaylandSurfaceState MetaWaylandSurfaceState;
+
+typedef struct _MetaWaylandTransaction MetaWaylandTransaction;
+typedef struct _MetaWaylandTransactionEntry MetaWaylandTransactionEntry;
 
 typedef struct _MetaWaylandOutput MetaWaylandOutput;
 
-typedef struct _MetaWaylandSerial MetaWaylandSerial;
+typedef struct _MetaWaylandWindowConfiguration MetaWaylandWindowConfiguration;
 
 typedef struct _MetaWaylandPointerClient MetaWaylandPointerClient;
 
-#endif
+typedef struct _MetaWaylandActivation MetaWaylandActivation;
+
+typedef struct _MetaWaylandDmaBufManager MetaWaylandDmaBufManager;
+
+typedef struct _MetaWaylandXdgPositioner MetaWaylandXdgPositioner;
+
+typedef struct _MetaXWaylandManager MetaXWaylandManager;
+
+typedef struct _MetaWaylandXdgForeign MetaWaylandXdgForeign;
+
+typedef struct _MetaWaylandFilterManager MetaWaylandFilterManager;
+
+typedef struct _MetaWaylandClient MetaWaylandClient;

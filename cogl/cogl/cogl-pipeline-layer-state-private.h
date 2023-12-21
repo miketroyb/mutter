@@ -31,11 +31,10 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifndef __COGL_PIPELINE_LAYER_STATE_PRIVATE_H
-#define __COGL_PIPELINE_LAYER_STATE_PRIVATE_H
+#pragma once
 
-#include "cogl-pipeline-layer-state.h"
-#include "cogl-pipeline-private.h"
+#include "cogl/cogl-pipeline-layer-state.h"
+#include "cogl/cogl-pipeline-private.h"
 
 CoglPipelineLayer *
 _cogl_pipeline_set_layer_unit (CoglPipeline *required_owner,
@@ -50,41 +49,36 @@ CoglPipelineFilter
 _cogl_pipeline_get_layer_mag_filter (CoglPipeline *pipeline,
                                      int layer_index);
 
-CoglBool
-_cogl_pipeline_layer_texture_type_equal (CoglPipelineLayer *authority0,
-                                         CoglPipelineLayer *authority1,
-                                         CoglPipelineEvalFlags flags);
-
-CoglBool
+gboolean
 _cogl_pipeline_layer_texture_data_equal (CoglPipelineLayer *authority0,
                                          CoglPipelineLayer *authority1,
                                          CoglPipelineEvalFlags flags);
 
-CoglBool
+gboolean
 _cogl_pipeline_layer_combine_state_equal (CoglPipelineLayer *authority0,
                                           CoglPipelineLayer *authority1);
 
-CoglBool
+gboolean
 _cogl_pipeline_layer_combine_constant_equal (CoglPipelineLayer *authority0,
                                              CoglPipelineLayer *authority1);
 
-CoglBool
+gboolean
 _cogl_pipeline_layer_sampler_equal (CoglPipelineLayer *authority0,
                                     CoglPipelineLayer *authority1);
 
-CoglBool
+gboolean
 _cogl_pipeline_layer_user_matrix_equal (CoglPipelineLayer *authority0,
                                         CoglPipelineLayer *authority1);
 
-CoglBool
+gboolean
 _cogl_pipeline_layer_point_sprite_coords_equal (CoglPipelineLayer *authority0,
                                                 CoglPipelineLayer *authority1);
 
-CoglBool
+gboolean
 _cogl_pipeline_layer_vertex_snippets_equal (CoglPipelineLayer *authority0,
                                             CoglPipelineLayer *authority1);
 
-CoglBool
+gboolean
 _cogl_pipeline_layer_fragment_snippets_equal (CoglPipelineLayer *authority0,
                                               CoglPipelineLayer *authority1);
 
@@ -92,11 +86,6 @@ void
 _cogl_pipeline_layer_hash_unit_state (CoglPipelineLayer *authority,
                                       CoglPipelineLayer **authorities,
                                       CoglPipelineHashState *state);
-
-void
-_cogl_pipeline_layer_hash_texture_type_state (CoglPipelineLayer *authority,
-                                              CoglPipelineLayer **authorities,
-                                              CoglPipelineHashState *state);
 
 void
 _cogl_pipeline_layer_hash_texture_data_state (CoglPipelineLayer *authority,
@@ -137,5 +126,3 @@ void
 _cogl_pipeline_layer_hash_fragment_snippets_state (CoglPipelineLayer *authority,
                                                    CoglPipelineLayer **authorities,
                                                    CoglPipelineHashState *state);
-
-#endif /* __COGL_PIPELINE_LAYER_STATE_PRIVATE_H */

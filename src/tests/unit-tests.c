@@ -19,21 +19,29 @@
 
 #include "config.h"
 
+#include "tests/unit-tests.h"
+
 #include <glib.h>
 #include <stdlib.h>
 
 #include <meta/main.h>
 #include <meta/util.h>
 
-#include "compositor/meta-plugin-manager.h"
 #include "core/boxes-private.h"
-#include "core/main-private.h"
-#include "tests/meta-backend-test.h"
+#include "core/display-private.h"
+#include "meta-test/meta-context-test.h"
+#include "meta/compositor.h"
+#include "meta/meta-context.h"
+#include "tests/boxes-tests.h"
 #include "tests/monitor-config-migration-unit-tests.h"
-#include "tests/monitor-unit-tests.h"
 #include "tests/monitor-store-unit-tests.h"
-#include "tests/test-utils.h"
-#include "wayland/meta-wayland.h"
+#include "tests/monitor-transform-tests.h"
+#include "tests/meta-test-utils.h"
+#include "tests/orientation-manager-unit-tests.h"
+#include "tests/hdr-metadata-unit-tests.h"
+#include "tests/button-transform-tests.h"
+
+MetaContext *test_context;
 
 typedef struct _MetaTestLaterOrderCallbackData
 {
@@ -60,6 +68,9 @@ test_later_order_callback (gpointer user_data)
 static void
 meta_test_util_later_order (void)
 {
+  MetaDisplay *display = meta_context_get_display (test_context);
+  MetaCompositor *compositor = meta_display_get_compositor (display);
+  MetaLaters *laters = meta_compositor_get_laters (compositor);
   GMainLoop *loop;
   int expected_callback_num;
   int i;
@@ -78,10 +89,10 @@ meta_test_util_later_order (void)
         .callback_num = i,
         .expected_callback_num = &expected_callback_num,
       };
-      meta_later_add (META_LATER_BEFORE_REDRAW,
-                      test_later_order_callback,
-                      &callback_data[i],
-                      NULL);
+      meta_laters_add (laters, META_LATER_BEFORE_REDRAW,
+                       test_later_order_callback,
+                       &callback_data[i],
+                       NULL);
     }
 
   /* Check that the callbacks are invoked in the opposite order that they were
@@ -115,13 +126,16 @@ static gboolean
 test_later_schedule_from_later_calc_showing_callback (gpointer user_data)
 {
   MetaTestLaterScheduleFromLaterData *data = user_data;
+  MetaDisplay *display = meta_context_get_display (test_context);
+  MetaCompositor *compositor = meta_display_get_compositor (display);
+  MetaLaters *laters = meta_compositor_get_laters (compositor);
 
   g_assert_cmpint (data->state, ==, META_TEST_LATER_EXPECT_CALC_SHOWING);
 
-  meta_later_add (META_LATER_SYNC_STACK,
-                  test_later_schedule_from_later_sync_stack_callback,
-                  data,
-                  NULL);
+  meta_laters_add (laters, META_LATER_SYNC_STACK,
+                   test_later_schedule_from_later_sync_stack_callback,
+                   data,
+                   NULL);
 
   data->state = META_TEST_LATER_EXPECT_SYNC_STACK;
 
@@ -156,6 +170,9 @@ static void
 meta_test_util_later_schedule_from_later (void)
 {
   MetaTestLaterScheduleFromLaterData data;
+  MetaDisplay *display = meta_context_get_display (test_context);
+  MetaCompositor *compositor = meta_display_get_compositor (display);
+  MetaLaters *laters = meta_compositor_get_laters (compositor);
 
   data.loop = g_main_loop_new (NULL, FALSE);
 
@@ -166,14 +183,14 @@ meta_test_util_later_schedule_from_later (void)
    * The first and last callback is queued here. The one to be invoked in
    * between is invoked in test_later_schedule_from_later_calc_showing_callback.
    */
-  meta_later_add (META_LATER_CALC_SHOWING,
-                  test_later_schedule_from_later_calc_showing_callback,
-                  &data,
-                  NULL);
-  meta_later_add (META_LATER_BEFORE_REDRAW,
-                  test_later_schedule_from_later_before_redraw_callback,
-                  &data,
-                  NULL);
+  meta_laters_add (laters, META_LATER_CALC_SHOWING,
+                   test_later_schedule_from_later_calc_showing_callback,
+                   &data,
+                   NULL);
+  meta_laters_add (laters, META_LATER_BEFORE_REDRAW,
+                   test_later_schedule_from_later_before_redraw_callback,
+                   &data,
+                   NULL);
 
   data.state = META_TEST_LATER_EXPECT_CALC_SHOWING;
 
@@ -184,10 +201,10 @@ meta_test_util_later_schedule_from_later (void)
 }
 
 static void
-meta_test_adjecent_to (void)
+meta_test_adjacent_to (void)
 {
-  MetaRectangle base = { .x = 10, .y = 10, .width = 10, .height = 10 };
-  MetaRectangle adjecent[] = {
+  MtkRectangle base = { .x = 10, .y = 10, .width = 10, .height = 10 };
+  MtkRectangle adjacent[] = {
     { .x = 20, .y = 10, .width = 10, .height = 10 },
     { .x = 0, .y = 10, .width = 10, .height = 10 },
     { .x = 0, .y = 1, .width = 10, .height = 10 },
@@ -195,7 +212,7 @@ meta_test_adjecent_to (void)
     { .x = 10, .y = 20, .width = 10, .height = 10 },
     { .x = 10, .y = 0, .width = 10, .height = 10 },
   };
-  MetaRectangle not_adjecent[] = {
+  MtkRectangle not_adjacent[] = {
     { .x = 0, .y = 0, .width = 10, .height = 10 },
     { .x = 20, .y = 20, .width = 10, .height = 10 },
     { .x = 21, .y = 10, .width = 10, .height = 10 },
@@ -206,70 +223,46 @@ meta_test_adjecent_to (void)
   };
   unsigned int i;
 
-  for (i = 0; i < G_N_ELEMENTS (adjecent); i++)
-    g_assert (meta_rectangle_is_adjecent_to (&base, &adjecent[i]));
+  for (i = 0; i < G_N_ELEMENTS (adjacent); i++)
+    g_assert (meta_rectangle_is_adjacent_to (&base, &adjacent[i]));
 
-  for (i = 0; i < G_N_ELEMENTS (not_adjecent); i++)
-    g_assert (!meta_rectangle_is_adjecent_to (&base, &not_adjecent[i]));
-}
-
-static gboolean
-run_tests (gpointer data)
-{
-  MetaBackend *backend = meta_get_backend ();
-  MetaSettings *settings = meta_backend_get_settings (backend);
-  gboolean ret;
-
-  meta_settings_override_experimental_features (settings);
-
-  meta_settings_enable_experimental_feature (
-    settings,
-    META_EXPERIMENTAL_FEATURE_SCALE_MONITOR_FRAMEBUFFER);
-
-  pre_run_monitor_tests ();
-
-  ret = g_test_run ();
-
-  finish_monitor_tests ();
-
-  meta_quit (ret != 0);
-
-  return FALSE;
+  for (i = 0; i < G_N_ELEMENTS (not_adjacent); i++)
+    g_assert (!meta_rectangle_is_adjacent_to (&base, &not_adjacent[i]));
 }
 
 static void
-init_tests (int argc, char **argv)
+init_tests (void)
 {
-  g_test_init (&argc, &argv, NULL);
-  g_test_bug_base ("http://bugzilla.gnome.org/show_bug.cgi?id=");
-
   g_test_add_func ("/util/meta-later/order", meta_test_util_later_order);
   g_test_add_func ("/util/meta-later/schedule-from-later",
                    meta_test_util_later_schedule_from_later);
 
-  g_test_add_func ("/core/boxes/adjecent-to", meta_test_adjecent_to);
+  g_test_add_func ("/core/boxes/adjacent-to", meta_test_adjacent_to);
 
   init_monitor_store_tests ();
   init_monitor_config_migration_tests ();
-  init_monitor_tests ();
+  init_boxes_tests ();
+  init_monitor_transform_tests ();
+  init_orientation_manager_tests ();
+  init_hdr_metadata_tests ();
+  init_button_transform_tests ();
 }
 
 int
 main (int argc, char *argv[])
 {
-  test_init (argc, argv);
-  init_tests (argc, argv);
+  g_autoptr (MetaContext) context = NULL;
+  g_autoptr (GError) error = NULL;
 
-  meta_plugin_manager_load ("default");
+  context = meta_create_test_context (META_CONTEXT_TEST_TYPE_NESTED,
+                                      META_CONTEXT_TEST_FLAG_TEST_CLIENT);
+  if (!meta_context_configure (context, &argc, &argv, &error))
+    g_error ("Failed to configure test context: %s", error->message);
 
-  meta_override_compositor_configuration (META_COMPOSITOR_TYPE_WAYLAND,
-                                          META_TYPE_BACKEND_TEST);
-  meta_wayland_override_display_name ("mutter-test-display");
+  test_context = context;
 
-  meta_init ();
-  meta_register_with_session ();
+  init_tests ();
 
-  g_idle_add (run_tests, NULL);
-
-  return meta_run ();
+  return meta_context_test_run_tests (META_CONTEXT_TEST (context),
+                                      META_TEST_RUN_FLAG_NONE);
 }

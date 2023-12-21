@@ -24,15 +24,13 @@
    There should be no includes in this file.
 */
 
-#ifndef META_DISPLAY_CONFIG_SHARED_H
-#define META_DISPLAY_CONFIG_SHARED_H
+#pragma once
 
-typedef enum {
+typedef enum
+{
   META_POWER_SAVE_UNSUPPORTED = -1,
   META_POWER_SAVE_ON = 0,
   META_POWER_SAVE_STANDBY,
   META_POWER_SAVE_SUSPEND,
   META_POWER_SAVE_OFF,
 } MetaPowerSave;
-
-#endif /* META_DISPLAY_CONFIG_SHARED_H */

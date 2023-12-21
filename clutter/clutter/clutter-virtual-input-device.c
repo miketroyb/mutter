@@ -21,23 +21,21 @@
  * Author: Jonas Ådahl <jadahl@gmail.com>
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
 #include <glib-object.h>
 
-#include "clutter-virtual-input-device.h"
+#include "clutter/clutter-virtual-input-device.h"
 
-#include "clutter-device-manager.h"
-#include "clutter-private.h"
-#include "clutter-enum-types.h"
+#include "clutter/clutter-enum-types.h"
+#include "clutter/clutter-private.h"
+#include "clutter/clutter-seat.h"
 
 enum
 {
   PROP_0,
 
-  PROP_DEVICE_MANAGER,
+  PROP_SEAT,
   PROP_DEVICE_TYPE,
 
   PROP_LAST
@@ -47,7 +45,7 @@ static GParamSpec *obj_props[PROP_LAST];
 
 typedef struct _ClutterVirtualInputDevicePrivate
 {
-  ClutterDeviceManager *manager;
+  ClutterSeat *seat;
   ClutterInputDeviceType device_type;
 } ClutterVirtualInputDevicePrivate;
 
@@ -128,21 +126,71 @@ clutter_virtual_input_device_notify_discrete_scroll (ClutterVirtualInputDevice *
                                  direction, scroll_source);
 }
 
-/**
- * clutter_virtual_input_device_get_manager:
- * @virtual_device: a virtual device
- *
- * Gets the device manager of this virtual device.
- *
- * Returns: (transfer none): The #ClutterDeviceManager of this virtual device
- **/
-ClutterDeviceManager *
-clutter_virtual_input_device_get_manager (ClutterVirtualInputDevice *virtual_device)
+void
+clutter_virtual_input_device_notify_scroll_continuous (ClutterVirtualInputDevice *virtual_device,
+                                                       uint64_t                   time_us,
+                                                       double                     dx,
+                                                       double                     dy,
+                                                       ClutterScrollSource        scroll_source,
+                                                       ClutterScrollFinishFlags   finish_flags)
 {
-  ClutterVirtualInputDevicePrivate *priv =
-    clutter_virtual_input_device_get_instance_private (virtual_device);
+  ClutterVirtualInputDeviceClass *klass =
+    CLUTTER_VIRTUAL_INPUT_DEVICE_GET_CLASS (virtual_device);
 
-  return priv->manager;
+  klass->notify_scroll_continuous (virtual_device, time_us,
+                                   dx, dy, scroll_source, finish_flags);
+}
+
+void
+clutter_virtual_input_device_notify_touch_down (ClutterVirtualInputDevice *virtual_device,
+                                                uint64_t                   time_us,
+                                                int                        slot,
+                                                double                     x,
+                                                double                     y)
+{
+  ClutterVirtualInputDeviceClass *klass =
+    CLUTTER_VIRTUAL_INPUT_DEVICE_GET_CLASS (virtual_device);
+
+  g_return_if_fail (CLUTTER_IS_VIRTUAL_INPUT_DEVICE (virtual_device));
+  g_return_if_fail (slot >= 0 &&
+                    slot < CLUTTER_VIRTUAL_INPUT_DEVICE_MAX_TOUCH_SLOTS);
+
+  klass->notify_touch_down (virtual_device, time_us,
+                            slot, x, y);
+}
+
+void
+clutter_virtual_input_device_notify_touch_motion (ClutterVirtualInputDevice *virtual_device,
+                                                  uint64_t                   time_us,
+                                                  int                        slot,
+                                                  double                     x,
+                                                  double                     y)
+{
+  ClutterVirtualInputDeviceClass *klass =
+    CLUTTER_VIRTUAL_INPUT_DEVICE_GET_CLASS (virtual_device);
+
+  g_return_if_fail (CLUTTER_IS_VIRTUAL_INPUT_DEVICE (virtual_device));
+  g_return_if_fail (slot >= 0 &&
+                    slot < CLUTTER_VIRTUAL_INPUT_DEVICE_MAX_TOUCH_SLOTS);
+
+  klass->notify_touch_motion (virtual_device, time_us,
+                              slot, x, y);
+}
+
+void
+clutter_virtual_input_device_notify_touch_up (ClutterVirtualInputDevice *virtual_device,
+                                              uint64_t                   time_us,
+                                              int                        slot)
+{
+  ClutterVirtualInputDeviceClass *klass =
+    CLUTTER_VIRTUAL_INPUT_DEVICE_GET_CLASS (virtual_device);
+
+  g_return_if_fail (CLUTTER_IS_VIRTUAL_INPUT_DEVICE (virtual_device));
+  g_return_if_fail (slot >= 0 &&
+                    slot < CLUTTER_VIRTUAL_INPUT_DEVICE_MAX_TOUCH_SLOTS);
+
+  klass->notify_touch_up (virtual_device, time_us,
+                          slot);
 }
 
 int
@@ -152,6 +200,20 @@ clutter_virtual_input_device_get_device_type (ClutterVirtualInputDevice *virtual
     clutter_virtual_input_device_get_instance_private (virtual_device);
 
   return priv->device_type;
+}
+
+/**
+ * clutter_virtual_input_device_get_seat:
+ *
+ * Returns: (transfer none): The seat of the virtual input device
+ */
+ClutterSeat *
+clutter_virtual_input_device_get_seat (ClutterVirtualInputDevice *virtual_device)
+{
+  ClutterVirtualInputDevicePrivate *priv =
+    clutter_virtual_input_device_get_instance_private (virtual_device);
+
+  return priv->seat;
 }
 
 static void
@@ -167,8 +229,8 @@ clutter_virtual_input_device_get_property (GObject    *object,
 
   switch (prop_id)
     {
-    case PROP_DEVICE_MANAGER:
-      g_value_set_object (value, priv->manager);
+    case PROP_SEAT:
+      g_value_set_object (value, priv->seat);
       break;
     case PROP_DEVICE_TYPE:
       g_value_set_enum (value, priv->device_type);
@@ -192,8 +254,8 @@ clutter_virtual_input_device_set_property (GObject      *object,
 
   switch (prop_id)
     {
-    case PROP_DEVICE_MANAGER:
-      priv->manager = g_value_get_object (value);
+    case PROP_SEAT:
+      priv->seat = g_value_get_object (value);
       break;
     case PROP_DEVICE_TYPE:
       priv->device_type = g_value_get_enum (value);
@@ -217,16 +279,12 @@ clutter_virtual_input_device_class_init (ClutterVirtualInputDeviceClass *klass)
   object_class->get_property = clutter_virtual_input_device_get_property;
   object_class->set_property = clutter_virtual_input_device_set_property;
 
-  obj_props[PROP_DEVICE_MANAGER] =
-    g_param_spec_object ("device-manager",
-                         P_("Device Manager"),
-                         P_("The device manager instance"),
-                         CLUTTER_TYPE_DEVICE_MANAGER,
+  obj_props[PROP_SEAT] =
+    g_param_spec_object ("seat", NULL, NULL,
+                         CLUTTER_TYPE_SEAT,
                          CLUTTER_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
   obj_props[PROP_DEVICE_TYPE] =
-    g_param_spec_enum ("device-type",
-                       P_("Device type"),
-                       P_("Device type"),
+    g_param_spec_enum ("device-type", NULL, NULL,
                        CLUTTER_TYPE_INPUT_DEVICE_TYPE,
                        CLUTTER_POINTER_DEVICE,
                        CLUTTER_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);

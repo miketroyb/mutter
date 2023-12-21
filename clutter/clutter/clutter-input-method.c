@@ -12,16 +12,16 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#include "clutter-build-config.h"
+#include "clutter/clutter-build-config.h"
 
-#include "clutter-private.h"
+#include "clutter/clutter-event-private.h"
+#include "clutter/clutter-private.h"
+#include "clutter/clutter-input-device-private.h"
 #include "clutter/clutter-input-method.h"
 #include "clutter/clutter-input-method-private.h"
 #include "clutter/clutter-input-focus-private.h"
@@ -36,7 +36,8 @@ struct _ClutterInputMethodPrivate
   gboolean can_show_preedit;
 };
 
-enum {
+enum
+{
   COMMIT,
   DELETE_SURROUNDING,
   REQUEST_SURROUNDING,
@@ -45,7 +46,8 @@ enum {
   N_SIGNALS,
 };
 
-enum {
+enum
+{
   PROP_0,
   PROP_CONTENT_HINTS,
   PROP_CONTENT_PURPOSE,
@@ -165,7 +167,7 @@ clutter_input_method_class_init (ClutterInputMethodClass *klass)
                   G_TYPE_FROM_CLASS (object_class),
                   G_SIGNAL_RUN_LAST,
                   0, NULL, NULL, NULL,
-                  G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_UINT);
+                  G_TYPE_NONE, 2, G_TYPE_INT, G_TYPE_UINT);
   signals[REQUEST_SURROUNDING] =
     g_signal_new ("request-surrounding",
                   G_TYPE_FROM_CLASS (object_class),
@@ -184,26 +186,20 @@ clutter_input_method_class_init (ClutterInputMethodClass *klass)
                   G_TYPE_FROM_CLASS (object_class),
                   G_SIGNAL_RUN_LAST,
                   0, NULL, NULL, NULL,
-                  G_TYPE_NONE, 1, CLUTTER_TYPE_RECT);
+                  G_TYPE_NONE, 1, GRAPHENE_TYPE_RECT);
 
   pspecs[PROP_CONTENT_HINTS] =
-    g_param_spec_flags ("content-hints",
-                        P_("Content hints"),
-                        P_("Content hints"),
+    g_param_spec_flags ("content-hints", NULL, NULL,
                         CLUTTER_TYPE_INPUT_CONTENT_HINT_FLAGS, 0,
                         G_PARAM_READWRITE |
                         G_PARAM_STATIC_STRINGS);
   pspecs[PROP_CONTENT_PURPOSE] =
-    g_param_spec_enum ("content-purpose",
-                       P_("Content purpose"),
-                       P_("Content purpose"),
+    g_param_spec_enum ("content-purpose", NULL, NULL,
                        CLUTTER_TYPE_INPUT_CONTENT_PURPOSE, 0,
                        G_PARAM_READWRITE |
                        G_PARAM_STATIC_STRINGS);
   pspecs[PROP_CAN_SHOW_PREEDIT] =
-    g_param_spec_boolean ("can-show-preedit",
-                          P_("Can show preedit"),
-                          P_("Can show preedit"),
+    g_param_spec_boolean ("can-show-preedit", NULL, NULL,
                           FALSE,
                           G_PARAM_READWRITE |
                           G_PARAM_STATIC_STRINGS);
@@ -263,9 +259,6 @@ clutter_input_method_focus_out (ClutterInputMethod *im)
 
   klass = CLUTTER_INPUT_METHOD_GET_CLASS (im);
   klass->focus_out (im);
-
-  g_signal_emit (im, signals[INPUT_PANEL_STATE],
-                 0, CLUTTER_INPUT_PANEL_STATE_OFF);
 }
 
 ClutterInputFocus *
@@ -277,31 +270,54 @@ clutter_input_method_get_focus (ClutterInputMethod *im)
   return priv->focus;
 }
 
+static void
+clutter_input_method_put_im_event (ClutterInputMethod      *im,
+                                   ClutterEventType         event_type,
+                                   const char              *text,
+                                   int32_t                  offset,
+                                   int32_t                  anchor,
+                                   uint32_t                 len,
+                                   ClutterPreeditResetMode  mode)
+{
+  ClutterSeat *seat;
+  ClutterEvent *event;
+
+  seat = clutter_backend_get_default_seat (clutter_get_default_backend ());
+
+  event = clutter_event_im_new (event_type,
+                                CLUTTER_EVENT_FLAG_INPUT_METHOD,
+                                CLUTTER_CURRENT_TIME,
+                                seat,
+                                text,
+                                offset,
+                                anchor,
+                                len,
+                                mode);
+
+  clutter_event_put (event);
+  clutter_event_free (event);
+}
+
 void
 clutter_input_method_commit (ClutterInputMethod *im,
                              const gchar        *text)
 {
-  ClutterInputMethodPrivate *priv;
-
   g_return_if_fail (CLUTTER_IS_INPUT_METHOD (im));
 
-  priv = clutter_input_method_get_instance_private (im);
-  if (priv->focus)
-    clutter_input_focus_commit (priv->focus, text);
+  clutter_input_method_put_im_event (im, CLUTTER_IM_COMMIT, text, 0, 0, 0,
+                                     CLUTTER_PREEDIT_RESET_CLEAR);
 }
 
 void
 clutter_input_method_delete_surrounding (ClutterInputMethod *im,
-                                         guint               offset,
+                                         int                 offset,
                                          guint               len)
 {
-  ClutterInputMethodPrivate *priv;
-
   g_return_if_fail (CLUTTER_IS_INPUT_METHOD (im));
 
-  priv = clutter_input_method_get_instance_private (im);
-  if (priv->focus)
-    clutter_input_focus_delete_surrounding (priv->focus, offset, len);
+  clutter_input_method_put_im_event (im, CLUTTER_IM_DELETE, NULL,
+                                     offset, offset, len,
+                                     CLUTTER_PREEDIT_RESET_CLEAR);
 }
 
 void
@@ -318,23 +334,23 @@ clutter_input_method_request_surrounding (ClutterInputMethod *im)
 
 /**
  * clutter_input_method_set_preedit_text:
- * @method: a #ClutterInputMethod
+ * @im: a #ClutterInputMethod
  * @preedit: (nullable): the preedit text, or %NULL
+ * @cursor: the cursor
  *
  * Sets the preedit text on the current input focus.
  **/
 void
-clutter_input_method_set_preedit_text (ClutterInputMethod *im,
-                                       const gchar        *preedit,
-                                       guint               cursor)
+clutter_input_method_set_preedit_text (ClutterInputMethod      *im,
+                                       const gchar             *preedit,
+                                       unsigned int             cursor,
+                                       unsigned int             anchor,
+                                       ClutterPreeditResetMode  mode)
 {
-  ClutterInputMethodPrivate *priv;
-
   g_return_if_fail (CLUTTER_IS_INPUT_METHOD (im));
 
-  priv = clutter_input_method_get_instance_private (im);
-  if (priv->focus)
-    clutter_input_focus_set_preedit_text (priv->focus, preedit, cursor);
+  clutter_input_method_put_im_event (im, CLUTTER_IM_PREEDIT, preedit,
+                                     cursor, anchor, 0, mode);
 }
 
 void
@@ -349,21 +365,28 @@ clutter_input_method_notify_key_event (ClutterInputMethod *im,
       /* XXX: we rely on the IM implementation to notify back of
        * key events in the exact same order they were given.
        */
-      copy = clutter_event_copy (event);
-      clutter_event_set_flags (copy, clutter_event_get_flags (event) |
-                               CLUTTER_EVENT_FLAG_INPUT_METHOD);
+      copy = clutter_event_key_new (clutter_event_type (event),
+                                    clutter_event_get_flags (event) |
+                                    CLUTTER_EVENT_FLAG_INPUT_METHOD,
+                                    clutter_event_get_time_us (event),
+                                    clutter_event_get_device (event),
+                                    clutter_event_get_state (event),
+                                    clutter_event_get_key_symbol (event),
+                                    clutter_event_get_event_code (event),
+                                    clutter_event_get_key_code (event),
+                                    clutter_event_get_key_unicode (event));
       clutter_event_put (copy);
       clutter_event_free (copy);
     }
 }
 
 void
-clutter_input_method_toggle_input_panel (ClutterInputMethod *im)
+clutter_input_method_set_input_panel_state (ClutterInputMethod     *im,
+                                            ClutterInputPanelState  state)
 {
   g_return_if_fail (CLUTTER_IS_INPUT_METHOD (im));
 
-  g_signal_emit (im, signals[INPUT_PANEL_STATE], 0,
-                 CLUTTER_INPUT_PANEL_STATE_TOGGLE);
+  g_signal_emit (im, signals[INPUT_PANEL_STATE], 0, state);
 }
 
 void
@@ -375,8 +398,8 @@ clutter_input_method_reset (ClutterInputMethod *im)
 }
 
 void
-clutter_input_method_set_cursor_location (ClutterInputMethod *im,
-                                          const ClutterRect  *rect)
+clutter_input_method_set_cursor_location (ClutterInputMethod    *im,
+                                          const graphene_rect_t *rect)
 {
   g_return_if_fail (CLUTTER_IS_INPUT_METHOD (im));
 
@@ -439,4 +462,40 @@ clutter_input_method_filter_key_event (ClutterInputMethod    *im,
     return FALSE;
 
   return im_class->filter_key_event (im, (const ClutterEvent *) key);
+}
+
+void
+clutter_input_method_forward_key (ClutterInputMethod *im,
+                                  uint32_t            keyval,
+                                  uint32_t            keycode,
+                                  uint32_t            state,
+                                  uint64_t            time_,
+                                  gboolean            press)
+{
+  ClutterInputMethodPrivate *priv;
+  ClutterInputDevice *keyboard;
+  ClutterSeat *seat;
+  ClutterEvent *event;
+
+  g_return_if_fail (CLUTTER_IS_INPUT_METHOD (im));
+
+  priv = clutter_input_method_get_instance_private (im);
+  if (!priv->focus)
+    return;
+
+  seat = clutter_backend_get_default_seat (clutter_get_default_backend ());
+  keyboard = clutter_seat_get_keyboard (seat);
+
+  event = clutter_event_key_new (press ? CLUTTER_KEY_PRESS : CLUTTER_KEY_RELEASE,
+                                 CLUTTER_EVENT_FLAG_INPUT_METHOD,
+                                 time_,
+                                 keyboard,
+                                 state,
+                                 keyval,
+                                 keycode - 8,
+                                 keycode,
+                                 clutter_keysym_to_unicode (keyval));
+
+  clutter_event_put (event);
+  clutter_event_free (event);
 }

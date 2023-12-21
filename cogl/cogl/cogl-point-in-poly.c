@@ -34,12 +34,10 @@
  * http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
-#include "cogl-util.h"
-#include "cogl-point-in-poly-private.h"
+#include "cogl/cogl-util.h"
+#include "cogl/cogl-point-in-poly-private.h"
 
 #include <glib.h>
 

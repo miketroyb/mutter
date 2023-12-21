@@ -28,18 +28,17 @@
  *
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
 
-#ifndef _COGL_ATLAS_TEXTURE_H_
-#define _COGL_ATLAS_TEXTURE_H_
-
-#include <cogl/cogl-context.h>
+#include "cogl/cogl-context.h"
 
 #include <glib-object.h>
 
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 /**
  * SECTION:cogl-atlas-texture
@@ -74,6 +73,7 @@ typedef struct _CoglAtlasTexture CoglAtlasTexture;
  *
  * Returns: a #GType that can be used with the GLib type system.
  */
+COGL_EXPORT
 GType cogl_atlas_texture_get_gtype (void);
 
 /**
@@ -105,10 +105,8 @@ GType cogl_atlas_texture_get_gtype (void);
  * for more details.</note>
  *
  * Returns: (transfer full): A new #CoglAtlasTexture object.
- * Since: 1.16
- * Stability: unstable
  */
-CoglAtlasTexture *
+COGL_EXPORT CoglAtlasTexture *
 cogl_atlas_texture_new_with_size (CoglContext *ctx,
                                   int width,
                                   int height);
@@ -117,7 +115,7 @@ cogl_atlas_texture_new_with_size (CoglContext *ctx,
  * cogl_atlas_texture_new_from_file:
  * @ctx: A #CoglContext
  * @filename: the file to load
- * @error: A #CoglError to catch exceptional errors or %NULL
+ * @error: A #GError to catch exceptional errors or %NULL
  *
  * Creates a #CoglAtlasTexture from an image file. A #CoglAtlasTexture
  * represents a sub-region within one of Cogl's shared texture
@@ -143,13 +141,11 @@ cogl_atlas_texture_new_with_size (CoglContext *ctx,
  *
  * Return value: (transfer full): A new #CoglAtlasTexture object or
  *          %NULL on failure and @error will be updated.
- * Since: 1.16
- * Stability: unstable
  */
-CoglAtlasTexture *
+COGL_EXPORT CoglAtlasTexture *
 cogl_atlas_texture_new_from_file (CoglContext *ctx,
                                   const char *filename,
-                                  CoglError **error);
+                                  GError **error);
 
 /**
  * cogl_atlas_texture_new_from_data:
@@ -161,7 +157,7 @@ cogl_atlas_texture_new_from_file (CoglContext *ctx,
  *    row in @data. A value of 0 will make Cogl automatically
  *    calculate @rowstride from @width and @format.
  * @data: pointer to the memory region where the source buffer resides
- * @error: A #CoglError to catch exceptional errors or %NULL
+ * @error: A #GError to catch exceptional errors or %NULL
  *
  * Creates a new #CoglAtlasTexture texture based on data residing in
  * memory. A #CoglAtlasTexture represents a sub-region within one of
@@ -188,17 +184,15 @@ cogl_atlas_texture_new_from_file (CoglContext *ctx,
  *
  * Return value: (transfer full): A new #CoglAtlasTexture object or
  *          %NULL on failure and @error will be updated.
- * Since: 1.16
- * Stability: unstable
  */
-CoglAtlasTexture *
+COGL_EXPORT CoglAtlasTexture *
 cogl_atlas_texture_new_from_data (CoglContext *ctx,
                                   int width,
                                   int height,
                                   CoglPixelFormat format,
                                   int rowstride,
                                   const uint8_t *data,
-                                  CoglError **error);
+                                  GError **error);
 
 /**
  * cogl_atlas_texture_new_from_bitmap:
@@ -228,10 +222,8 @@ cogl_atlas_texture_new_from_data (CoglContext *ctx,
  * for more details.</note>
  *
  * Returns: (transfer full): A new #CoglAtlasTexture object.
- * Since: 1.16
- * Stability: unstable
  */
-CoglAtlasTexture *
+COGL_EXPORT CoglAtlasTexture *
 cogl_atlas_texture_new_from_bitmap (CoglBitmap *bmp);
 
 /**
@@ -242,13 +234,8 @@ cogl_atlas_texture_new_from_bitmap (CoglBitmap *bmp);
  *
  * Return value: %TRUE if the passed object represents an atlas
  *   texture and %FALSE otherwise
- *
- * Since: 1.16
- * Stability: Unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_is_atlas_texture (void *object);
 
-COGL_END_DECLS
-
-#endif /* _COGL_ATLAS_TEXTURE_H_ */
+G_END_DECLS

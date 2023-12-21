@@ -28,45 +28,20 @@
  *
  */
 
-#ifndef __COGL_SHADER_H
-#define __COGL_SHADER_H
+#pragma once
 
-#include "cogl-object-private.h"
-#include "cogl-shader.h"
-#include "cogl-gl-header.h"
-#include "cogl-pipeline.h"
+#include "cogl/cogl-object-private.h"
+#include "cogl/deprecated/cogl-shader.h"
+#include "cogl/cogl-gl-header.h"
+#include "cogl/cogl-pipeline.h"
 
 typedef struct _CoglShader CoglShader;
 
-typedef enum
-{
-  COGL_SHADER_LANGUAGE_GLSL,
-  COGL_SHADER_LANGUAGE_ARBFP
-} CoglShaderLanguage;
-
 struct _CoglShader
 {
-  CoglHandleObject _parent;
+  CoglObject _parent;
   GLuint gl_handle;
   CoglPipeline *compilation_pipeline;
   CoglShaderType type;
-  CoglShaderLanguage language;
   char *source;
 };
-
-void
-_cogl_shader_compile_real (CoglHandle handle,
-                           CoglPipeline *pipeline);
-
-CoglShaderLanguage
-_cogl_program_get_language (CoglHandle handle);
-
-void
-_cogl_shader_set_source_with_boilerplate (GLuint shader_gl_handle,
-                                          GLenum shader_gl_type,
-                                          int n_tex_coord_attribs,
-                                          GLsizei count_in,
-                                          const char **strings_in,
-                                          const GLint *lengths_in);
-
-#endif /* __COGL_SHADER_H */

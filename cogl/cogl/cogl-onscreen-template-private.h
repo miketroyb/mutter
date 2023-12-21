@@ -28,12 +28,11 @@
  *
  */
 
-#ifndef __COGL_ONSCREEN_TEMPLATE_PRIVATE_H
-#define __COGL_ONSCREEN_TEMPLATE_PRIVATE_H
+#pragma once
 
-#include "cogl-object-private.h"
-#include "cogl-swap-chain.h"
-#include "cogl-framebuffer-private.h"
+#include "cogl/cogl-object-private.h"
+#include "cogl/cogl-swap-chain.h"
+#include "cogl/cogl-framebuffer-private.h"
 
 struct _CoglOnscreenTemplate
 {
@@ -41,5 +40,3 @@ struct _CoglOnscreenTemplate
 
   CoglFramebufferConfig config;
 };
-
-#endif /* __COGL_ONSCREEN_TEMPLATE_PRIVATE_H */

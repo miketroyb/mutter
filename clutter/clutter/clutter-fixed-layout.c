@@ -25,22 +25,19 @@
  */
 
 /**
- * SECTION:clutter-fixed-layout
- * @short_description: A fixed layout manager
+ * ClutterFixedLayout:
+ * 
+ * A fixed layout manager
  *
  * #ClutterFixedLayout is a layout manager implementing the same
  * layout policies as #ClutterGroup.
- *
- * #ClutterFixedLayout is available since Clutter 1.2
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
-#include "clutter-debug.h"
-#include "clutter-fixed-layout.h"
-#include "clutter-private.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-fixed-layout.h"
+#include "clutter/clutter-private.h"
 
 G_DEFINE_TYPE (ClutterFixedLayout,
                clutter_fixed_layout,
@@ -67,6 +64,9 @@ clutter_fixed_layout_get_preferred_width (ClutterLayoutManager *manager,
        child = clutter_actor_get_next_sibling (child))
     {
       gfloat child_x, child_min, child_natural;
+
+      if (!clutter_actor_is_visible (child))
+        continue;
 
       child_x = clutter_actor_get_x (child);
 
@@ -110,6 +110,9 @@ clutter_fixed_layout_get_preferred_height (ClutterLayoutManager *manager,
     {
       gfloat child_y, child_min, child_natural;
 
+      if (!clutter_actor_is_visible (child))
+        continue;
+
       child_y = clutter_actor_get_y (child);
 
       clutter_actor_get_preferred_size (child,
@@ -133,8 +136,7 @@ clutter_fixed_layout_get_preferred_height (ClutterLayoutManager *manager,
 static void
 clutter_fixed_layout_allocate (ClutterLayoutManager   *manager,
                                ClutterContainer       *container,
-                               const ClutterActorBox  *allocation,
-                               ClutterAllocationFlags  flags)
+                               const ClutterActorBox  *allocation)
 {
   ClutterActor *child;
 
@@ -142,7 +144,11 @@ clutter_fixed_layout_allocate (ClutterLayoutManager   *manager,
        child != NULL;
        child = clutter_actor_get_next_sibling (child))
     {
-      clutter_actor_allocate_preferred_size (child, flags);
+      float x = 0.f;
+      float y = 0.f;
+
+      clutter_actor_get_fixed_position (child, &x, &y);
+      clutter_actor_allocate_preferred_size (child, x, y);
     }
 }
 
@@ -170,8 +176,6 @@ clutter_fixed_layout_init (ClutterFixedLayout *self)
  * Creates a new #ClutterFixedLayout
  *
  * Return value: the newly created #ClutterFixedLayout
- *
- * Since: 1.2
  */
 ClutterLayoutManager *
 clutter_fixed_layout_new (void)

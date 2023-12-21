@@ -18,15 +18,15 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __CALLY_ROOT_H__
-#define __CALLY_ROOT_H__
+#pragma once
 
 #if !defined(__CALLY_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <cally/cally.h> can be included directly."
 #endif
 
 #include <atk/atk.h>
-#include <clutter/clutter.h>
+
+#include "clutter/clutter.h"
 
 G_BEGIN_DECLS
 
@@ -41,14 +41,6 @@ typedef struct _CallyRoot        CallyRoot;
 typedef struct _CallyRootClass   CallyRootClass;
 typedef struct _CallyRootPrivate CallyRootPrivate;
 
-/**
- * CallyRoot:
- *
- * The <structname>CallyRoot</structname> structure contains only private
- * data and should be accessed using the provided API
- *
- * Since: 1.4
- */
 struct _CallyRoot
 {
   /*< private >*/
@@ -62,23 +54,16 @@ struct _CallyRoot
  *
  * The <structname>CallyRootClass</structname> structure contains only
  * private data
- *
- * Since: 1.4
  */
 struct _CallyRootClass
 {
   /*< private >*/
   AtkGObjectAccessibleClass parent_class;
-
-  /* padding for future expansion */
-  gpointer _padding_dummy[16];
 };
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 GType      cally_root_get_type (void) G_GNUC_CONST;
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 AtkObject *cally_root_new      (void);
 
 G_END_DECLS
-
-#endif /* __CALLY_ROOT_H__ */

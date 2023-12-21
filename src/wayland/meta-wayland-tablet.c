@@ -14,25 +14,22 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#define _GNU_SOURCE
-
 #include "config.h"
 
+#include "wayland/meta-wayland-tablet.h"
+
 #include <glib.h>
-
 #include <wayland-server.h>
-#include "tablet-unstable-v2-server-protocol.h"
 
-#include "meta-surface-actor-wayland.h"
-#include "meta-wayland-private.h"
-#include "meta-wayland-tablet.h"
+#include "compositor/meta-surface-actor-wayland.h"
+#include "wayland/meta-wayland-private.h"
+
+#include "tablet-unstable-v2-server-protocol.h"
 
 static void
 unbind_resource (struct wl_resource *resource)
@@ -46,7 +43,7 @@ meta_wayland_tablet_new (ClutterInputDevice    *device,
 {
   MetaWaylandTablet *tablet;
 
-  tablet = g_slice_new0 (MetaWaylandTablet);
+  tablet = g_new0 (MetaWaylandTablet, 1);
   wl_list_init (&tablet->resource_list);
   tablet->device = device;
   tablet->tablet_seat = tablet_seat;
@@ -66,7 +63,7 @@ meta_wayland_tablet_free (MetaWaylandTablet *tablet)
       wl_list_init (wl_resource_get_link (resource));
     }
 
-  g_slice_free (MetaWaylandTablet, tablet);
+  g_free (tablet);
 }
 
 static void
@@ -85,13 +82,20 @@ meta_wayland_tablet_notify (MetaWaylandTablet  *tablet,
                             struct wl_resource *resource)
 {
   ClutterInputDevice *device = tablet->device;
+  const gchar *node_path, *vendor, *product;
   guint vid, pid;
 
   zwp_tablet_v2_send_name (resource, clutter_input_device_get_device_name (device));
-  zwp_tablet_v2_send_path (resource, clutter_input_device_get_device_node (device));
 
-  if (sscanf (clutter_input_device_get_vendor_id (device), "%x", &vid) == 1 &&
-      sscanf (clutter_input_device_get_product_id (device), "%x", &pid) == 1)
+  node_path = clutter_input_device_get_device_node (device);
+  if (node_path)
+    zwp_tablet_v2_send_path (resource, node_path);
+
+  vendor = clutter_input_device_get_vendor_id (device);
+  product = clutter_input_device_get_product_id (device);
+
+  if (vendor && sscanf (vendor, "%x", &vid) == 1 &&
+      product && sscanf (product, "%x", &pid) == 1)
     zwp_tablet_v2_send_id (resource, vid, pid);
 
   zwp_tablet_v2_send_done (resource);

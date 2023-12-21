@@ -18,8 +18,9 @@
  */
 
 /*
- * SECTION:restart
- * @short_description: Smoothly restart the compositor
+ * restart:
+ *
+ * Smoothly restart the compositor
  *
  * There are some cases where we need to restart Mutter in order
  * to deal with changes in state - the particular case inspiring
@@ -34,37 +35,36 @@
  * This handles both of these.
  */
 
-#include <config.h>
+#include "config.h"
 
-#include <clutter/clutter.h>
 #include <gio/gunixinputstream.h>
 
-#include <meta/main.h>
-#include "ui.h"
-#include "util-private.h"
-#include "display-private.h"
+#include "clutter/clutter.h"
+#include "core/display-private.h"
+#include "core/util-private.h"
+#include "meta/main.h"
+#include "x11/meta-x11-display-private.h"
 
 static gboolean restart_helper_started = FALSE;
 static gboolean restart_message_shown = FALSE;
 static gboolean is_restart = FALSE;
 
 void
-meta_restart_init (void)
+meta_set_is_restart (gboolean whether)
 {
-  Display *xdisplay = meta_ui_get_display ();
-  Atom atom_restart_helper = XInternAtom (xdisplay, "_MUTTER_RESTART_HELPER", False);
-  Window restart_helper_window = None;
-
-  restart_helper_window = XGetSelectionOwner (xdisplay, atom_restart_helper);
-  if (restart_helper_window)
-    is_restart = TRUE;
+  is_restart = whether;
 }
 
 static void
-restart_check_ready (void)
+restart_check_ready (MetaContext *context)
 {
   if (restart_helper_started && restart_message_shown)
-    meta_display_request_restart (meta_get_display ());
+    {
+      MetaDisplay *display = meta_context_get_display (context);
+
+      if (!meta_display_request_restart (display))
+        meta_display_show_restart_message (display, NULL);
+    }
 }
 
 static void
@@ -72,6 +72,7 @@ restart_helper_read_line_callback (GObject      *source_object,
                                    GAsyncResult *res,
                                    gpointer      user_data)
 {
+  MetaContext *context = user_data;
   GError *error = NULL;
   gsize length;
   char *line = g_data_input_stream_read_line_finish_utf8 (G_DATA_INPUT_STREAM (source_object),
@@ -79,7 +80,7 @@ restart_helper_read_line_callback (GObject      *source_object,
                                                           &length, &error);
   if (line == NULL)
     {
-      meta_warning ("Failed to read output from restart helper%s%s\n",
+      meta_warning ("Failed to read output from restart helper%s%s",
                     error ? ": " : NULL,
                     error ? error->message : NULL);
     }
@@ -89,34 +90,52 @@ restart_helper_read_line_callback (GObject      *source_object,
   g_object_unref (source_object);
 
   restart_helper_started = TRUE;
-  restart_check_ready ();
+  restart_check_ready (context);
 }
 
 static gboolean
-restart_message_painted (gpointer data)
+restart_message_painted (gpointer user_data)
 {
+  MetaContext *context = user_data;
+
   restart_message_shown = TRUE;
-  restart_check_ready ();
+  restart_check_ready (context);
 
   return FALSE;
+}
+
+static void
+child_setup (gpointer user_data)
+{
+  MetaDisplay *display = user_data;
+  MetaContext *context = meta_display_get_context (display);
+
+  meta_context_restore_rlimit_nofile (context, NULL);
 }
 
 /**
  * meta_restart:
  * @message: (allow-none): message to display to the user, or %NULL
+ * @context: a #MetaContext
  *
- * Starts the process of restarting the compositor. Note that Mutter's
- * involvement here is to make the restart visually smooth for the
- * user - it cannot itself safely reexec a program that embeds libmuttter.
+ * Starts the process of restarting the compositor.
+ *
+ * Note that Mutter's involvement here is to make the restart
+ * visually smooth for the user - it cannot itself safely 
+ * reexec a program that embeds libmuttter.
+ *
  * So in order for this to work, the compositor must handle two
- * signals -  MetaDisplay::show-restart-message, to display the
- * message passed here on the Clutter stage, and ::restart to actually
- * reexec the compositor.
+ * signals 
+ *
+ * - [signal@Meta.Display::show-restart-message], to display the
+ * message passed here on the Clutter stage
+ * - [signal@Meta.Display::restart] to actually reexec the compositor.
  */
 void
-meta_restart (const char *message)
+meta_restart (const char  *message,
+              MetaContext *context)
 {
-  MetaDisplay *display = meta_get_display();
+  MetaDisplay *display;
   GInputStream *unix_stream;
   GDataInputStream *data_stream;
   GError *error = NULL;
@@ -126,19 +145,23 @@ meta_restart (const char *message)
     MUTTER_LIBEXECDIR "/mutter-restart-helper", NULL
   };
 
+  g_return_if_fail (META_IS_CONTEXT (context));
+
+  display = meta_context_get_display (context);
+
   if (message && meta_display_show_restart_message (display, message))
     {
       /* Wait until the stage was painted */
       clutter_threads_add_repaint_func_full (CLUTTER_REPAINT_FLAGS_POST_PAINT,
                                              restart_message_painted,
-                                             NULL, NULL);
+                                             context, NULL);
     }
   else
     {
       /* Can't show the message, show the message as soon as the
        * restart helper starts
        */
-      restart_message_painted (NULL);
+      restart_message_painted (context);
     }
 
   /* We also need to wait for the restart helper to get its
@@ -148,14 +171,14 @@ meta_restart (const char *message)
                                  (char **)helper_argv,
                                  NULL, /* envp */
                                  G_SPAWN_DEFAULT,
-                                 NULL, NULL, /* child_setup */
+                                 child_setup, display,
                                  NULL, /* child_pid */
                                  NULL, /* standard_input */
                                  &helper_out_fd,
                                  NULL, /* standard_error */
                                  &error))
     {
-      meta_warning ("Failed to start restart helper: %s\n", error->message);
+      meta_warning ("Failed to start restart helper: %s", error->message);
       goto error;
     }
 
@@ -165,13 +188,7 @@ meta_restart (const char *message)
 
   g_data_input_stream_read_line_async (data_stream, G_PRIORITY_DEFAULT,
                                        NULL, restart_helper_read_line_callback,
-                                       &error);
-  if (error != NULL)
-    {
-      meta_warning ("Failed to read from restart helper: %s\n", error->message);
-      g_object_unref (data_stream);
-      goto error;
-    }
+                                       context);
 
   return;
 
@@ -181,20 +198,9 @@ meta_restart (const char *message)
    * will be destroyed and recreated, but otherwise it will work fine.
    */
   restart_helper_started = TRUE;
-  restart_check_ready ();
+  restart_check_ready (context);
 
   return;
-}
-
-void
-meta_restart_finish (void)
-{
-  if (is_restart)
-    {
-      Display *xdisplay = meta_display_get_xdisplay (meta_get_display ());
-      Atom atom_restart_helper = XInternAtom (xdisplay, "_MUTTER_RESTART_HELPER", False);
-      XSetSelectionOwner (xdisplay, atom_restart_helper, None, CurrentTime);
-    }
 }
 
 /**
@@ -202,7 +208,8 @@ meta_restart_finish (void)
  *
  * Returns %TRUE if this instance of Mutter comes from Mutter
  * restarting itself (for example to enable/disable stereo.)
- * See meta_restart(). If this is the case, any startup visuals
+ *
+ * See [func@Meta.restart]. If this is the case, any startup visuals
  * or animations should be suppressed.
  */
 gboolean

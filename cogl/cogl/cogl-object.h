@@ -28,14 +28,13 @@
  *
  */
 
-#ifndef __COGL_OBJECT_H
-#define __COGL_OBJECT_H
+#pragma once
 
-#include <cogl/cogl-types.h>
+#include "cogl/cogl-types.h"
 
 #include <glib-object.h>
 
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 typedef struct _CoglObject      CoglObject;
 
@@ -52,6 +51,7 @@ typedef struct _CoglObject      CoglObject;
  *
  * Returns: a #GType that can be used with the GLib type system.
  */
+COGL_EXPORT
 GType cogl_object_get_gtype (void);
 
 /**
@@ -62,7 +62,7 @@ GType cogl_object_get_gtype (void);
  *
  * Returns: the @object, with its reference count increased
  */
-void *
+COGL_EXPORT void *
 cogl_object_ref (void *object);
 
 /**
@@ -72,8 +72,22 @@ cogl_object_ref (void *object);
  * Drecreases the reference count of @object by 1; if the reference
  * count reaches 0, the resources allocated by @object will be freed
  */
-void
+COGL_EXPORT void
 cogl_object_unref (void *object);
+
+/**
+ * cogl_clear_object: (skip)
+ * @object_ptr: a pointer to a #CoglObject reference
+ *
+ * Clears a reference to a #CoglObject.
+ *
+ * @object_ptr must not be %NULL.
+ *
+ * If the reference is %NULL then this function does nothing.
+ * Otherwise, the reference count of the object is decreased using
+ * cogl_object_unref() and the pointer is set to %NULL.
+ */
+#define cogl_clear_object(object_ptr) g_clear_pointer ((object_ptr), cogl_object_unref)
 
 /**
  * CoglUserDataKey:
@@ -97,16 +111,14 @@ cogl_object_unref (void *object);
  * }
  *
  * static void
- * my_path_set_data (CoglPath *path, void *data)
+ * my_path_set_data (CoglPipeline *pipeline, void *data)
  * {
- *   cogl_object_set_user_data (COGL_OBJECT (path),
+ *   cogl_object_set_user_data (COGL_OBJECT (pipeline),
  *                              &private_key,
  *                              data,
- *                              destroy_path_private_cb);
+ *                              destroy_pipeline_private_cb);
  * }
  * ]|
- *
- * Since: 1.4
  */
 typedef struct {
   int unused;
@@ -114,15 +126,13 @@ typedef struct {
 
 /**
  * CoglUserDataDestroyCallback:
- * @user_data: The data whos association with a #CoglObject has been
- *             destoyed.
+ * @user_data: The data whose association with a #CoglObject has been
+ *             destroyed.
  *
  * When associating private data with a #CoglObject a callback can be
  * given which will be called either if the object is destroyed or if
  * cogl_object_set_user_data() is called with NULL user_data for the
  * same key.
- *
- * Since: 1.4
  */
 typedef GDestroyNotify CoglUserDataDestroyCallback;
 
@@ -134,9 +144,6 @@ typedef GDestroyNotify CoglUserDataDestroyCallback;
  *
  * This struct is used to pass information to the callback when
  * cogl_debug_object_foreach_type() is called.
- *
- * Since: 1.8
- * Stability: unstable
  */
 typedef struct {
   const char *name;
@@ -148,9 +155,6 @@ typedef struct {
  * @info: A pointer to a struct containing information about the type.
  *
  * A callback function to use for cogl_debug_object_foreach_type().
- *
- * Since: 1.8
- * Stability: unstable
  */
 typedef void
 (* CoglDebugObjectForeachTypeCallback) (const CoglDebugObjectTypeInfo *info,
@@ -170,10 +174,8 @@ typedef void
  * Associates some private @user_data with a given #CoglObject. To
  * later remove the association call cogl_object_set_user_data() with
  * the same @key but NULL for the @user_data.
- *
- * Since: 1.4
  */
-void
+COGL_EXPORT void
 cogl_object_set_user_data (CoglObject *object,
                            CoglUserDataKey *key,
                            void *user_data,
@@ -192,10 +194,8 @@ cogl_object_set_user_data (CoglObject *object,
  * Returns: (transfer none): The user data previously associated
  *   with @object using the given @key; or %NULL if no associated
  *   data is found.
- *
- * Since: 1.4
  */
-void *
+COGL_EXPORT void *
 cogl_object_get_user_data (CoglObject *object,
                            CoglUserDataKey *key);
 
@@ -208,11 +208,8 @@ cogl_object_get_user_data (CoglObject *object,
  * passes a count of the number of objects for that type. This is
  * intended to be used solely for debugging purposes to track down
  * issues with objects leaking.
- *
- * Since: 1.8
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_debug_object_foreach_type (CoglDebugObjectForeachTypeCallback func,
                                 void *user_data);
 
@@ -223,14 +220,8 @@ cogl_debug_object_foreach_type (CoglDebugObjectForeachTypeCallback func,
  * number of objects of that type that are currently in use. This is
  * intended to be used solely for debugging purposes to track down
  * issues with objects leaking.
- *
- * Since: 1.8
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_debug_object_print_instances (void);
 
-COGL_END_DECLS
-
-#endif /* __COGL_OBJECT_H */
-
+G_END_DECLS

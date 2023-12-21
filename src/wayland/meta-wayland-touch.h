@@ -19,14 +19,12 @@
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#ifndef META_WAYLAND_TOUCH_H
-#define META_WAYLAND_TOUCH_H
-
-#include <wayland-server.h>
+#pragma once
 
 #include <glib.h>
+#include <wayland-server.h>
 
-#include "meta-wayland-types.h"
+#include "wayland/meta-wayland-types.h"
 
 #define META_TYPE_WAYLAND_TOUCH (meta_wayland_touch_get_type ())
 G_DECLARE_FINAL_TYPE (MetaWaylandTouch, meta_wayland_touch,
@@ -42,11 +40,9 @@ struct _MetaWaylandTouch
 
   struct wl_list resource_list;
 
+  guint queued_frame_id;
   GHashTable *touch_surfaces; /* HT of MetaWaylandSurface->MetaWaylandTouchSurface */
   GHashTable *touches; /* HT of sequence->MetaWaylandTouchInfo */
-
-  ClutterInputDevice *device;
-  guint64 frame_slots;
 };
 
 void meta_wayland_touch_enable (MetaWaylandTouch *touch);
@@ -77,5 +73,3 @@ gboolean meta_wayland_touch_get_press_coords (MetaWaylandTouch     *touch,
 
 gboolean meta_wayland_touch_can_popup        (MetaWaylandTouch *touch,
                                               uint32_t          serial);
-
-#endif /* META_WAYLAND_TOUCH_H */

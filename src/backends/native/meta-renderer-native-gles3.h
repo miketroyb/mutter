@@ -2,6 +2,7 @@
 
 /*
  * Copyright (C) 2017 Red Hat
+ * Copyright (c) 2018 DisplayLink (UK) Ltd.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -14,14 +15,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#ifndef META_RENDERER_NATIVE_GLES3_H
-#define META_RENDERER_NATIVE_GLES3_H
+#pragma once
 
 #include <gbm.h>
 
@@ -35,11 +33,3 @@ gboolean meta_renderer_native_gles3_blit_shared_bo (MetaEgl       *egl,
                                                     EGLSurface     egl_surface,
                                                     struct gbm_bo *shared_bo,
                                                     GError       **error);
-
-void meta_renderer_native_gles3_read_pixels (MetaEgl   *egl,
-                                             MetaGles3 *gles3,
-                                             int        width,
-                                             int        height,
-                                             uint8_t   *target_data);
-
-#endif /* META_RENDERER_NATIVE_GLES3_H */

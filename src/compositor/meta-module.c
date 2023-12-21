@@ -19,11 +19,13 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <meta/meta-plugin.h>
-#include <meta/meta-version.h>
-#include "meta-module.h"
+#include "config.h"
+
+#include "compositor/meta-module.h"
 
 #include <gmodule.h>
+
+#include "meta/meta-plugin.h"
 
 enum
 {
@@ -38,16 +40,12 @@ struct _MetaModulePrivate
   GType         plugin_type;
 };
 
-#define META_MODULE_GET_PRIVATE(obj) \
-(G_TYPE_INSTANCE_GET_PRIVATE ((obj), META_TYPE_MODULE, MetaModulePrivate))
-
-G_DEFINE_TYPE (MetaModule, meta_module, G_TYPE_TYPE_MODULE);
+G_DEFINE_TYPE_WITH_PRIVATE (MetaModule, meta_module, G_TYPE_TYPE_MODULE);
 
 static gboolean
 meta_module_load (GTypeModule *gmodule)
 {
   MetaModulePrivate  *priv = META_MODULE (gmodule)->priv;
-  MetaPluginVersion  *info = NULL;
   GType                (*register_type) (GTypeModule *) = NULL;
 
   if (priv->lib && priv->plugin_type)
@@ -63,31 +61,24 @@ meta_module_load (GTypeModule *gmodule)
       return FALSE;
     }
 
-  if (g_module_symbol (priv->lib, "meta_plugin_version",
-                       (gpointer *)(void *)&info) &&
-      g_module_symbol (priv->lib, "meta_plugin_register_type",
+  if (g_module_symbol (priv->lib, "meta_plugin_register_type",
 		       (gpointer *)(void *)&register_type) &&
-      info && register_type)
+      register_type)
     {
-      if (info->version_api != META_PLUGIN_API_VERSION)
-	g_warning ("Plugin API mismatch for [%s]", priv->path);
+      GType plugin_type;
+
+      if (!(plugin_type = register_type (gmodule)))
+        {
+          g_warning ("Could not register type for plugin %s",
+                     priv->path);
+          return FALSE;
+        }
       else
         {
-          GType plugin_type;
-
-          if (!(plugin_type = register_type (gmodule)))
-            {
-              g_warning ("Could not register type for plugin %s",
-                         priv->path);
-              return FALSE;
-            }
-          else
-            {
-              priv->plugin_type =  plugin_type;
-            }
-
-          return TRUE;
+          priv->plugin_type =  plugin_type;
         }
+
+      return TRUE;
     }
   else
     g_warning ("Broken plugin module [%s]", priv->path);
@@ -104,12 +95,6 @@ meta_module_unload (GTypeModule *gmodule)
 
   priv->lib = NULL;
   priv->plugin_type = 0;
-}
-
-static void
-meta_module_dispose (GObject *object)
-{
-  G_OBJECT_CLASS (meta_module_parent_class)->dispose (object);
 }
 
 static void
@@ -169,7 +154,6 @@ meta_module_class_init (MetaModuleClass *klass)
   GTypeModuleClass *gmodule_class = G_TYPE_MODULE_CLASS (klass);
 
   gobject_class->finalize     = meta_module_finalize;
-  gobject_class->dispose      = meta_module_dispose;
   gobject_class->set_property = meta_module_set_property;
   gobject_class->get_property = meta_module_get_property;
 
@@ -178,20 +162,16 @@ meta_module_class_init (MetaModuleClass *klass)
 
   g_object_class_install_property (gobject_class,
 				   PROP_PATH,
-				   g_param_spec_string ("path",
-							"Path",
-							"Load path",
+				   g_param_spec_string ("path", NULL, NULL,
 							NULL,
 							G_PARAM_READWRITE |
 						      G_PARAM_CONSTRUCT_ONLY));
-
-  g_type_class_add_private (gobject_class, sizeof (MetaModulePrivate));
 }
 
 static void
 meta_module_init (MetaModule *self)
 {
-  self->priv = META_MODULE_GET_PRIVATE (self);
+  self->priv = meta_module_get_instance_private (self);
 }
 
 GType

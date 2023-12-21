@@ -14,29 +14,24 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jonas Ådahl <jadahl@gmail.com>
  */
 
-#ifndef META_POINTER_LOCK_WAYLAND_H
-#define META_POINTER_LOCK_WAYLAND_H
+#pragma once
 
 #include <glib-object.h>
 
-#include "backends/meta-pointer-constraint.h"
+#include "wayland/meta-pointer-confinement-wayland.h"
 
 G_BEGIN_DECLS
 
 #define META_TYPE_POINTER_LOCK_WAYLAND (meta_pointer_lock_wayland_get_type ())
 G_DECLARE_FINAL_TYPE (MetaPointerLockWayland, meta_pointer_lock_wayland,
-                      META, POINTER_LOCK_WAYLAND, MetaPointerConstraint);
+                      META, POINTER_LOCK_WAYLAND, MetaPointerConfinementWayland)
 
-MetaPointerConstraint *meta_pointer_lock_wayland_new (void);
+MetaPointerConfinementWayland *meta_pointer_lock_wayland_new (MetaWaylandPointerConstraint *constraint);
 
 G_END_DECLS
-
-#endif /* META_LOCK_WAYLAND_H */

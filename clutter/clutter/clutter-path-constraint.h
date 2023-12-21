@@ -22,15 +22,14 @@
  *   Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_PATH_CONSTRAINT_H__
-#define __CLUTTER_PATH_CONSTRAINT_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-constraint.h>
-#include <clutter/clutter-path.h>
+#include "clutter/clutter-constraint.h"
+#include "clutter/clutter-path.h"
 
 G_BEGIN_DECLS
 
@@ -38,35 +37,25 @@ G_BEGIN_DECLS
 #define CLUTTER_PATH_CONSTRAINT(obj)    (G_TYPE_CHECK_INSTANCE_CAST ((obj), CLUTTER_TYPE_PATH_CONSTRAINT, ClutterPathConstraint))
 #define CLUTTER_IS_PATH_CONSTRAINT(obj) (G_TYPE_CHECK_INSTANCE_TYPE ((obj), CLUTTER_TYPE_PATH_CONSTRAINT))
 
-/**
- * ClutterPathConstraint:
- *
- * #ClutterPathConstraint is an opaque structure
- * whose members cannot be directly accessed
- *
- * Since: 1.6
- */
 typedef struct _ClutterPathConstraint           ClutterPathConstraint;
 typedef struct _ClutterPathConstraintClass      ClutterPathConstraintClass;
 
-CLUTTER_AVAILABLE_IN_1_6
+CLUTTER_EXPORT
 GType clutter_path_constraint_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_6
+CLUTTER_EXPORT
 ClutterConstraint *clutter_path_constraint_new        (ClutterPath           *path,
                                                        gfloat                 offset);
 
-CLUTTER_AVAILABLE_IN_1_6
+CLUTTER_EXPORT
 void               clutter_path_constraint_set_path   (ClutterPathConstraint *constraint,
                                                        ClutterPath           *path);
-CLUTTER_AVAILABLE_IN_1_6
+CLUTTER_EXPORT
 ClutterPath *      clutter_path_constraint_get_path   (ClutterPathConstraint *constraint);
-CLUTTER_AVAILABLE_IN_1_6
+CLUTTER_EXPORT
 void               clutter_path_constraint_set_offset (ClutterPathConstraint *constraint,
                                                        gfloat                 offset);
-CLUTTER_AVAILABLE_IN_1_6
+CLUTTER_EXPORT
 gfloat             clutter_path_constraint_get_offset (ClutterPathConstraint *constraint);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_PATH_CONSTRAINT_H__ */

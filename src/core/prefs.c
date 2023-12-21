@@ -21,21 +21,25 @@
  */
 
 /**
- * SECTION:prefs
- * @title: Preferences
- * @short_description: Mutter preferences
+ * Preferences:
+ *
+ * Mutter preferences
  */
 
-#include <config.h>
-#include <meta/prefs.h>
-#include "util-private.h"
-#include "meta-plugin-manager.h"
+#include "config.h"
+
 #include <glib.h>
 #include <gio/gio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "keybindings-private.h"
-#include "meta-accel-parse.h"
+
+#include "compositor/meta-plugin-manager.h"
+#include "core/keybindings-private.h"
+#include "core/meta-accel-parse.h"
+#include "core/prefs-private.h"
+#include "core/util-private.h"
+#include "meta/prefs.h"
+#include "x11/meta-x11-display-private.h"
 
 /* If you add a key, it needs updating in init() and in the gsettings
  * notify listener and of course in the .schemas file.
@@ -44,7 +48,6 @@
  * not given a name here, because the purpose of the unified handlers
  * is that keys should be referred to exactly once.
  */
-#define KEY_TITLEBAR_FONT "titlebar-font"
 #define KEY_NUM_WORKSPACES "num-workspaces"
 #define KEY_WORKSPACE_NAMES "workspace-names"
 
@@ -52,10 +55,12 @@
 #define KEY_GNOME_ACCESSIBILITY "toolkit-accessibility"
 #define KEY_GNOME_ANIMATIONS "enable-animations"
 #define KEY_GNOME_CURSOR_THEME "cursor-theme"
+#define KEY_GNOME_CURSOR_SIZE "cursor-size"
 #define KEY_XKB_OPTIONS "xkb-options"
 
 #define KEY_OVERLAY_KEY "overlay-key"
 #define KEY_WORKSPACES_ONLY_ON_PRIMARY "workspaces-only-on-primary"
+#define KEY_LOCATE_POINTER "locate-pointer"
 
 /* These are the different schemas we are keeping
  * a GSettings instance for */
@@ -63,8 +68,7 @@
 #define SCHEMA_MUTTER          "org.gnome.mutter"
 #define SCHEMA_INTERFACE       "org.gnome.desktop.interface"
 #define SCHEMA_INPUT_SOURCES   "org.gnome.desktop.input-sources"
-#define SCHEMA_XSETTINGS       "org.gnome.settings-daemon.plugins.xsettings"
-#define SCHEMA_MOUSE           "org.gnome.settings-daemon.peripherals.mouse"
+#define SCHEMA_MOUSE           "org.gnome.desktop.peripherals.mouse"
 
 #define SETTINGS(s) g_hash_table_lookup (settings_schemas, (s))
 
@@ -73,10 +77,9 @@ static guint changed_idle;
 static GList *listeners = NULL;
 static GHashTable *settings_schemas;
 
-static gboolean use_system_font = FALSE;
-static PangoFontDescription *titlebar_font = NULL;
-static MetaVirtualModifier mouse_button_mods = Mod1Mask;
+static ClutterModifierType mouse_button_mods = CLUTTER_MOD1_MASK;
 static MetaKeyCombo overlay_key_combo = { 0, 0, 0 };
+static MetaKeyCombo locate_pointer_key_combo = { 0, 0, 0 };
 static GDesktopFocusMode focus_mode = G_DESKTOP_FOCUS_MODE_CLICK;
 static GDesktopFocusNewWindows focus_new_windows = G_DESKTOP_FOCUS_NEW_WINDOWS_SMART;
 static gboolean raise_on_click = TRUE;
@@ -95,6 +98,8 @@ static gboolean bell_is_visible = FALSE;
 static gboolean bell_is_audible = TRUE;
 static gboolean gnome_accessibility = FALSE;
 static gboolean gnome_animations = TRUE;
+static gboolean locate_pointer_is_enabled = FALSE;
+static unsigned int check_alive_timeout = 5000;
 static char *cursor_theme = NULL;
 /* cursor_size will, when running as an X11 compositing window manager, be the
  * actual cursor size, multiplied with the global window scaling factor. On
@@ -106,9 +111,8 @@ static int   drag_threshold;
 static gboolean resize_with_right_button = FALSE;
 static gboolean edge_tiling = FALSE;
 static gboolean force_fullscreen = TRUE;
-static gboolean ignore_request_hide_titlebar = FALSE;
 static gboolean auto_maximize = TRUE;
-static gboolean show_fallback_app_menu = FALSE;
+static gboolean show_fallback_app_menu = TRUE;
 
 static GDesktopVisualBellType visual_bell_type = G_DESKTOP_VISUAL_BELL_FULLSCREEN_FLASH;
 static MetaButtonLayout button_layout;
@@ -127,9 +131,6 @@ static gboolean update_binding         (MetaKeyPref *binding,
 static gboolean update_key_binding     (const char  *key,
                                         gchar      **strokes);
 
-static void wayland_settings_changed (GSettings      *settings,
-                                      gchar          *key,
-                                      gpointer        data);
 static void settings_changed (GSettings      *settings,
                               gchar          *key,
                               gpointer        data);
@@ -137,29 +138,18 @@ static void bindings_changed (GSettings      *settings,
                               gchar          *key,
                               gpointer        data);
 
-static void shell_shows_app_menu_changed (GtkSettings *settings,
-                                          GParamSpec  *pspec,
-                                          gpointer     data);
-
-static void update_cursor_size_from_gtk (GtkSettings *settings,
-                                         GParamSpec *pspec,
-                                         gpointer data);
-static void update_cursor_size (void);
-
 static void queue_changed (MetaPreference  pref);
 
 static void maybe_give_disable_workarounds_warning (void);
 
-static gboolean titlebar_handler (GVariant*, gpointer*, gpointer);
 static gboolean mouse_button_mods_handler (GVariant*, gpointer*, gpointer);
 static gboolean button_layout_handler (GVariant*, gpointer*, gpointer);
 static gboolean overlay_key_handler (GVariant*, gpointer*, gpointer);
+static gboolean locate_pointer_key_handler (GVariant*, gpointer*, gpointer);
+
 static gboolean iso_next_group_handler (GVariant*, gpointer*, gpointer);
 
-static void     do_override               (char *key, char *schema);
-
 static void     init_bindings             (void);
-
 
 typedef struct
 {
@@ -224,6 +214,12 @@ typedef struct
   MetaBasePreference base;
   gint *target;
 } MetaIntPreference;
+
+typedef struct
+{
+  MetaBasePreference base;
+  unsigned int *target;
+} MetaUintPreference;
 
 
 /* All preferences that are not keybindings must be listed here,
@@ -302,13 +298,6 @@ static MetaBoolPreference preferences_bool[] =
         META_PREF_RAISE_ON_CLICK,
       },
       &raise_on_click,
-    },
-    {
-      { "titlebar-uses-system-font",
-        SCHEMA_GENERAL,
-        META_PREF_TITLEBAR_FONT, /* note! shares a pref */
-      },
-      &use_system_font,
     },
     {
       { "dynamic-workspaces",
@@ -394,6 +383,13 @@ static MetaBoolPreference preferences_bool[] =
       },
       &auto_maximize,
     },
+    {
+      { KEY_LOCATE_POINTER,
+        SCHEMA_INTERFACE,
+        META_PREF_LOCATE_POINTER,
+      },
+      &locate_pointer_is_enabled,
+    },
     { { NULL, 0, 0 }, NULL },
   };
 
@@ -405,14 +401,6 @@ static MetaStringPreference preferences_string[] =
         META_PREF_MOUSE_BUTTON_MODS,
       },
       mouse_button_mods_handler,
-      NULL,
-    },
-    {
-      { KEY_TITLEBAR_FONT,
-        SCHEMA_GENERAL,
-        META_PREF_TITLEBAR_FONT,
-      },
-      titlebar_handler,
       NULL,
     },
     {
@@ -437,6 +425,14 @@ static MetaStringPreference preferences_string[] =
         META_PREF_KEYBINDINGS,
       },
       overlay_key_handler,
+      NULL,
+    },
+    {
+      { "locate-pointer-key",
+        SCHEMA_MUTTER,
+        META_PREF_KEYBINDINGS,
+      },
+      locate_pointer_key_handler,
       NULL,
     },
     { { NULL, 0, 0 }, NULL },
@@ -493,23 +489,27 @@ static MetaIntPreference preferences_int[] =
       },
       &drag_threshold
     },
+    {
+      { "cursor-size",
+        SCHEMA_INTERFACE,
+        META_PREF_CURSOR_SIZE,
+      },
+      &cursor_size
+    },
     { { NULL, 0, 0 }, NULL },
   };
 
-/*
- * This is used to keep track of override schemas used to
- * override preferences from the "normal" metacity/mutter
- * schemas; we modify the preferences arrays directly, but
- * we also need to remember what we have done to handle
- * subsequent overrides correctly.
- */
-typedef struct
-{
-  char *key;
-  char *new_schema;
-} MetaPrefsOverriddenKey;
-
-static GSList *overridden_keys;
+static MetaUintPreference preferences_uint[] =
+  {
+    {
+      { "check-alive-timeout",
+        SCHEMA_MUTTER,
+        META_PREF_CHECK_ALIVE_TIMEOUT,
+      },
+      &check_alive_timeout,
+    },
+    { { NULL, 0, 0 }, NULL },
+  };
 
 static void
 handle_preference_init_enum (void)
@@ -559,7 +559,7 @@ handle_preference_init_string (void)
       if (cursor->handler)
         {
           if (cursor->target)
-            meta_bug ("%s has both a target and a handler\n", cursor->base.key);
+            meta_bug ("%s has both a target and a handler", cursor->base.key);
 
           g_settings_get_mapped (SETTINGS (cursor->base.schema),
                                  cursor->base.key, cursor->handler, NULL);
@@ -567,7 +567,7 @@ handle_preference_init_string (void)
       else
         {
           if (!cursor->target)
-            meta_bug ("%s must have handler or target\n", cursor->base.key);
+            meta_bug ("%s must have handler or target", cursor->base.key);
 
           g_free (*(cursor->target));
 
@@ -594,7 +594,7 @@ handle_preference_init_string_array (void)
       if (cursor->handler)
         {
           if (cursor->target)
-            meta_bug ("%s has both a target and a handler\n", cursor->base.key);
+            meta_bug ("%s has both a target and a handler", cursor->base.key);
 
           g_settings_get_mapped (SETTINGS (cursor->base.schema),
                                  cursor->base.key, cursor->handler, NULL);
@@ -602,7 +602,7 @@ handle_preference_init_string_array (void)
       else
         {
           if (!cursor->target)
-            meta_bug ("%s must have handler or target\n", cursor->base.key);
+            meta_bug ("%s must have handler or target", cursor->base.key);
 
           if (*(cursor->target))
             g_strfreev (*(cursor->target));
@@ -628,6 +628,21 @@ handle_preference_init_int (void)
       if (cursor->target)
         *cursor->target = g_settings_get_int (SETTINGS (cursor->base.schema),
                                               cursor->base.key);
+
+      ++cursor;
+    }
+}
+
+static void
+handle_preference_init_uint (void)
+{
+  MetaUintPreference *cursor = preferences_uint;
+
+  while (cursor->base.key != NULL)
+    {
+      if (cursor->target)
+        *cursor->target = g_settings_get_uint (SETTINGS (cursor->base.schema),
+                                               cursor->base.key);
 
       ++cursor;
     }
@@ -710,7 +725,7 @@ handle_preference_update_string (GSettings *settings,
   if (cursor->handler)
     {
       if (cursor->target)
-        meta_bug ("%s has both a target and a handler\n", cursor->base.key);
+        meta_bug ("%s has both a target and a handler", cursor->base.key);
 
       g_settings_get_mapped (SETTINGS (cursor->base.schema),
                              cursor->base.key, cursor->handler, NULL);
@@ -718,7 +733,7 @@ handle_preference_update_string (GSettings *settings,
   else
     {
       if (!cursor->target)
-        meta_bug ("%s must have handler or target\n", cursor->base.key);
+        meta_bug ("%s must have handler or target", cursor->base.key);
 
       value = g_settings_get_string (SETTINGS (cursor->base.schema),
                                      cursor->base.key);
@@ -752,7 +767,7 @@ handle_preference_update_string_array (GSettings *settings,
   if (cursor->handler)
     {
       if (cursor->target)
-        meta_bug ("%s has both a target and a handler\n", cursor->base.key);
+        meta_bug ("%s has both a target and a handler", cursor->base.key);
 
       g_settings_get_mapped (SETTINGS (cursor->base.schema),
                              cursor->base.key, cursor->handler, NULL);
@@ -763,7 +778,7 @@ handle_preference_update_string_array (GSettings *settings,
       int n_values, n_previous, i;
 
       if (!cursor->target)
-        meta_bug ("%s must have handler or target\n", cursor->base.key);
+        meta_bug ("%s must have handler or target", cursor->base.key);
 
       values = g_settings_get_strv (SETTINGS (cursor->base.schema),
                                     cursor->base.key);
@@ -801,6 +816,28 @@ handle_preference_update_int (GSettings *settings,
   new_value = g_settings_get_int (SETTINGS (cursor->base.schema), key);
 
   /* Did it change?  If so, tell the listeners about it. */
+  if (*cursor->target != new_value)
+    {
+      *cursor->target = new_value;
+      queue_changed (cursor->base.pref);
+    }
+}
+
+static void
+handle_preference_update_uint (GSettings *settings,
+                               char *key)
+{
+  MetaUintPreference *cursor = preferences_uint;
+  unsigned int new_value;
+
+  while (cursor->base.key && strcmp (key, cursor->base.key) != 0)
+    ++cursor;
+
+  if (!cursor->base.key || !cursor->target)
+    return;
+
+  new_value = g_settings_get_uint (SETTINGS (cursor->base.schema), key);
+
   if (*cursor->target != new_value)
     {
       *cursor->target = new_value;
@@ -860,8 +897,6 @@ meta_prefs_remove_listener (MetaPrefsChangedFunc func,
 
       tmp = tmp->next;
     }
-
-  meta_bug ("Did not find listener to remove\n");
 }
 
 static void
@@ -870,7 +905,7 @@ emit_changed (MetaPreference pref)
   GList *tmp;
   GList *copy;
 
-  meta_topic (META_DEBUG_PREFS, "Notifying listeners that pref %s changed\n",
+  meta_topic (META_DEBUG_PREFS, "Notifying listeners that pref %s changed",
               meta_preference_to_string (pref));
 
   copy = g_list_copy (listeners);
@@ -920,13 +955,13 @@ changed_idle_handler (gpointer data)
 static void
 queue_changed (MetaPreference pref)
 {
-  meta_topic (META_DEBUG_PREFS, "Queueing change of pref %s\n",
+  meta_topic (META_DEBUG_PREFS, "Queueing change of pref %s",
               meta_preference_to_string (pref));
 
   if (g_list_find (changes, GINT_TO_POINTER (pref)) == NULL)
     changes = g_list_prepend (changes, GINT_TO_POINTER (pref));
   else
-    meta_topic (META_DEBUG_PREFS, "Change of pref %s was already pending\n",
+    meta_topic (META_DEBUG_PREFS, "Change of pref %s was already pending",
                 meta_preference_to_string (pref));
 
   if (changed_idle == 0)
@@ -946,7 +981,6 @@ void
 meta_prefs_init (void)
 {
   GSettings *settings;
-  GSList *tmp;
 
   settings_schemas = g_hash_table_new_full (g_str_hash, g_str_equal,
                                             g_free, g_object_unref);
@@ -971,30 +1005,16 @@ meta_prefs_init (void)
                     G_CALLBACK (settings_changed), NULL);
   g_signal_connect (settings, "changed::" KEY_GNOME_CURSOR_THEME,
                     G_CALLBACK (settings_changed), NULL);
-  if (meta_is_wayland_compositor ())
-    g_signal_connect (settings, "changed::cursor-size",
-                      G_CALLBACK (wayland_settings_changed), NULL);
+  g_signal_connect (settings, "changed::" KEY_GNOME_CURSOR_SIZE,
+                    G_CALLBACK (settings_changed), NULL);
+  g_signal_connect (settings, "changed::" KEY_LOCATE_POINTER,
+                    G_CALLBACK (settings_changed), NULL);
   g_hash_table_insert (settings_schemas, g_strdup (SCHEMA_INTERFACE), settings);
-
-  g_signal_connect (gtk_settings_get_default (),
-                    "notify::gtk-shell-shows-app-menu",
-                    G_CALLBACK (shell_shows_app_menu_changed), NULL);
-
-  if (!meta_is_wayland_compositor ())
-    g_signal_connect (gtk_settings_get_default (), "notify::gtk-cursor-theme-size",
-                      G_CALLBACK (update_cursor_size_from_gtk), NULL);
 
   settings = g_settings_new (SCHEMA_INPUT_SOURCES);
   g_signal_connect (settings, "changed::" KEY_XKB_OPTIONS,
                     G_CALLBACK (settings_changed), NULL);
   g_hash_table_insert (settings_schemas, g_strdup (SCHEMA_INPUT_SOURCES), settings);
-
-
-  for (tmp = overridden_keys; tmp; tmp = tmp->next)
-    {
-      MetaPrefsOverriddenKey *override = tmp->data;
-      do_override (override->key, override->new_schema);
-    }
 
   /* Pick up initial values. */
 
@@ -1003,9 +1023,7 @@ meta_prefs_init (void)
   handle_preference_init_string ();
   handle_preference_init_string_array ();
   handle_preference_init_int ();
-
-  update_cursor_size ();
-  shell_shows_app_menu_changed (gtk_settings_get_default (), NULL, NULL);
+  handle_preference_init_uint ();
 
   init_bindings ();
 }
@@ -1037,127 +1055,10 @@ find_pref (void                *prefs,
 }
 
 
-static void
-do_override (char *key,
-             char *schema)
-{
-  MetaBasePreference *pref;
-  GSettings *settings;
-  char *detailed_signal;
-  gpointer data;
-  guint handler_id;
-
-  g_return_if_fail (settings_schemas != NULL);
-
-  if (!find_pref (preferences_enum, sizeof(MetaEnumPreference), key, &pref) &&
-      !find_pref (preferences_bool, sizeof(MetaBoolPreference), key, &pref) &&
-      !find_pref (preferences_string, sizeof(MetaStringPreference), key, &pref) &&
-      !find_pref (preferences_int, sizeof(MetaIntPreference), key, &pref))
-    {
-      meta_warning ("Can't override preference key, \"%s\" not found\n", key);
-      return;
-    }
-
-  settings = SETTINGS (pref->schema);
-  data = g_object_get_data (G_OBJECT (settings), key);
-  if (data)
-    {
-      handler_id = GPOINTER_TO_UINT (data);
-      g_signal_handler_disconnect (settings, handler_id);
-    }
-
-  pref->schema = schema;
-  settings = SETTINGS (pref->schema);
-  if (!settings)
-    {
-      settings = g_settings_new (pref->schema);
-      g_hash_table_insert (settings_schemas, g_strdup (pref->schema), settings);
-    }
-
-  detailed_signal = g_strdup_printf ("changed::%s", key);
-  handler_id = g_signal_connect (settings, detailed_signal,
-                                 G_CALLBACK (settings_changed), NULL);
-  g_free (detailed_signal);
-
-  g_object_set_data (G_OBJECT (settings), key, GUINT_TO_POINTER (handler_id));
-
-  settings_changed (settings, key, NULL);
-}
-
-
-/**
- * meta_prefs_override_preference_schema:
- * @key: the preference name
- * @schema: new schema for preference @key
- *
- * Specify a schema whose keys are used to override the standard Metacity
- * keys. This might be used if a plugin expected a different value for
- * some preference than the Metacity default. While this function can be
- * called at any point, this function should generally be called in a
- * plugin's constructor, rather than in its start() method so the preference
- * isn't first loaded with one value then changed to another value.
- */
-void
-meta_prefs_override_preference_schema (const char *key, const char *schema)
-{
-  MetaPrefsOverriddenKey *overridden;
-  GSList *tmp;
-
-  /* Merge identical overrides, this isn't an error */
-  for (tmp = overridden_keys; tmp; tmp = tmp->next)
-    {
-      MetaPrefsOverriddenKey *tmp_overridden = tmp->data;
-      if (strcmp (tmp_overridden->key, key) == 0 &&
-          strcmp (tmp_overridden->new_schema, schema) == 0)
-        return;
-    }
-
-  overridden = NULL;
-
-  for (tmp = overridden_keys; tmp; tmp = tmp->next)
-    {
-      MetaPrefsOverriddenKey *tmp_overridden = tmp->data;
-      if (strcmp (tmp_overridden->key, key) == 0)
-        overridden = tmp_overridden;
-    }
-
-  if (overridden)
-    {
-      g_free (overridden->new_schema);
-      overridden->new_schema = g_strdup (schema);
-    }
-  else
-    {
-      overridden = g_slice_new (MetaPrefsOverriddenKey);
-      overridden->key = g_strdup (key);
-      overridden->new_schema = g_strdup (schema);
-
-      overridden_keys = g_slist_prepend (overridden_keys, overridden);
-    }
-
-  if (settings_schemas != NULL)
-    do_override (overridden->key, overridden->new_schema);
-}
-
-
 /****************************************************************************/
 /* Updates.                                                                 */
 /****************************************************************************/
 
-
-static void
-wayland_settings_changed (GSettings      *settings,
-                          gchar          *key,
-                          gpointer        data)
-{
-  GVariant *value = g_settings_get_value (settings, key);
-  const GVariantType *type = g_variant_get_type (value);
-
-  g_return_if_fail (g_variant_type_equal (type, G_VARIANT_TYPE_INT32));
-  g_return_if_fail (g_str_equal (key, "cursor-size"));
-
-  update_cursor_size ();
-}
 
 static void
 settings_changed (GSettings *settings,
@@ -1176,6 +1077,8 @@ settings_changed (GSettings *settings,
     handle_preference_update_bool (settings, key);
   else if (g_variant_type_equal (type, G_VARIANT_TYPE_INT32))
     handle_preference_update_int (settings, key);
+  else if (g_variant_type_equal (type, G_VARIANT_TYPE_UINT32))
+    handle_preference_update_uint (settings, key);
   else if (g_variant_type_equal (type, G_VARIANT_TYPE_STRING_ARRAY))
     handle_preference_update_string_array (settings, key);
   else if (g_variant_type_equal (type, G_VARIANT_TYPE_STRING))
@@ -1220,69 +1123,6 @@ bindings_changed (GSettings *settings,
   g_strfreev (strokes);
 }
 
-static void
-shell_shows_app_menu_changed (GtkSettings *settings,
-                              GParamSpec *pspec,
-                              gpointer data)
-{
-  int shell_shows_app_menu = 1;
-  gboolean changed = FALSE;
-
-  g_object_get (settings,
-                "gtk-shell-shows-app-menu", &shell_shows_app_menu,
-                NULL);
-
-
-  changed = (show_fallback_app_menu == !!shell_shows_app_menu);
-
-  show_fallback_app_menu = !shell_shows_app_menu;
-
-  if (changed)
-    queue_changed (META_PREF_BUTTON_LAYOUT);
-}
-
-static void
-update_cursor_size (void)
-{
-  if (meta_is_wayland_compositor ())
-    {
-      /* When running as a Wayland compositor, since we size of the cursor
-       * depends on what output it is on, we cannot use the GTK+
-       * "gtk-cursor-theme-size" setting because it has already been multiplied
-       * by the primary monitor scale. So, instead get the non-premultiplied
-       * cursor size value directly from gsettings instead.
-       */
-      cursor_size =
-        g_settings_get_int (SETTINGS (SCHEMA_INTERFACE), "cursor-size");
-    }
-  else
-    {
-      update_cursor_size_from_gtk (gtk_settings_get_default (), NULL, NULL);
-    }
-}
-
-static void
-update_cursor_size_from_gtk (GtkSettings *settings,
-                             GParamSpec *pspec,
-                             gpointer data)
-{
-  GdkScreen *screen = gdk_screen_get_default ();
-  GValue value = G_VALUE_INIT;
-  int xsettings_cursor_size = 24;
-
-  g_value_init (&value, G_TYPE_INT);
-  if (gdk_screen_get_setting (screen, "gtk-cursor-theme-size", &value))
-    {
-      xsettings_cursor_size = g_value_get_int (&value);
-    }
-
-  if (xsettings_cursor_size != cursor_size)
-    {
-      cursor_size = xsettings_cursor_size;
-      queue_changed (META_PREF_CURSOR_SIZE);
-    }
-}
-
 /**
  * maybe_give_disable_workaround_warning:
  *
@@ -1299,11 +1139,11 @@ maybe_give_disable_workarounds_warning (void)
       first_disable = FALSE;
 
       meta_warning ("Workarounds for broken applications disabled. "
-                    "Some applications may not behave properly.\n");
+                    "Some applications may not behave properly.");
     }
 }
 
-MetaVirtualModifier
+ClutterModifierType
 meta_prefs_get_mouse_button_mods  (void)
 {
   return mouse_button_mods;
@@ -1345,6 +1185,19 @@ meta_prefs_get_show_fallback_app_menu (void)
   return show_fallback_app_menu;
 }
 
+void
+meta_prefs_set_show_fallback_app_menu (gboolean whether)
+{
+  gboolean changed = FALSE;
+
+  changed = (show_fallback_app_menu == !whether);
+
+  show_fallback_app_menu = whether;
+
+  if (changed)
+    queue_changed (META_PREF_BUTTON_LAYOUT);
+}
+
 const char*
 meta_prefs_get_cursor_theme (void)
 {
@@ -1363,50 +1216,11 @@ meta_prefs_get_cursor_size (void)
 /****************************************************************************/
 
 static gboolean
-titlebar_handler (GVariant *value,
-                  gpointer *result,
-                  gpointer data)
-{
-  PangoFontDescription *desc;
-  const gchar *string_value;
-
-  *result = NULL; /* ignored */
-  string_value = g_variant_get_string (value, NULL);
-  desc = pango_font_description_from_string (string_value);
-
-  if (desc == NULL)
-    {
-      meta_warning ("Could not parse font description "
-                    "\"%s\" from GSettings key %s\n",
-                    string_value ? string_value : "(null)",
-                    KEY_TITLEBAR_FONT);
-      return FALSE;
-    }
-
-  /* Is the new description the same as the old? */
-  if (titlebar_font &&
-      pango_font_description_equal (desc, titlebar_font))
-    {
-      pango_font_description_free (desc);
-    }
-  else
-    {
-      if (titlebar_font)
-        pango_font_description_free (titlebar_font);
-
-      titlebar_font = desc;
-      queue_changed (META_PREF_TITLEBAR_FONT);
-    }
-
-  return TRUE;
-}
-
-static gboolean
 mouse_button_mods_handler (GVariant *value,
                            gpointer *result,
                            gpointer  data)
 {
-  MetaVirtualModifier mods;
+  ClutterModifierType mods;
   const gchar *string_value;
 
   *result = NULL; /* ignored */
@@ -1415,17 +1229,17 @@ mouse_button_mods_handler (GVariant *value,
   if (!string_value || !meta_parse_modifier (string_value, &mods))
     {
       meta_topic (META_DEBUG_KEYBINDINGS,
-                  "Failed to parse new GSettings value\n");
+                  "Failed to parse new GSettings value");
 
       meta_warning ("\"%s\" found in configuration database is "
-                    "not a valid value for mouse button modifier\n",
+                    "not a valid value for mouse button modifier",
                     string_value);
 
       return FALSE;
     }
 
   meta_topic (META_DEBUG_KEYBINDINGS,
-              "Mouse button modifier has new GSettings value \"%s\"\n",
+              "Mouse button modifier has new GSettings value \"%s\"",
               string_value);
 
   if (mods != mouse_button_mods)
@@ -1469,8 +1283,6 @@ button_function_from_string (const char *str)
 {
   if (strcmp (str, "menu") == 0)
     return META_BUTTON_FUNCTION_MENU;
-  else if (strcmp (str, "appmenu") == 0)
-    return META_BUTTON_FUNCTION_APPMENU;
   else if (strcmp (str, "minimize") == 0)
     return META_BUTTON_FUNCTION_MINIMIZE;
   else if (strcmp (str, "maximize") == 0)
@@ -1536,7 +1348,8 @@ button_layout_handler (GVariant *value,
                 }
               else
                 {
-                  meta_topic (META_DEBUG_PREFS, "Ignoring unknown or already-used button name \"%s\"\n",
+                  meta_topic (META_DEBUG_PREFS,
+                              "Ignoring unknown or already-used button name \"%s\"",
                               buttons[b]);
                 }
             }
@@ -1587,7 +1400,8 @@ button_layout_handler (GVariant *value,
                 }
               else
                 {
-                  meta_topic (META_DEBUG_PREFS, "Ignoring unknown or already-used button name \"%s\"\n",
+                  meta_topic (META_DEBUG_PREFS,
+                              "Ignoring unknown or already-used button name \"%s\"",
                               buttons[b]);
                 }
             }
@@ -1670,7 +1484,7 @@ overlay_key_handler (GVariant *value,
   else
     {
       meta_topic (META_DEBUG_KEYBINDINGS,
-                  "Failed to parse value for overlay-key\n");
+                  "Failed to parse value for overlay-key");
       return FALSE;
     }
 
@@ -1680,6 +1494,36 @@ overlay_key_handler (GVariant *value,
       overlay_key_combo.keycode != combo.keycode)
     {
       overlay_key_combo = combo;
+      queue_changed (META_PREF_KEYBINDINGS);
+    }
+
+  return TRUE;
+}
+
+static gboolean
+locate_pointer_key_handler (GVariant *value,
+                            gpointer *result,
+                            gpointer  data)
+{
+  MetaKeyCombo combo;
+  const gchar *string_value;
+
+  *result = NULL; /* ignored */
+  string_value = g_variant_get_string (value, NULL);
+
+  if (!string_value || !meta_parse_accelerator (string_value, &combo))
+    {
+      meta_topic (META_DEBUG_KEYBINDINGS,
+                  "Failed to parse value for locate-pointer-key");
+      return FALSE;
+    }
+
+  combo.modifiers = 0;
+
+  if (locate_pointer_key_combo.keysym != combo.keysym ||
+      locate_pointer_key_combo.keycode != combo.keycode)
+    {
+      locate_pointer_key_combo = combo;
       queue_changed (META_PREF_KEYBINDINGS);
     }
 
@@ -1717,15 +1561,6 @@ iso_next_group_handler (GVariant *value,
   g_free (xkb_options);
 
   return TRUE;
-}
-
-const PangoFontDescription*
-meta_prefs_get_titlebar_font (void)
-{
-  if (use_system_font)
-    return NULL;
-  else
-    return titlebar_font;
 }
 
 int
@@ -1771,9 +1606,6 @@ meta_preference_to_string (MetaPreference pref)
     case META_PREF_RAISE_ON_CLICK:
       return "RAISE_ON_CLICK";
 
-    case META_PREF_TITLEBAR_FONT:
-      return "TITLEBAR_FONT";
-
     case META_PREF_NUM_WORKSPACES:
       return "NUM_WORKSPACES";
 
@@ -1817,7 +1649,7 @@ meta_preference_to_string (MetaPreference pref)
       return "VISUAL_BELL_TYPE";
 
     case META_PREF_GNOME_ACCESSIBILITY:
-      return "GNOME_ACCESSIBILTY";
+      return "GNOME_ACCESSIBILITY";
 
     case META_PREF_GNOME_ANIMATIONS:
       return "GNOME_ANIMATIONS";
@@ -1851,6 +1683,12 @@ meta_preference_to_string (MetaPreference pref)
 
     case META_PREF_AUTO_MAXIMIZE:
       return "AUTO_MAXIMIZE";
+
+    case META_PREF_LOCATE_POINTER:
+      return "LOCATE_POINTER";
+
+    case META_PREF_CHECK_ALIVE_TIMEOUT:
+      return "CHECK_ALIVE_TIMEOUT";
     }
 
   return "(unknown)";
@@ -1899,7 +1737,15 @@ init_bindings (void)
   pref->combos = g_slist_prepend (pref->combos, &overlay_key_combo);
   pref->builtin = 1;
 
-  g_hash_table_insert (key_bindings, g_strdup ("overlay-key"), pref);
+  g_hash_table_insert (key_bindings, g_strdup (pref->name), pref);
+
+  pref = g_new0 (MetaKeyPref, 1);
+  pref->name = g_strdup ("locate-pointer-key");
+  pref->action = META_KEYBINDING_ACTION_LOCATE_POINTER_KEY;
+  pref->combos = g_slist_prepend (pref->combos, &locate_pointer_key_combo);
+  pref->builtin = 1;
+
+  g_hash_table_insert (key_bindings, g_strdup (pref->name), pref);
 }
 
 static gboolean
@@ -1911,7 +1757,7 @@ update_binding (MetaKeyPref *binding,
   int i;
 
   meta_topic (META_DEBUG_KEYBINDINGS,
-              "Binding \"%s\" has new GSettings value\n",
+              "Binding \"%s\" has new GSettings value",
               binding->name);
 
   old_combos = binding->combos;
@@ -1926,8 +1772,8 @@ update_binding (MetaKeyPref *binding,
       if (!meta_parse_accelerator (strokes[i], combo))
         {
           meta_topic (META_DEBUG_KEYBINDINGS,
-                      "Failed to parse new GSettings value\n");
-          meta_warning ("\"%s\" found in configuration database is not a valid value for keybinding \"%s\"\n",
+                      "Failed to parse new GSettings value");
+          meta_warning ("\"%s\" found in configuration database is not a valid value for keybinding \"%s\"",
                         strokes[i], binding->name);
 
           g_free (combo);
@@ -2002,7 +1848,7 @@ meta_prefs_get_workspace_name (int i)
     name = workspace_names[i];
 
   meta_topic (META_DEBUG_PREFS,
-              "Getting name of workspace %d: \"%s\"\n", i, name);
+              "Getting name of workspace %d: \"%s\"", i, name);
 
   return name;
 }
@@ -2017,7 +1863,7 @@ meta_prefs_change_workspace_name (int         num,
   g_return_if_fail (num >= 0);
 
   meta_topic (META_DEBUG_PREFS,
-              "Changing name of workspace %d to %s\n",
+              "Changing name of workspace %d to %s",
               num, name ? name : "none");
 
   /* NULL and empty string both mean "default" here,
@@ -2027,10 +1873,10 @@ meta_prefs_change_workspace_name (int         num,
     {
       if (!name || !*name)
         meta_topic (META_DEBUG_PREFS,
-                    "Workspace %d already uses default name\n", num);
+                    "Workspace %d already uses default name", num);
       else
         meta_topic (META_DEBUG_PREFS,
-                    "Workspace %d already has name %s\n", num, name);
+                    "Workspace %d already has name %s", num, name);
       return;
     }
 
@@ -2095,7 +1941,7 @@ meta_prefs_add_keybinding (const char           *name,
 
   if (g_hash_table_lookup (key_bindings, name))
     {
-      meta_warning ("Trying to re-add keybinding \"%s\".\n", name);
+      meta_warning ("Trying to re-add keybinding \"%s\".", name);
       return FALSE;
     }
 
@@ -2140,23 +1986,23 @@ gboolean
 meta_prefs_remove_keybinding (const char *name)
 {
   MetaKeyPref *pref;
-  guint        id;
+  gulong id;
 
   pref = g_hash_table_lookup (key_bindings, name);
   if (!pref)
     {
-      meta_warning ("Trying to remove non-existent keybinding \"%s\".\n", name);
+      meta_warning ("Trying to remove non-existent keybinding \"%s\".", name);
       return FALSE;
     }
 
   if (pref->builtin)
     {
-      meta_warning ("Trying to remove builtin keybinding \"%s\".\n", name);
+      meta_warning ("Trying to remove builtin keybinding \"%s\".", name);
       return FALSE;
     }
 
   id = GPOINTER_TO_UINT (g_object_steal_data (G_OBJECT (pref->settings), name));
-  g_signal_handler_disconnect (pref->settings, id);
+  g_clear_signal_handler (&id, pref->settings);
 
   g_hash_table_remove (key_bindings, name);
 
@@ -2175,6 +2021,24 @@ void
 meta_prefs_get_overlay_binding (MetaKeyCombo *combo)
 {
   *combo = overlay_key_combo;
+}
+
+void
+meta_prefs_get_locate_pointer_binding (MetaKeyCombo *combo)
+{
+  *combo = locate_pointer_key_combo;
+}
+
+gboolean
+meta_prefs_is_locate_pointer_enabled (void)
+{
+  return locate_pointer_is_enabled;
+}
+
+unsigned int
+meta_prefs_get_check_alive_timeout (void)
+{
+  return check_alive_timeout;
 }
 
 const char *
@@ -2252,6 +2116,22 @@ meta_prefs_get_keybinding_action (const char *name)
               : META_KEYBINDING_ACTION_NONE;
 }
 
+/**
+ * meta_prefs_get_keybinding_label:
+ * Returns: (transfer full) (nullable)
+ */
+char *
+meta_prefs_get_keybinding_label (const char *name)
+{
+  MetaKeyPref *pref = g_hash_table_lookup (key_bindings, name);
+  MetaKeyCombo *combo = NULL;
+
+  if (pref && pref->combos)
+    combo = pref->combos->data;
+
+  return combo ? meta_accelerator_name (combo->modifiers, combo->keysym) : NULL;
+}
+
 gint
 meta_prefs_get_mouse_button_resize (void)
 {
@@ -2292,16 +2172,4 @@ void
 meta_prefs_set_force_fullscreen (gboolean whether)
 {
   force_fullscreen = whether;
-}
-
-gboolean
-meta_prefs_get_ignore_request_hide_titlebar (void)
-{
-  return ignore_request_hide_titlebar;
-}
-
-void
-meta_prefs_set_ignore_request_hide_titlebar (gboolean whether)
-{
-  ignore_request_hide_titlebar = whether;
 }

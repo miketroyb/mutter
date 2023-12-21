@@ -29,22 +29,17 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
 #include <string.h>
 
-#include "cogl-private.h"
-#include "cogl-object.h"
+#include "cogl/cogl-private.h"
+#include "cogl/cogl-object.h"
 
-#include "cogl-display-private.h"
-#include "cogl-renderer-private.h"
-#include "cogl-winsys-private.h"
-#ifdef COGL_HAS_WAYLAND_EGL_SERVER_SUPPORT
-#include "cogl-wayland-server.h"
-#endif
-#include "cogl-gtype-private.h"
+#include "cogl/cogl-display-private.h"
+#include "cogl/cogl-renderer-private.h"
+#include "cogl/cogl-gtype-private.h"
+#include "cogl/winsys/cogl-winsys-private.h"
 
 static void _cogl_display_free (CoglDisplay *display);
 
@@ -81,15 +76,15 @@ _cogl_display_free (CoglDisplay *display)
       display->onscreen_template = NULL;
     }
 
-  g_slice_free (CoglDisplay, display);
+  g_free (display);
 }
 
 CoglDisplay *
 cogl_display_new (CoglRenderer *renderer,
                   CoglOnscreenTemplate *onscreen_template)
 {
-  CoglDisplay *display = g_slice_new0 (CoglDisplay);
-  CoglError *error = NULL;
+  CoglDisplay *display = g_new0 (CoglDisplay, 1);
+  GError *error = NULL;
 
   _cogl_init ();
 
@@ -121,7 +116,7 @@ void
 cogl_display_set_onscreen_template (CoglDisplay *display,
                                     CoglOnscreenTemplate *onscreen_template)
 {
-  _COGL_RETURN_IF_FAIL (display->setup == FALSE);
+  g_return_if_fail (display->setup == FALSE);
 
   if (onscreen_template)
     cogl_object_ref (onscreen_template);
@@ -137,9 +132,9 @@ cogl_display_set_onscreen_template (CoglDisplay *display,
     display->onscreen_template = cogl_onscreen_template_new (NULL);
 }
 
-CoglBool
+gboolean
 cogl_display_setup (CoglDisplay *display,
-                    CoglError **error)
+                    GError **error)
 {
   const CoglWinsysVtable *winsys;
 
@@ -154,14 +149,3 @@ cogl_display_setup (CoglDisplay *display,
 
   return TRUE;
 }
-
-#ifdef COGL_HAS_WAYLAND_EGL_SERVER_SUPPORT
-void
-cogl_wayland_display_set_compositor_display (CoglDisplay *display,
-                                             struct wl_display *wayland_display)
-{
-  _COGL_RETURN_IF_FAIL (display->setup == FALSE);
-
-  display->wayland_compositor_display = wayland_display;
-}
-#endif

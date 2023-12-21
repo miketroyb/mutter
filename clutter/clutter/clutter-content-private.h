@@ -22,10 +22,9 @@
  *   Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_CONTENT_PRIVATE_H__
-#define __CLUTTER_CONTENT_PRIVATE_H__
+#pragma once
 
-#include <clutter/clutter-content.h>
+#include "clutter/clutter-content.h"
 
 G_BEGIN_DECLS
 
@@ -34,10 +33,9 @@ void            _clutter_content_attached               (ClutterContent   *conte
 void            _clutter_content_detached               (ClutterContent   *content,
                                                          ClutterActor     *actor);
 
-void            _clutter_content_paint_content          (ClutterContent   *content,
-                                                         ClutterActor     *actor,
-                                                         ClutterPaintNode *node);
+void            _clutter_content_paint_content          (ClutterContent      *content,
+                                                         ClutterActor        *actor,
+                                                         ClutterPaintNode    *node,
+                                                         ClutterPaintContext *paint_context);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_CONTENT_PRIVATE_H__ */

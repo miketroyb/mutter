@@ -22,16 +22,15 @@
  *   Lionel Landwerlin <lionel.g.landwerlin@linux.intel.com>
  */
 
-#ifndef __CLUTTER_ZOOM_ACTION_H__
-#define __CLUTTER_ZOOM_ACTION_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-event.h>
-#include <clutter/clutter-gesture-action.h>
-#include <clutter/clutter-types.h>
+#include "clutter/clutter-event.h"
+#include "clutter/clutter-gesture-action.h"
+#include "clutter/clutter-types.h"
 
 G_BEGIN_DECLS
 
@@ -46,14 +45,6 @@ typedef struct _ClutterZoomAction               ClutterZoomAction;
 typedef struct _ClutterZoomActionPrivate        ClutterZoomActionPrivate;
 typedef struct _ClutterZoomActionClass          ClutterZoomActionClass;
 
-/**
- * ClutterZoomAction:
- *
- * The #ClutterZoomAction structure contains only
- * private data and should be accessed using the provided API
- *
- * Since: 1.12
- */
 struct _ClutterZoomAction
 {
   /*< private >*/
@@ -68,47 +59,24 @@ struct _ClutterZoomAction
  *
  * The #ClutterZoomActionClass structure contains
  * only private data
- *
- * Since: 1.12
  */
 struct _ClutterZoomActionClass
 {
   /*< private >*/
   ClutterGestureActionClass parent_class;
-
-  /*< public >*/
-  gboolean (* zoom)  (ClutterZoomAction *action,
-                      ClutterActor      *actor,
-                      ClutterPoint      *focal_point,
-                      gdouble            factor);
-
-  /*< private >*/
-  void (* _clutter_zoom_action1) (void);
-  void (* _clutter_zoom_action2) (void);
-  void (* _clutter_zoom_action3) (void);
-  void (* _clutter_zoom_action4) (void);
-  void (* _clutter_zoom_action5) (void);
 };
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 GType clutter_zoom_action_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 ClutterAction * clutter_zoom_action_new                         (void);
 
-CLUTTER_AVAILABLE_IN_1_12
-void            clutter_zoom_action_set_zoom_axis               (ClutterZoomAction *action,
-                                                                 ClutterZoomAxis    axis);
-CLUTTER_AVAILABLE_IN_1_12
-ClutterZoomAxis clutter_zoom_action_get_zoom_axis               (ClutterZoomAction *action);
-
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void            clutter_zoom_action_get_focal_point             (ClutterZoomAction *action,
-                                                                 ClutterPoint      *point);
-CLUTTER_AVAILABLE_IN_1_12
+                                                                 graphene_point_t  *point);
+CLUTTER_EXPORT
 void            clutter_zoom_action_get_transformed_focal_point (ClutterZoomAction *action,
-                                                                 ClutterPoint      *point);
+                                                                 graphene_point_t  *point);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_ZOOM_ACTION_H__ */

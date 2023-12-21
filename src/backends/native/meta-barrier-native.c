@@ -14,38 +14,39 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jonas Ådahl <jadahl@gmail.com>
  */
 
 /**
- * SECTION:barrier-native
- * @Title: MetaBarrierImplNative
- * @Short_Description: Pointer barriers implementation for the native backend
+ * MetaBarrierImplNative:
+ *
+ * Pointer barriers implementation for the native backend
  */
 
 #include "config.h"
 
+#include "backends/native/meta-barrier-native.h"
+
 #include <stdlib.h>
 
-#include <meta/barrier.h>
-#include <meta/util.h>
 #include "backends/meta-backend-private.h"
 #include "backends/meta-barrier-private.h"
-#include "backends/native/meta-backend-native.h"
-#include "backends/native/meta-backend-native-private.h"
-#include "backends/native/meta-barrier-native.h"
+#include "backends/native/meta-seat-native.h"
+#include "meta/barrier.h"
+#include "meta/util.h"
 
 struct _MetaBarrierManagerNative
 {
   GHashTable *barriers;
+  GMutex mutex;
+  MetaBarrierImplNative *pointer_trap;
 };
 
-typedef enum {
+typedef enum
+{
   /* The barrier is active and responsive to pointer motion. */
   META_BARRIER_STATE_ACTIVE,
 
@@ -64,8 +65,10 @@ typedef enum {
   META_BARRIER_STATE_LEFT,
 } MetaBarrierState;
 
-struct _MetaBarrierImplNativePrivate
+struct _MetaBarrierImplNative
 {
+  MetaBarrierImpl parent;
+
   MetaBarrier              *barrier;
   MetaBarrierManagerNative *manager;
 
@@ -74,10 +77,12 @@ struct _MetaBarrierImplNativePrivate
   int                       trigger_serial;
   guint32                   last_event_time;
   MetaBarrierDirection      blocked_dir;
+  GMainContext             *main_context;
 };
 
-G_DEFINE_TYPE_WITH_PRIVATE (MetaBarrierImplNative, meta_barrier_impl_native,
-                            META_TYPE_BARRIER_IMPL)
+G_DEFINE_TYPE (MetaBarrierImplNative,
+               meta_barrier_impl_native,
+               META_TYPE_BARRIER_IMPL)
 
 static int
 next_serial (void)
@@ -96,24 +101,26 @@ next_serial (void)
 static gboolean
 is_barrier_horizontal (MetaBarrier *barrier)
 {
-  return meta_border_is_horizontal (&barrier->priv->border);
+  MetaBorder *border = meta_barrier_get_border (barrier);
+
+  return meta_border_is_horizontal (border);
 }
 
 static gboolean
 is_barrier_blocking_directions (MetaBarrier         *barrier,
                                 MetaBarrierDirection directions)
 {
-  return meta_border_is_blocking_directions (&barrier->priv->border,
-                                             directions);
+  MetaBorder *border = meta_barrier_get_border (barrier);
+  MetaBorderMotionDirection border_motion_directions =
+    (MetaBorderMotionDirection) directions;
+
+  return meta_border_is_blocking_directions (border, border_motion_directions);
 }
 
 static void
 dismiss_pointer (MetaBarrierImplNative *self)
 {
-  MetaBarrierImplNativePrivate *priv =
-    meta_barrier_impl_native_get_instance_private (self);
-
-  priv->state = META_BARRIER_STATE_LEFT;
+  self->state = META_BARRIER_STATE_LEFT;
 }
 
 /*
@@ -125,7 +132,8 @@ dismiss_pointer (MetaBarrierImplNative *self)
 static MetaLine2
 calculate_barrier_hit_box (MetaBarrier *barrier)
 {
-  MetaLine2 hit_box = barrier->priv->border.line;
+  MetaBorder *border = meta_barrier_get_border (barrier);
+  MetaLine2 hit_box = border->line;
 
   if (is_barrier_horizontal (barrier))
     {
@@ -163,22 +171,19 @@ maybe_release_barrier (gpointer key,
                        gpointer user_data)
 {
   MetaBarrierImplNative *self = key;
-  MetaBarrierImplNativePrivate *priv =
-    meta_barrier_impl_native_get_instance_private (self);
-  MetaBarrier *barrier = priv->barrier;
+  MetaBarrier *barrier = self->barrier;
+  MetaBorder *border = meta_barrier_get_border (barrier);
   MetaLine2 *motion = user_data;
   MetaLine2 hit_box;
 
-  if (priv->state != META_BARRIER_STATE_HELD)
+  if (self->state != META_BARRIER_STATE_HELD)
     return;
 
   /* Release if we end up outside barrier end points. */
   if (is_barrier_horizontal (barrier))
     {
-      if (motion->b.x > MAX (barrier->priv->border.line.a.x,
-                             barrier->priv->border.line.b.x) ||
-          motion->b.x < MIN (barrier->priv->border.line.a.x,
-                             barrier->priv->border.line.b.x))
+      if (motion->b.x > MAX (border->line.a.x, border->line.b.x) ||
+          motion->b.x < MIN (border->line.a.x, border->line.b.x))
         {
           dismiss_pointer (self);
           return;
@@ -186,10 +191,8 @@ maybe_release_barrier (gpointer key,
     }
   else
     {
-      if (motion->b.y > MAX (barrier->priv->border.line.a.y,
-                             barrier->priv->border.line.b.y) ||
-          motion->b.y < MIN (barrier->priv->border.line.a.y,
-                             barrier->priv->border.line.b.y))
+      if (motion->b.y > MAX (border->line.a.y, border->line.b.y) ||
+          motion->b.y < MIN (border->line.a.y, border->line.b.y))
         {
           dismiss_pointer (self);
           return;
@@ -249,9 +252,8 @@ update_closest_barrier (gpointer key,
                         gpointer user_data)
 {
   MetaBarrierImplNative *self = key;
-  MetaBarrierImplNativePrivate *priv =
-    meta_barrier_impl_native_get_instance_private (self);
-  MetaBarrier *barrier = priv->barrier;
+  MetaBarrier *barrier = self->barrier;
+  MetaBorder *border = meta_barrier_get_border (barrier);
   MetaClosestBarrierData *data = user_data;
   MetaVector2 intersection;
   float dx, dy;
@@ -262,17 +264,17 @@ update_closest_barrier (gpointer key,
     return;
 
   /* Ignore if the barrier released the pointer. */
-  if (priv->state == META_BARRIER_STATE_RELEASE)
+  if (self->state == META_BARRIER_STATE_RELEASE)
     return;
 
   /* Ignore if we are moving away from barrier. */
-  if (priv->state == META_BARRIER_STATE_HELD &&
-      (data->in.directions & priv->blocked_dir) == 0)
+  if (self->state == META_BARRIER_STATE_HELD &&
+      (data->in.directions & self->blocked_dir) == 0)
     return;
 
   /* Check if the motion intersects with the barrier, and retrieve the
    * intersection point if any. */
-  if (!meta_line2_intersects_with (&barrier->priv->border.line,
+  if (!meta_line2_intersects_with (&border->line,
                                    &data->in.motion,
                                    &intersection))
     return;
@@ -343,6 +345,49 @@ typedef struct _MetaBarrierEventData
   float               dy;
 } MetaBarrierEventData;
 
+typedef struct
+{
+  MetaBarrierEvent *event;
+  MetaBarrier *barrier;
+  MetaBarrierState state;
+} MetaBarrierIdleData;
+
+static gboolean
+emit_event_idle (MetaBarrierIdleData *idle_data)
+{
+  if (idle_data->state == META_BARRIER_STATE_HELD)
+    meta_barrier_emit_hit_signal (idle_data->barrier, idle_data->event);
+  else
+    meta_barrier_emit_left_signal (idle_data->barrier, idle_data->event);
+
+  meta_barrier_event_unref (idle_data->event);
+
+  return G_SOURCE_REMOVE;
+}
+
+static void
+queue_event (MetaBarrierImplNative *self,
+             MetaBarrierEvent      *event)
+{
+  MetaBarrierIdleData *idle_data;
+  GSource *source;
+
+  idle_data = g_new0 (MetaBarrierIdleData, 1);
+  idle_data->state = self->state;
+  idle_data->barrier = self->barrier;
+  idle_data->event = event;
+
+  source = g_idle_source_new ();
+  g_source_set_priority (source, G_PRIORITY_HIGH);
+  g_source_set_callback (source,
+                         (GSourceFunc) emit_event_idle,
+                         idle_data,
+                         g_free);
+
+  g_source_attach (source, self->main_context);
+  g_source_unref (source);
+}
+
 static void
 emit_barrier_event (MetaBarrierImplNative *self,
                     guint32                time,
@@ -353,27 +398,24 @@ emit_barrier_event (MetaBarrierImplNative *self,
                     float                  dx,
                     float                  dy)
 {
-  MetaBarrierImplNativePrivate *priv =
-    meta_barrier_impl_native_get_instance_private (self);
-  MetaBarrier *barrier = priv->barrier;
-  MetaBarrierEvent *event = g_slice_new0 (MetaBarrierEvent);
-  MetaBarrierState old_state = priv->state;
+  MetaBarrierEvent *event = g_new0 (MetaBarrierEvent, 1);
+  MetaBarrierState old_state = self->state;
 
-  switch (priv->state)
+  switch (self->state)
     {
     case META_BARRIER_STATE_HIT:
-      priv->state = META_BARRIER_STATE_HELD;
-      priv->trigger_serial = next_serial ();
+      self->state = META_BARRIER_STATE_HELD;
+      self->trigger_serial = next_serial ();
       event->dt = 0;
 
       break;
     case META_BARRIER_STATE_RELEASE:
     case META_BARRIER_STATE_LEFT:
-      priv->state = META_BARRIER_STATE_ACTIVE;
+      self->state = META_BARRIER_STATE_ACTIVE;
 
-      /* Intentional fall-through. */
+      G_GNUC_FALLTHROUGH;
     case META_BARRIER_STATE_HELD:
-      event->dt = time - priv->last_event_time;
+      event->dt = time - self->last_event_time;
 
       break;
     case META_BARRIER_STATE_ACTIVE:
@@ -381,7 +423,7 @@ emit_barrier_event (MetaBarrierImplNative *self,
     }
 
   event->ref_count = 1;
-  event->event_id = priv->trigger_serial;
+  event->event_id = self->trigger_serial;
   event->time = time;
 
   event->x = x;
@@ -389,28 +431,22 @@ emit_barrier_event (MetaBarrierImplNative *self,
   event->dx = dx;
   event->dy = dy;
 
-  event->grabbed = priv->state == META_BARRIER_STATE_HELD;
+  event->grabbed = self->state == META_BARRIER_STATE_HELD;
   event->released = old_state == META_BARRIER_STATE_RELEASE;
 
-  priv->last_event_time = time;
+  self->last_event_time = time;
 
-  if (priv->state == META_BARRIER_STATE_HELD)
-    _meta_barrier_emit_hit_signal (barrier, event);
-  else
-    _meta_barrier_emit_left_signal (barrier, event);
-
-  meta_barrier_event_unref (event);
+  queue_event (self, event);
 }
 
 static void
 maybe_emit_barrier_event (gpointer key, gpointer value, gpointer user_data)
 {
   MetaBarrierImplNative *self = key;
-  MetaBarrierImplNativePrivate *priv =
-    meta_barrier_impl_native_get_instance_private (self);
   MetaBarrierEventData *data = user_data;
 
-  switch (priv->state) {
+  switch (self->state)
+    {
     case META_BARRIER_STATE_ACTIVE:
       break;
     case META_BARRIER_STATE_HIT:
@@ -432,22 +468,21 @@ maybe_emit_barrier_event (gpointer key, gpointer value, gpointer user_data)
 /* Clamp (x, y) to the barrier and remove clamped direction from motion_dir. */
 static void
 clamp_to_barrier (MetaBarrierImplNative *self,
-                  MetaBarrierDirection *motion_dir,
-                  float *x,
-                  float *y)
+                  MetaBarrierDirection  *motion_dir,
+                  float                 *x,
+                  float                 *y)
 {
-  MetaBarrierImplNativePrivate *priv =
-    meta_barrier_impl_native_get_instance_private (self);
-  MetaBarrier *barrier = priv->barrier;
+  MetaBarrier *barrier = self->barrier;
+  MetaBorder *border = meta_barrier_get_border (barrier);
 
   if (is_barrier_horizontal (barrier))
     {
       if (*motion_dir & META_BARRIER_DIRECTION_POSITIVE_Y)
-        *y = barrier->priv->border.line.a.y;
+        *y = border->line.a.y;
       else if (*motion_dir & META_BARRIER_DIRECTION_NEGATIVE_Y)
-        *y = barrier->priv->border.line.a.y;
+        *y = border->line.a.y;
 
-      priv->blocked_dir = *motion_dir & (META_BARRIER_DIRECTION_POSITIVE_Y |
+      self->blocked_dir = *motion_dir & (META_BARRIER_DIRECTION_POSITIVE_Y |
                                          META_BARRIER_DIRECTION_NEGATIVE_Y);
       *motion_dir &= ~(META_BARRIER_DIRECTION_POSITIVE_Y |
                        META_BARRIER_DIRECTION_NEGATIVE_Y);
@@ -455,27 +490,59 @@ clamp_to_barrier (MetaBarrierImplNative *self,
   else
     {
       if (*motion_dir & META_BARRIER_DIRECTION_POSITIVE_X)
-        *x = barrier->priv->border.line.a.x;
+        *x = border->line.a.x;
       else if (*motion_dir & META_BARRIER_DIRECTION_NEGATIVE_X)
-        *x = barrier->priv->border.line.a.x;
+        *x = border->line.a.x;
 
-      priv->blocked_dir = *motion_dir & (META_BARRIER_DIRECTION_POSITIVE_X |
+      self->blocked_dir = *motion_dir & (META_BARRIER_DIRECTION_POSITIVE_X |
                                          META_BARRIER_DIRECTION_NEGATIVE_X);
       *motion_dir &= ~(META_BARRIER_DIRECTION_POSITIVE_X |
                        META_BARRIER_DIRECTION_NEGATIVE_X);
     }
 
-  priv->state = META_BARRIER_STATE_HIT;
+  self->state = META_BARRIER_STATE_HIT;
+}
+
+static gboolean
+stick_to_barrier (MetaBarrierImplNative *self,
+                  MetaBarrierDirection   motion_dir,
+                  float                  prev_x,
+                  float                  prev_y,
+                  float                 *x,
+                  float                 *y)
+{
+  MetaLine2 motion = {
+    .a = { .x = prev_x, .y = prev_y },
+    .b = { .x = *x, .y = *y },
+  };
+  MetaBorder *border = meta_barrier_get_border (self->barrier);
+  MetaVector2 intersection;
+
+  if (meta_line2_intersects_with (&motion, &border->line,
+                                  &intersection))
+    {
+      *x = intersection.x;
+      *y = intersection.y;
+
+      self->blocked_dir = motion_dir;
+      self->state = META_BARRIER_STATE_HIT;
+      self->manager->pointer_trap = self;
+      return TRUE;
+    }
+  else
+    {
+      return FALSE;
+    }
 }
 
 void
-meta_barrier_manager_native_process (MetaBarrierManagerNative *manager,
-                                     ClutterInputDevice       *device,
-                                     guint32                   time,
-                                     float                    *x,
-                                     float                    *y)
+meta_barrier_manager_native_process_in_impl (MetaBarrierManagerNative *manager,
+                                             ClutterInputDevice       *device,
+                                             guint32                   time,
+                                             float                    *x,
+                                             float                    *y)
 {
-  ClutterPoint prev_pos;
+  graphene_point_t prev_pos;
   float prev_x;
   float prev_y;
   float orig_x = *x;
@@ -484,11 +551,21 @@ meta_barrier_manager_native_process (MetaBarrierManagerNative *manager,
   MetaBarrierEventData barrier_event_data;
   MetaBarrierImplNative *barrier_impl;
 
-  if (!clutter_input_device_get_coords (device, NULL, &prev_pos))
+  if (!clutter_seat_query_state (clutter_input_device_get_seat (device),
+                                 device, NULL, &prev_pos, NULL))
     return;
 
   prev_x = prev_pos.x;
   prev_y = prev_pos.y;
+
+  if (manager->pointer_trap)
+    {
+      *x = prev_pos.x;
+      *y = prev_pos.y;
+      return;
+    }
+
+  g_mutex_lock (&manager->mutex);
 
   /* Get the direction of the motion vector. */
   if (prev_x < *x)
@@ -509,7 +586,18 @@ meta_barrier_manager_native_process (MetaBarrierManagerNative *manager,
                                *x, *y,
                                motion_dir,
                                &barrier_impl))
-        clamp_to_barrier (barrier_impl, &motion_dir, x, y);
+        {
+          MetaBarrier *barrier = barrier_impl->barrier;
+
+          if (meta_barrier_get_flags (barrier) & META_BARRIER_FLAG_STICKY)
+            {
+              if (stick_to_barrier (barrier_impl, motion_dir,
+                                    prev_x, prev_y, x, y))
+                break;
+            }
+
+          clamp_to_barrier (barrier_impl, &motion_dir, x, y);
+        }
       else
         break;
     }
@@ -531,60 +619,65 @@ meta_barrier_manager_native_process (MetaBarrierManagerNative *manager,
   g_hash_table_foreach (manager->barriers,
                         maybe_emit_barrier_event,
                         &barrier_event_data);
+
+  g_mutex_unlock (&manager->mutex);
 }
 
 static gboolean
-_meta_barrier_impl_native_is_active (MetaBarrierImpl *impl)
+meta_barrier_impl_native_is_active (MetaBarrierImpl *impl)
 {
   MetaBarrierImplNative *self = META_BARRIER_IMPL_NATIVE (impl);
-  MetaBarrierImplNativePrivate *priv =
-    meta_barrier_impl_native_get_instance_private (self);
 
-  return priv->is_active;
+  return self->is_active;
 }
 
 static void
-_meta_barrier_impl_native_release (MetaBarrierImpl  *impl,
-                                   MetaBarrierEvent *event)
+meta_barrier_impl_native_release (MetaBarrierImpl  *impl,
+                                  MetaBarrierEvent *event)
 {
   MetaBarrierImplNative *self = META_BARRIER_IMPL_NATIVE (impl);
-  MetaBarrierImplNativePrivate *priv =
-    meta_barrier_impl_native_get_instance_private (self);
 
-  if (priv->state == META_BARRIER_STATE_HELD &&
-      event->event_id == priv->trigger_serial)
-    priv->state = META_BARRIER_STATE_RELEASE;
+  if (self->state == META_BARRIER_STATE_HELD &&
+      (!event || event->event_id == self->trigger_serial))
+    {
+      self->state = META_BARRIER_STATE_RELEASE;
+      self->manager->pointer_trap = NULL;
+    }
 }
 
 static void
-_meta_barrier_impl_native_destroy (MetaBarrierImpl *impl)
+meta_barrier_impl_native_destroy (MetaBarrierImpl *impl)
 {
   MetaBarrierImplNative *self = META_BARRIER_IMPL_NATIVE (impl);
-  MetaBarrierImplNativePrivate *priv =
-    meta_barrier_impl_native_get_instance_private (self);
 
-  g_hash_table_remove (priv->manager->barriers, self);
-  priv->is_active = FALSE;
+  g_mutex_lock (&self->manager->mutex);
+  if (self->manager->pointer_trap == self)
+    self->manager->pointer_trap = NULL;
+  g_hash_table_remove (self->manager->barriers, self);
+  g_mutex_unlock (&self->manager->mutex);
+  g_main_context_unref (self->main_context);
+  self->is_active = FALSE;
 }
 
 MetaBarrierImpl *
 meta_barrier_impl_native_new (MetaBarrier *barrier)
 {
+  MetaBackend *backend = meta_barrier_get_backend (barrier);
+  ClutterSeat *seat = meta_backend_get_default_seat (backend);
   MetaBarrierImplNative *self;
-  MetaBarrierImplNativePrivate *priv;
-  MetaBackendNative *native;
   MetaBarrierManagerNative *manager;
 
   self = g_object_new (META_TYPE_BARRIER_IMPL_NATIVE, NULL);
-  priv = meta_barrier_impl_native_get_instance_private (self);
 
-  priv->barrier = barrier;
-  priv->is_active = TRUE;
+  self->barrier = barrier;
+  self->is_active = TRUE;
+  self->main_context = g_main_context_ref_thread_default ();
 
-  native = META_BACKEND_NATIVE (meta_get_backend ());
-  manager = meta_backend_native_get_barrier_manager (native);
-  priv->manager = manager;
+  manager = meta_seat_native_get_barrier_manager (META_SEAT_NATIVE (seat));
+  self->manager = manager;
+  g_mutex_lock (&manager->mutex);
   g_hash_table_add (manager->barriers, self);
+  g_mutex_unlock (&manager->mutex);
 
   return META_BARRIER_IMPL (self);
 }
@@ -594,9 +687,9 @@ meta_barrier_impl_native_class_init (MetaBarrierImplNativeClass *klass)
 {
   MetaBarrierImplClass *impl_class = META_BARRIER_IMPL_CLASS (klass);
 
-  impl_class->is_active = _meta_barrier_impl_native_is_active;
-  impl_class->release = _meta_barrier_impl_native_release;
-  impl_class->destroy = _meta_barrier_impl_native_destroy;
+  impl_class->is_active = meta_barrier_impl_native_is_active;
+  impl_class->release = meta_barrier_impl_native_release;
+  impl_class->destroy = meta_barrier_impl_native_destroy;
 }
 
 static void
@@ -612,6 +705,7 @@ meta_barrier_manager_native_new (void)
   manager = g_new0 (MetaBarrierManagerNative, 1);
 
   manager->barriers = g_hash_table_new (NULL, NULL);
+  g_mutex_init (&manager->mutex);
 
   return manager;
 }

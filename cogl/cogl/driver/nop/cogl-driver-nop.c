@@ -28,51 +28,77 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
 #include <string.h>
 
-#include "cogl-private.h"
-#include "cogl-context-private.h"
-#include "cogl-feature-private.h"
-#include "cogl-renderer-private.h"
-#include "cogl-error-private.h"
-#include "cogl-framebuffer-nop-private.h"
-#include "cogl-texture-2d-nop-private.h"
-#include "cogl-attribute-nop-private.h"
-#include "cogl-clip-stack-nop-private.h"
+#include "cogl/cogl-private.h"
+#include "cogl/cogl-context-private.h"
+#include "cogl/cogl-feature-private.h"
+#include "cogl/cogl-renderer-private.h"
+#include "cogl/driver/nop/cogl-texture-2d-nop-private.h"
+#include "cogl/driver/nop/cogl-attribute-nop-private.h"
+#include "cogl/driver/nop/cogl-clip-stack-nop-private.h"
+#include "cogl/driver/nop/cogl-nop-framebuffer.h"
 
-static CoglBool
+static gboolean
 _cogl_driver_update_features (CoglContext *ctx,
-                              CoglError **error)
+                              GError **error)
 {
-  /* _cogl_gpu_info_init (ctx, &ctx->gpu); */
-
   memset (ctx->private_features, 0, sizeof (ctx->private_features));
-  ctx->feature_flags = 0;
 
   return TRUE;
+}
+
+static gboolean
+_cogl_driver_nop_context_init (CoglContext *context)
+{
+  return TRUE;
+}
+
+static void
+_cogl_driver_nop_context_deinit (CoglContext *context)
+{
+}
+
+static gboolean
+_cogl_driver_nop_is_hardware_accelerated (CoglContext *context)
+{
+  return FALSE;
+}
+
+static CoglFramebufferDriver *
+_cogl_driver_nop_create_framebuffer_driver (CoglContext                        *context,
+                                            CoglFramebuffer                    *framebuffer,
+                                            const CoglFramebufferDriverConfig  *driver_config,
+                                            GError                            **error)
+{
+  return g_object_new (COGL_TYPE_NOP_FRAMEBUFFER,
+                       "framebuffer", framebuffer,
+                       NULL);
+}
+
+static void
+_cogl_driver_nop_flush_framebuffer_state (CoglContext          *ctx,
+                                          CoglFramebuffer      *draw_buffer,
+                                          CoglFramebuffer      *read_buffer,
+                                          CoglFramebufferState  state)
+{
 }
 
 const CoglDriverVtable
 _cogl_driver_nop =
   {
+    _cogl_driver_nop_context_init,
+    _cogl_driver_nop_context_deinit,
+    _cogl_driver_nop_is_hardware_accelerated,
+    NULL, /* get_graphics_reset_status */
     NULL, /* pixel_format_from_gl_internal */
     NULL, /* pixel_format_to_gl */
-    NULL, /* pixel_format_to_gl_with_target */
+    NULL, /* read_pixels_format_supported */
     _cogl_driver_update_features,
-    _cogl_offscreen_nop_allocate,
-    _cogl_offscreen_nop_free,
-    _cogl_framebuffer_nop_flush_state,
-    _cogl_framebuffer_nop_clear,
-    _cogl_framebuffer_nop_query_bits,
-    _cogl_framebuffer_nop_finish,
-    _cogl_framebuffer_nop_discard_buffers,
-    _cogl_framebuffer_nop_draw_attributes,
-    _cogl_framebuffer_nop_draw_indexed_attributes,
-    _cogl_framebuffer_nop_read_pixels_into_bitmap,
+    _cogl_driver_nop_create_framebuffer_driver,
+    _cogl_driver_nop_flush_framebuffer_state,
     _cogl_texture_2d_nop_free,
     _cogl_texture_2d_nop_can_create,
     _cogl_texture_2d_nop_init,
@@ -81,6 +107,7 @@ _cogl_driver_nop =
     _cogl_texture_2d_nop_get_gl_handle,
     _cogl_texture_2d_nop_generate_mipmap,
     _cogl_texture_2d_nop_copy_from_bitmap,
+    NULL, /* texture_2d_is_get_data_supported */
     NULL, /* texture_2d_get_data */
     _cogl_nop_flush_attributes_state,
     _cogl_clip_stack_nop_flush,

@@ -14,9 +14,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,12 +24,12 @@
 
 #include <glib-object.h>
 
-#include "clutter/x11/clutter-x11.h"
 #include "backends/meta-backend-private.h"
 #include "backends/meta-logical-monitor.h"
 #include "backends/meta-output.h"
 #include "backends/meta-renderer.h"
 #include "backends/meta-renderer-view.h"
+#include "backends/x11/meta-clutter-backend-x11.h"
 #include "core/boxes-private.h"
 #include "meta/meta-backend.h"
 #include "meta/util.h"
@@ -50,36 +48,26 @@ calculate_view_transform (MetaMonitorManager *monitor_manager,
 {
   MetaMonitor *main_monitor;
   MetaOutput *main_output;
+  MetaCrtc *crtc;
   MetaMonitorTransform crtc_transform;
+
   main_monitor = meta_logical_monitor_get_monitors (logical_monitor)->data;
   main_output = meta_monitor_get_main_output (main_monitor);
+  crtc = meta_output_get_assigned_crtc (main_output);
   crtc_transform =
     meta_monitor_logical_to_crtc_transform (main_monitor,
                                             logical_monitor->transform);
-
   /*
    * Pick any monitor and output and check; all CRTCs of a logical monitor will
    * always have the same transform assigned to them.
    */
 
   if (meta_monitor_manager_is_transform_handled (monitor_manager,
-                                                 main_output->crtc,
+                                                 crtc,
                                                  crtc_transform))
     return META_MONITOR_TRANSFORM_NORMAL;
   else
     return crtc_transform;
-}
-
-static MetaRendererView *
-get_legacy_view (MetaRenderer *renderer)
-{
-  GList *views;
-
-  views = meta_renderer_get_views (renderer);
-  if (views)
-    return META_RENDERER_VIEW (views->data);
-  else
-    return NULL;
 }
 
 static CoglOffscreen *
@@ -100,108 +88,37 @@ create_offscreen (CoglContext *cogl_context,
   return offscreen;
 }
 
-static void
-meta_renderer_x11_nested_resize_legacy_view (MetaRendererX11Nested *renderer_x11_nested,
-                                             int                    width,
-                                             int                    height)
-{
-  MetaRenderer *renderer = META_RENDERER (renderer_x11_nested);
-  MetaBackend *backend = meta_get_backend ();
-  ClutterBackend *clutter_backend = meta_backend_get_clutter_backend (backend);
-  CoglContext *cogl_context = clutter_backend_get_cogl_context (clutter_backend);
-  MetaRendererView *legacy_view;
-  cairo_rectangle_int_t view_layout;
-  CoglOffscreen *fake_onscreen;
-
-  legacy_view = get_legacy_view (renderer);
-
-  clutter_stage_view_get_layout (CLUTTER_STAGE_VIEW (legacy_view),
-                                 &view_layout);
-  if (view_layout.width == width &&
-      view_layout.height == height)
-    return;
-
-  view_layout = (cairo_rectangle_int_t) {
-      .width = width,
-        .height = height
-  };
-
-  fake_onscreen = create_offscreen (cogl_context, width, height);
-
-  g_object_set (G_OBJECT (legacy_view),
-                "layout", &view_layout,
-                "framebuffer", COGL_FRAMEBUFFER (fake_onscreen),
-                NULL);
-}
-
-void
-meta_renderer_x11_nested_ensure_legacy_view (MetaRendererX11Nested *renderer_x11_nested,
-                                             int                    width,
-                                             int                    height)
-{
-  MetaRenderer *renderer = META_RENDERER (renderer_x11_nested);
-  MetaBackend *backend = meta_get_backend ();
-  ClutterBackend *clutter_backend = meta_backend_get_clutter_backend (backend);
-  CoglContext *cogl_context = clutter_backend_get_cogl_context (clutter_backend);
-  cairo_rectangle_int_t view_layout;
-  CoglOffscreen *fake_onscreen;
-  MetaRendererView *legacy_view;
-
-  if (get_legacy_view (renderer))
-    {
-      meta_renderer_x11_nested_resize_legacy_view (renderer_x11_nested,
-                                                   width, height);
-      return;
-    }
-
-  fake_onscreen = create_offscreen (cogl_context, width, height);
-
-  view_layout = (cairo_rectangle_int_t) {
-    .width = width,
-    .height = height
-  };
-  legacy_view = g_object_new (META_TYPE_RENDERER_VIEW,
-                              "layout", &view_layout,
-                              "framebuffer", COGL_FRAMEBUFFER (fake_onscreen),
-                              NULL);
-
-  meta_renderer_set_legacy_view (renderer, legacy_view);
-}
-
 static MetaRendererView *
 meta_renderer_x11_nested_create_view (MetaRenderer       *renderer,
-                                      MetaLogicalMonitor *logical_monitor)
+                                      MetaLogicalMonitor *logical_monitor,
+                                      MetaOutput         *output,
+                                      MetaCrtc           *crtc)
 {
-  MetaBackend *backend = meta_get_backend ();
+  MetaBackend *backend = meta_renderer_get_backend (renderer);
   MetaMonitorManager *monitor_manager =
     meta_backend_get_monitor_manager (backend);
   ClutterBackend *clutter_backend = meta_backend_get_clutter_backend (backend);
   CoglContext *cogl_context = clutter_backend_get_cogl_context (clutter_backend);
   MetaMonitorTransform view_transform;
   float view_scale;
+  const MetaCrtcConfig *crtc_config;
   int width, height;
   CoglOffscreen *fake_onscreen;
   CoglOffscreen *offscreen;
+  MtkRectangle view_layout;
+  const MetaCrtcModeInfo *mode_info;
+  MetaRendererView *view;
 
   view_transform = calculate_view_transform (monitor_manager, logical_monitor);
 
-  if (meta_is_stage_views_scaled ())
+  if (meta_backend_is_stage_views_scaled (backend))
     view_scale = logical_monitor->scale;
   else
     view_scale = 1.0;
 
-  if (meta_monitor_transform_is_rotated (view_transform))
-    {
-      width = logical_monitor->rect.height;
-      height = logical_monitor->rect.width;
-    }
-  else
-    {
-      width = logical_monitor->rect.width;
-      height = logical_monitor->rect.height;
-    }
-  width *= view_scale;
-  height *= view_scale;
+  crtc_config = meta_crtc_get_config (crtc);
+  width = roundf (crtc_config->layout.size.width * view_scale);
+  height = roundf (crtc_config->layout.size.height * view_scale);
 
   fake_onscreen = create_offscreen (cogl_context, width, height);
 
@@ -210,14 +127,26 @@ meta_renderer_x11_nested_create_view (MetaRenderer       *renderer,
   else
     offscreen = NULL;
 
-  return g_object_new (META_TYPE_RENDERER_VIEW,
-                       "layout", &logical_monitor->rect,
+  mtk_rectangle_from_graphene_rect (&crtc_config->layout,
+                                    MTK_ROUNDING_STRATEGY_ROUND,
+                                    &view_layout);
+
+  mode_info = meta_crtc_mode_get_info (crtc_config->mode);
+
+  view = g_object_new (META_TYPE_RENDERER_VIEW,
+                       "name", meta_output_get_name (output),
+                       "stage", meta_backend_get_stage (backend),
+                       "layout", &view_layout,
+                       "crtc", crtc,
+                       "refresh-rate", mode_info->refresh_rate,
                        "framebuffer", COGL_FRAMEBUFFER (fake_onscreen),
                        "offscreen", COGL_FRAMEBUFFER (offscreen),
                        "transform", view_transform,
                        "scale", view_scale,
-                       "logical-monitor", logical_monitor,
                        NULL);
+  g_object_set_data (G_OBJECT (view), "crtc", crtc);
+
+  return view;
 }
 
 static void
@@ -232,4 +161,3 @@ meta_renderer_x11_nested_class_init (MetaRendererX11NestedClass *klass)
 
   renderer_class->create_view = meta_renderer_x11_nested_create_view;
 }
-

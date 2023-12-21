@@ -22,14 +22,13 @@
  *   Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_SHADER_EFFECT_H__
-#define __CLUTTER_SHADER_EFFECT_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-offscreen-effect.h>
+#include "clutter/clutter-offscreen-effect.h"
 
 G_BEGIN_DECLS
 
@@ -44,14 +43,6 @@ typedef struct _ClutterShaderEffect             ClutterShaderEffect;
 typedef struct _ClutterShaderEffectPrivate      ClutterShaderEffectPrivate;
 typedef struct _ClutterShaderEffectClass        ClutterShaderEffectClass;
 
-/**
- * ClutterShaderEffect:
- *
- * The #ClutterShaderEffect structure contains
- * only private data and should be accessed using the provided API
- *
- * Since: 1.4
- */
 struct _ClutterShaderEffect
 {
   /*< private >*/
@@ -70,8 +61,6 @@ struct _ClutterShaderEffect
  *
  * The #ClutterShaderEffectClass structure contains
  * only private data
- *
- * Since: 1.4
  */
 struct _ClutterShaderEffectClass
 {
@@ -80,42 +69,32 @@ struct _ClutterShaderEffectClass
 
   /*< public >*/
   gchar * (* get_static_shader_source) (ClutterShaderEffect *effect);
-
-  /*< private >*/
-  /* padding */
-  void (*_clutter_shader1) (void);
-  void (*_clutter_shader2) (void);
-  void (*_clutter_shader3) (void);
-  void (*_clutter_shader4) (void);
-  void (*_clutter_shader5) (void);
 };
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 GType clutter_shader_effect_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 ClutterEffect * clutter_shader_effect_new               (ClutterShaderType    shader_type);
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 gboolean        clutter_shader_effect_set_shader_source (ClutterShaderEffect *effect,
                                                          const gchar         *source);
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void            clutter_shader_effect_set_uniform       (ClutterShaderEffect *effect,
                                                          const gchar         *name,
                                                          GType                gtype,
                                                          gsize                n_values,
                                                          ...);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void            clutter_shader_effect_set_uniform_value (ClutterShaderEffect *effect,
                                                          const gchar         *name,
                                                          const GValue        *value);
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 CoglHandle      clutter_shader_effect_get_shader        (ClutterShaderEffect *effect);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 CoglHandle      clutter_shader_effect_get_program       (ClutterShaderEffect *effect);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_SHADER_EFFECT_H__ */

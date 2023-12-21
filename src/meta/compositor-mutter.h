@@ -20,33 +20,39 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MUTTER_H_
-#define MUTTER_H_
+#pragma once
 
-#include <clutter/clutter.h>
-#include <X11/Xlib.h>
-#include <X11/extensions/Xfixes.h>
-
-#include <meta/types.h>
-#include <meta/compositor.h>
-#include <meta/meta-window-actor.h>
+#include "clutter/clutter.h"
+#include "meta/compositor.h"
+#include "meta/meta-window-actor.h"
+#include "meta/types.h"
 
 /* Public compositor API */
-ClutterActor *meta_get_stage_for_screen         (MetaScreen *screen);
-Window        meta_get_overlay_window           (MetaScreen *screen);
-GList        *meta_get_window_actors            (MetaScreen *screen);
-ClutterActor *meta_get_window_group_for_screen  (MetaScreen *screen);
-ClutterActor *meta_get_top_window_group_for_screen (MetaScreen *screen);
-ClutterActor *meta_get_feedback_group_for_screen (MetaScreen *screen);
+META_EXPORT
+ClutterActor *meta_get_stage_for_display            (MetaDisplay *display);
 
-void        meta_disable_unredirect_for_screen  (MetaScreen *screen);
-void        meta_enable_unredirect_for_screen   (MetaScreen *screen);
+META_EXPORT
+GList        *meta_get_window_actors                (MetaDisplay *display);
 
-void meta_set_stage_input_region     (MetaScreen    *screen,
-                                      XserverRegion  region);
-void meta_empty_stage_input_region   (MetaScreen    *screen);
-void meta_focus_stage_window         (MetaScreen    *screen,
-                                      guint32        timestamp);
-gboolean meta_stage_is_focused       (MetaScreen    *screen);
+META_EXPORT
+ClutterActor *meta_get_window_group_for_display     (MetaDisplay *display);
 
-#endif
+META_EXPORT
+ClutterActor *meta_get_top_window_group_for_display (MetaDisplay *display);
+
+META_EXPORT
+G_DEPRECATED_FOR (meta_compositor_get_feedback_group)
+ClutterActor *meta_get_feedback_group_for_display   (MetaDisplay *display);
+
+META_EXPORT
+void meta_disable_unredirect_for_display (MetaDisplay *display);
+
+META_EXPORT
+void meta_enable_unredirect_for_display  (MetaDisplay *display);
+
+META_EXPORT
+void meta_focus_stage_window       (MetaDisplay  *display,
+                                    guint32       timestamp);
+
+META_EXPORT
+gboolean meta_stage_is_focused     (MetaDisplay  *display);

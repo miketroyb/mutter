@@ -22,13 +22,12 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __CALLY_ACTOR_PRIVATE_H__
-#define __CALLY_ACTOR_PRIVATE_H__
+#pragma once
 
-#include "cally-actor.h"
+#include "cally/cally-actor.h"
 
 /*
- * Auxiliar define, in order to get the clutter actor from the AtkObject using
+ * Auxiliary define, in order to get the clutter actor from the AtkObject using
  * AtkGObject methods
  *
  */
@@ -38,5 +37,3 @@
 void _cally_actor_get_top_level_origin (ClutterActor *actor,
                                         gint         *x,
                                         gint         *y);
-
-#endif /* __CALLY_ACTOR_PRIVATE_H__ */

@@ -21,18 +21,22 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <config.h>
-#include "boxes-private.h"
-#include "constraints.h"
-#include "workspace-private.h"
-#include "place.h"
-#include <meta/prefs.h>
-#include "backends/meta-backend-private.h"
-#include "backends/meta-logical-monitor.h"
-#include "backends/meta-monitor-manager-private.h"
+#include "config.h"
+
+#include "core/constraints.h"
 
 #include <stdlib.h>
 #include <math.h>
+
+#include "backends/meta-backend-private.h"
+#include "backends/meta-logical-monitor.h"
+#include "backends/meta-monitor-manager-private.h"
+#include "compositor/compositor-private.h"
+#include "core/boxes-private.h"
+#include "core/meta-workspace-manager-private.h"
+#include "core/place.h"
+#include "core/workspace-private.h"
+#include "meta/prefs.h"
 
 #if 0
  // This is the short and sweet version of how to hack on this file; see
@@ -118,8 +122,13 @@ typedef enum
 
 typedef struct
 {
-  MetaRectangle        orig;
-  MetaRectangle        current;
+  MetaBackend *backend;
+
+  MtkRectangle         orig;
+  MtkRectangle         current;
+  MtkRectangle         temporary;
+  int                  rel_x;
+  int                  rel_y;
   ActionType           action_type;
   gboolean             is_user_action;
 
@@ -128,20 +137,22 @@ typedef struct
    * explanation of the differences and similarity between resize_gravity
    * and fixed_directions
    */
-  int                  resize_gravity;
+  MetaGravity          resize_gravity;
   FixedDirections      fixed_directions;
 
   /* work_area_monitor - current monitor region minus struts
    * entire_monitor    - current monitor, including strut regions
    */
-  MetaRectangle        work_area_monitor;
-  MetaRectangle        entire_monitor;
+  MtkRectangle         work_area_monitor;
+  MtkRectangle         entire_monitor;
 
   /* Spanning rectangles for the non-covered (by struts) region of the
    * screen and also for just the current monitor
    */
   GList  *usable_screen_region;
   GList  *usable_monitor_region;
+
+  MetaMoveResizeFlags  flags;
 } ConstraintInfo;
 
 static gboolean do_screen_and_monitor_relative_constraints (MetaWindow     *window,
@@ -197,12 +208,13 @@ static gboolean constrain_partially_onscreen (MetaWindow         *window,
                                               ConstraintPriority  priority,
                                               gboolean            check_only);
 
-static void setup_constraint_info        (ConstraintInfo      *info,
+static void setup_constraint_info        (MetaBackend         *backend,
+                                          ConstraintInfo      *info,
                                           MetaWindow          *window,
                                           MetaMoveResizeFlags  flags,
-                                          int                  resize_gravity,
-                                          const MetaRectangle *orig,
-                                          MetaRectangle       *new);
+                                          MetaGravity          resize_gravity,
+                                          const MtkRectangle  *orig,
+                                          MtkRectangle        *new);
 static void place_window_if_needed       (MetaWindow     *window,
                                           ConstraintInfo *info);
 static void update_onscreen_requirements (MetaWindow     *window,
@@ -254,7 +266,7 @@ do_all_constraints (MetaWindow         *window,
         {
           /* Log how the constraint modified the position */
           meta_topic (META_DEBUG_GEOMETRY,
-                      "info->current is %d,%d +%d,%d after %s\n",
+                      "info->current is %d,%d %dx%d after %s",
                       info->current.x, info->current.y,
                       info->current.width, info->current.height,
                       constraint->name);
@@ -263,7 +275,7 @@ do_all_constraints (MetaWindow         *window,
         {
           /* Log which constraint was not satisfied */
           meta_topic (META_DEBUG_GEOMETRY,
-                      "constraint %s not satisfied.\n",
+                      "constraint %s not satisfied.",
                       constraint->name);
           return FALSE;
         }
@@ -276,21 +288,28 @@ do_all_constraints (MetaWindow         *window,
 void
 meta_window_constrain (MetaWindow          *window,
                        MetaMoveResizeFlags  flags,
-                       int                  resize_gravity,
-                       const MetaRectangle *orig,
-                       MetaRectangle       *new)
+                       MetaGravity          resize_gravity,
+                       const MtkRectangle  *orig,
+                       MtkRectangle        *new,
+                       MtkRectangle        *temporary,
+                       int                 *rel_x,
+                       int                 *rel_y)
 {
+  MetaDisplay *display = meta_window_get_display (window);
+  MetaContext *context = meta_display_get_context (display);
+  MetaBackend *backend = meta_context_get_backend (context);
   ConstraintInfo info;
   ConstraintPriority priority = PRIORITY_MINIMUM;
   gboolean satisfied = FALSE;
 
   meta_topic (META_DEBUG_GEOMETRY,
-              "Constraining %s in move from %d,%d %dx%d to %d,%d %dx%d\n",
+              "Constraining %s in move from %d,%d %dx%d to %d,%d %dx%d",
               window->desc,
               orig->x, orig->y, orig->width, orig->height,
               new->x,  new->y,  new->width,  new->height);
 
-  setup_constraint_info (&info,
+  setup_constraint_info (backend,
+                         &info,
                          window,
                          flags,
                          resize_gravity,
@@ -315,6 +334,9 @@ meta_window_constrain (MetaWindow          *window,
 
   /* Make sure we use the constrained position */
   *new = info.current;
+  *temporary = info.temporary;
+  *rel_x = info.rel_x;
+  *rel_y = info.rel_y;
 
   /* We may need to update window->require_fully_onscreen,
    * window->require_on_single_monitor, and perhaps other quantities
@@ -324,21 +346,27 @@ meta_window_constrain (MetaWindow          *window,
 }
 
 static void
-setup_constraint_info (ConstraintInfo      *info,
+setup_constraint_info (MetaBackend         *backend,
+                       ConstraintInfo      *info,
                        MetaWindow          *window,
                        MetaMoveResizeFlags  flags,
-                       int                  resize_gravity,
-                       const MetaRectangle *orig,
-                       MetaRectangle       *new)
+                       MetaGravity          resize_gravity,
+                       const MtkRectangle  *orig,
+                       MtkRectangle        *new)
 {
-  MetaBackend *backend = meta_get_backend ();
   MetaMonitorManager *monitor_manager =
     meta_backend_get_monitor_manager (backend);
   MetaLogicalMonitor *logical_monitor;
   MetaWorkspace *cur_workspace;
+  MetaPlacementRule *placement_rule;
 
+  info->backend = backend;
   info->orig    = *orig;
   info->current = *new;
+  info->temporary = *orig;
+  info->rel_x = 0;
+  info->rel_y = 0;
+  info->flags = flags;
 
   if (info->current.width < 1)
     info->current.width = 1;
@@ -351,9 +379,10 @@ setup_constraint_info (ConstraintInfo      *info,
     info->action_type = ACTION_RESIZE;
   else if (flags & META_MOVE_RESIZE_MOVE_ACTION)
     info->action_type = ACTION_MOVE;
+  else if (flags & META_MOVE_RESIZE_WAYLAND_FINISH_MOVE_RESIZE)
+    info->action_type = ACTION_MOVE;
   else
-    g_error ("BAD, BAD developer!  No treat for you!  (Fix your calls to "
-             "meta_window_move_resize_internal()).\n");
+    g_assert_not_reached ();
 
   info->is_user_action = (flags & META_MOVE_RESIZE_USER_ACTION);
 
@@ -387,32 +416,71 @@ setup_constraint_info (ConstraintInfo      *info,
   if (!info->is_user_action)
     info->fixed_directions = FIXED_DIRECTION_NONE;
 
-  logical_monitor =
-    meta_monitor_manager_get_logical_monitor_from_rect (monitor_manager,
-                                                        &info->current);
+  placement_rule = meta_window_get_placement_rule (window);
+  if (placement_rule)
+    {
+      MtkRectangle rect;
+      MtkRectangle parent_rect;
+
+      rect = placement_rule->anchor_rect;
+
+      parent_rect = placement_rule->parent_rect;
+      rect.x += parent_rect.x;
+      rect.y += parent_rect.y;
+      logical_monitor =
+        meta_monitor_manager_get_logical_monitor_from_rect (monitor_manager,
+                                                            &rect);
+      if (!logical_monitor)
+        {
+          logical_monitor =
+            meta_monitor_manager_get_logical_monitor_from_rect (monitor_manager,
+                                                                &parent_rect);
+        }
+    }
+  else
+    {
+      logical_monitor =
+        meta_monitor_manager_get_logical_monitor_from_rect (monitor_manager,
+                                                            &info->current);
+    }
+
+  if (!logical_monitor)
+    {
+      g_warning ("No sensible logical monitor could be used for constraining");
+      logical_monitor =
+        meta_monitor_manager_get_primary_logical_monitor (monitor_manager);
+    }
+
   meta_window_get_work_area_for_logical_monitor (window,
                                                  logical_monitor,
                                                  &info->work_area_monitor);
 
-  if (!window->fullscreen || !meta_window_has_fullscreen_monitors (window))
+  if (window->fullscreen && meta_window_has_fullscreen_monitors (window))
     {
-      info->entire_monitor = logical_monitor->rect;
+      info->entire_monitor = window->fullscreen_monitors.top->rect;
+      mtk_rectangle_union (&info->entire_monitor,
+                           &window->fullscreen_monitors.bottom->rect,
+                           &info->entire_monitor);
+      mtk_rectangle_union (&info->entire_monitor,
+                           &window->fullscreen_monitors.left->rect,
+                           &info->entire_monitor);
+      mtk_rectangle_union (&info->entire_monitor,
+                           &window->fullscreen_monitors.right->rect,
+                           &info->entire_monitor);
+      if (window->fullscreen_monitors.top == logical_monitor &&
+          window->fullscreen_monitors.bottom == logical_monitor &&
+          window->fullscreen_monitors.left == logical_monitor &&
+          window->fullscreen_monitors.right == logical_monitor)
+        meta_window_adjust_fullscreen_monitor_rect (window, &info->entire_monitor);
     }
   else
     {
-      info->entire_monitor = window->fullscreen_monitors.top->rect;
-      meta_rectangle_union (&info->entire_monitor,
-                            &window->fullscreen_monitors.bottom->rect,
-                            &info->entire_monitor);
-      meta_rectangle_union (&info->entire_monitor,
-                            &window->fullscreen_monitors.left->rect,
-                            &info->entire_monitor);
-      meta_rectangle_union (&info->entire_monitor,
-                            &window->fullscreen_monitors.right->rect,
-                            &info->entire_monitor);
+      info->entire_monitor = logical_monitor->rect;
+      if (window->fullscreen)
+        meta_window_adjust_fullscreen_monitor_rect (window, &info->entire_monitor);
     }
 
-  cur_workspace = window->screen->active_workspace;
+  cur_workspace = window->display->workspace_manager->active_workspace;
   info->usable_screen_region   =
     meta_workspace_get_onscreen_region (cur_workspace);
   info->usable_monitor_region =
@@ -421,14 +489,14 @@ setup_constraint_info (ConstraintInfo      *info,
   /* Log all this information for debugging */
   meta_topic (META_DEBUG_GEOMETRY,
               "Setting up constraint info:\n"
-              "  orig: %d,%d +%d,%d\n"
-              "  new : %d,%d +%d,%d\n"
+              "  orig: %d,%d %dx%d\n"
+              "  new : %d,%d %dx%d\n"
               "  action_type     : %s\n"
               "  is_user_action  : %s\n"
               "  resize_gravity  : %s\n"
               "  fixed_directions: %s\n"
-              "  work_area_monitor: %d,%d +%d,%d\n"
-              "  entire_monitor   : %d,%d +%d,%d\n",
+              "  work_area_monitor: %d,%d %dx%d\n"
+              "  entire_monitor   : %d,%d %dx%d",
               info->orig.x, info->orig.y, info->orig.width, info->orig.height,
               info->current.x, info->current.y,
                 info->current.width, info->current.height,
@@ -447,6 +515,16 @@ setup_constraint_info (ConstraintInfo      *info,
                 info->work_area_monitor.height,
               info->entire_monitor.x, info->entire_monitor.y,
                 info->entire_monitor.width, info->entire_monitor.height);
+}
+
+static MtkRectangle *
+get_start_rect_for_resize (MetaWindow     *window,
+                           ConstraintInfo *info)
+{
+  if (!info->is_user_action && info->action_type == ACTION_MOVE_AND_RESIZE)
+    return &info->current;
+  else
+    return &info->orig;
 }
 
 static void
@@ -468,15 +546,14 @@ place_window_if_needed(MetaWindow     *window,
       !window->minimized &&
       !window->fullscreen)
     {
-      MetaBackend *backend = meta_get_backend ();
       MetaMonitorManager *monitor_manager =
-        meta_backend_get_monitor_manager (backend);
-      MetaRectangle orig_rect;
-      MetaRectangle placed_rect;
+        meta_backend_get_monitor_manager (info->backend);
+      MtkRectangle orig_rect;
+      MtkRectangle placed_rect;
       MetaWorkspace *cur_workspace;
       MetaLogicalMonitor *logical_monitor;
 
-      placed_rect = (MetaRectangle) {
+      placed_rect = (MtkRectangle) {
         .x = window->rect.x,
         .y = window->rect.y,
         .width = info->current.width,
@@ -485,23 +562,34 @@ place_window_if_needed(MetaWindow     *window,
 
       orig_rect = info->orig;
 
-      meta_window_place (window, orig_rect.x, orig_rect.y,
-                         &placed_rect.x, &placed_rect.y);
-      did_placement = TRUE;
+      if (window->placement.rule)
+        {
+          meta_window_process_placement (window,
+                                         window->placement.rule,
+                                         &info->rel_x, &info->rel_y);
+          placed_rect.x = window->placement.rule->parent_rect.x + info->rel_x;
+          placed_rect.y = window->placement.rule->parent_rect.y + info->rel_y;
+        }
+      else
+        {
+          meta_window_place (window, orig_rect.x, orig_rect.y,
+                             &placed_rect.x, &placed_rect.y);
 
-      /* placing the window may have changed the monitor.  Find the
-       * new monitor and update the ConstraintInfo
-       */
-      logical_monitor =
-        meta_monitor_manager_get_logical_monitor_from_rect (monitor_manager,
-                                                            &placed_rect);
-      info->entire_monitor = logical_monitor->rect;
-      meta_window_get_work_area_for_logical_monitor (window,
-                                                     logical_monitor,
-                                                     &info->work_area_monitor);
-      cur_workspace = window->screen->active_workspace;
-      info->usable_monitor_region =
-        meta_workspace_get_onmonitor_region (cur_workspace, logical_monitor);
+          /* placing the window may have changed the monitor.  Find the
+           * new monitor and update the ConstraintInfo
+           */
+          logical_monitor =
+            meta_monitor_manager_get_logical_monitor_from_rect (monitor_manager,
+                                                                &placed_rect);
+          info->entire_monitor = logical_monitor->rect;
+          meta_window_get_work_area_for_logical_monitor (window,
+                                                         logical_monitor,
+                                                         &info->work_area_monitor);
+          cur_workspace = window->display->workspace_manager->active_workspace;
+          info->usable_monitor_region =
+            meta_workspace_get_onmonitor_region (cur_workspace, logical_monitor);
+        }
+      did_placement = TRUE;
 
       info->current.x = placed_rect.x;
       info->current.y = placed_rect.y;
@@ -512,7 +600,7 @@ place_window_if_needed(MetaWindow     *window,
       info->fixed_directions = FIXED_DIRECTION_NONE;
     }
 
-  if (window->placed || did_placement)
+  if (window->reparents_pending == 0 && (window->placed || did_placement))
     {
       if (window->maximize_horizontally_after_placement ||
           window->maximize_vertically_after_placement)
@@ -538,13 +626,12 @@ place_window_if_needed(MetaWindow     *window,
            */
           window->unconstrained_rect = info->current;
 
-          if (window->maximize_horizontally_after_placement ||
-              window->maximize_vertically_after_placement)
-            meta_window_maximize_internal (window,
-                (window->maximize_horizontally_after_placement ?
-                 META_MAXIMIZE_HORIZONTAL : 0 ) |
-                (window->maximize_vertically_after_placement ?
-                 META_MAXIMIZE_VERTICAL : 0), &info->current);
+          meta_window_maximize_internal (window,
+            (window->maximize_horizontally_after_placement ?
+             META_MAXIMIZE_HORIZONTAL : 0) |
+            (window->maximize_vertically_after_placement ?
+             META_MAXIMIZE_VERTICAL : 0),
+            &info->current);
 
           window->maximize_horizontally_after_placement = FALSE;
           window->maximize_vertically_after_placement = FALSE;
@@ -602,7 +689,7 @@ update_onscreen_requirements (MetaWindow     *window,
                                         &info->current);
   if (old != window->require_fully_onscreen)
     meta_topic (META_DEBUG_GEOMETRY,
-                "require_fully_onscreen for %s toggled to %s\n",
+                "require_fully_onscreen for %s toggled to %s",
                 window->desc,
                 window->require_fully_onscreen ? "TRUE" : "FALSE");
 
@@ -615,7 +702,7 @@ update_onscreen_requirements (MetaWindow     *window,
                                         &info->current);
   if (old != window->require_on_single_monitor)
     meta_topic (META_DEBUG_GEOMETRY,
-                "require_on_single_monitor for %s toggled to %s\n",
+                "require_on_single_monitor for %s toggled to %s",
                 window->desc,
                 window->require_on_single_monitor ? "TRUE" : "FALSE");
 
@@ -624,7 +711,7 @@ update_onscreen_requirements (MetaWindow     *window,
    */
   if (window->frame && window->decorated)
     {
-      MetaRectangle titlebar_rect, frame_rect;
+      MtkRectangle titlebar_rect, frame_rect;
 
       meta_window_get_titlebar_rect (window, &titlebar_rect);
       meta_window_get_frame_rect (window, &frame_rect);
@@ -639,18 +726,18 @@ update_onscreen_requirements (MetaWindow     *window,
                                              &titlebar_rect);
       if (old != window->require_titlebar_visible)
         meta_topic (META_DEBUG_GEOMETRY,
-                    "require_titlebar_visible for %s toggled to %s\n",
+                    "require_titlebar_visible for %s toggled to %s",
                     window->desc,
                     window->require_titlebar_visible ? "TRUE" : "FALSE");
     }
 }
 
 static inline void
-get_size_limits (MetaWindow    *window,
-                 MetaRectangle *min_size,
-                 MetaRectangle *max_size)
+get_size_limits (MetaWindow   *window,
+                 MtkRectangle *min_size,
+                 MtkRectangle *max_size)
 {
-  /* We pack the results into MetaRectangle structs just for convienience; we
+  /* We pack the results into MtkRectangle structs just for convenience; we
    * don't actually use the position of those rects.
    */
   min_size->x = min_size->y = max_size->x = max_size->y = 0;
@@ -720,12 +807,18 @@ try_flip_window_position (MetaWindow                       *window,
                           ConstraintInfo                   *info,
                           MetaPlacementRule                *placement_rule,
                           MetaPlacementConstraintAdjustment constraint_adjustment,
-                          MetaRectangle                    *rect,
-                          MetaRectangle                    *intersection)
+                          int                               parent_x,
+                          int                               parent_y,
+                          MtkRectangle                     *rect,
+                          int                              *rel_x,
+                          int                              *rel_y,
+                          MtkRectangle                     *intersection)
 {
-  MetaPlacementRule flipped_rule = *placement_rule;;
-  MetaRectangle flipped_rect;
-  MetaRectangle flipped_intersection;
+  MetaPlacementRule flipped_rule = *placement_rule;
+  MtkRectangle flipped_rect;
+  MtkRectangle flipped_intersection;
+  int flipped_rel_x;
+  int flipped_rel_y;
 
   switch (constraint_adjustment)
     {
@@ -742,9 +835,11 @@ try_flip_window_position (MetaWindow                       *window,
 
   flipped_rect = info->current;
   meta_window_process_placement (window, &flipped_rule,
-                                 &flipped_rect.x, &flipped_rect.y);
-  meta_rectangle_intersect (&flipped_rect, &info->work_area_monitor,
-                            &flipped_intersection);
+                                 &flipped_rel_x, &flipped_rel_y);
+  flipped_rect.x = parent_x + flipped_rel_x;
+  flipped_rect.y = parent_y + flipped_rel_y;
+  mtk_rectangle_intersect (&flipped_rect, &info->work_area_monitor,
+                           &flipped_intersection);
 
   if ((constraint_adjustment == META_PLACEMENT_CONSTRAINT_ADJUSTMENT_FLIP_X &&
        flipped_intersection.width == flipped_rect.width) ||
@@ -753,14 +848,16 @@ try_flip_window_position (MetaWindow                       *window,
     {
       *placement_rule = flipped_rule;
       *rect = flipped_rect;
+      *rel_x = flipped_rel_x;
+      *rel_y = flipped_rel_y;
       *intersection = flipped_intersection;
     }
 }
 
 static gboolean
-is_custom_rule_satisfied (ConstraintInfo    *info,
+is_custom_rule_satisfied (MtkRectangle      *rect,
                           MetaPlacementRule *placement_rule,
-                          MetaRectangle     *intersection)
+                          MtkRectangle      *intersection)
 {
   uint32_t x_constrain_actions, y_constrain_actions;
 
@@ -769,9 +866,9 @@ is_custom_rule_satisfied (ConstraintInfo    *info,
   y_constrain_actions = (META_PLACEMENT_CONSTRAINT_ADJUSTMENT_SLIDE_Y |
                          META_PLACEMENT_CONSTRAINT_ADJUSTMENT_FLIP_Y);
   if ((placement_rule->constraint_adjustment & x_constrain_actions &&
-       info->current.width != intersection->width) ||
+       rect->width != intersection->width) ||
       (placement_rule->constraint_adjustment & y_constrain_actions &&
-       info->current.height != intersection->height))
+       rect->height != intersection->height))
     return FALSE;
   else
     return TRUE;
@@ -784,9 +881,15 @@ constrain_custom_rule (MetaWindow         *window,
                        gboolean            check_only)
 {
   MetaPlacementRule *placement_rule;
-  MetaRectangle intersection;
+  MtkRectangle intersection;
   gboolean constraint_satisfied;
+  MtkRectangle temporary_rect;
+  MtkRectangle adjusted_unconstrained;
+  int adjusted_rel_x;
+  int adjusted_rel_y;
   MetaPlacementRule current_rule;
+  MetaWindow *parent;
+  int parent_x, parent_y;
 
   if (priority > PRIORITY_CUSTOM_RULE)
     return TRUE;
@@ -795,15 +898,112 @@ constrain_custom_rule (MetaWindow         *window,
   if (!placement_rule)
     return TRUE;
 
-  meta_rectangle_intersect (&info->current, &info->work_area_monitor,
-                            &intersection);
+  parent = meta_window_get_transient_for (window);
+  if (window->placement.state == META_PLACEMENT_STATE_CONSTRAINED_FINISHED)
+    {
+      placement_rule->parent_rect.x = parent->rect.x;
+      placement_rule->parent_rect.y = parent->rect.y;
+    }
+  parent_x = placement_rule->parent_rect.x;
+  parent_y = placement_rule->parent_rect.y;
 
-  constraint_satisfied = is_custom_rule_satisfied (info,
-                                                   placement_rule,
-                                                   &intersection);
+  /*
+   * Calculate the temporary position, meaning a position that will be
+   * applied if the new constrained position requires asynchronous
+   * configuration of the window. This happens for example when the parent
+   * moves, causing this window to change relative position, meaning it can
+   * only have its newly constrained position applied when the configuration is
+   * acknowledged.
+   */
 
-  if (constraint_satisfied || check_only)
+  switch (window->placement.state)
+    {
+    case META_PLACEMENT_STATE_UNCONSTRAINED:
+      temporary_rect = info->current;
+      break;
+    case META_PLACEMENT_STATE_CONSTRAINED_CONFIGURED:
+    case META_PLACEMENT_STATE_CONSTRAINED_PENDING:
+    case META_PLACEMENT_STATE_CONSTRAINED_FINISHED:
+    case META_PLACEMENT_STATE_INVALIDATED:
+      temporary_rect = (MtkRectangle) {
+        .x = parent->rect.x + window->placement.current.rel_x,
+        .y = parent->rect.y + window->placement.current.rel_y,
+        .width = info->current.width,
+        .height = info->current.height,
+      };
+      break;
+    }
+
+  /*
+   * Calculate an adjusted current position. Depending on the rule
+   * configuration and placement state, this may result in window being
+   * reconstrained.
+   */
+
+  adjusted_unconstrained = temporary_rect;
+
+  if (window->placement.state == META_PLACEMENT_STATE_INVALIDATED ||
+      window->placement.state == META_PLACEMENT_STATE_UNCONSTRAINED ||
+      (window->placement.state == META_PLACEMENT_STATE_CONSTRAINED_FINISHED &&
+       placement_rule->is_reactive))
+    {
+      meta_window_process_placement (window, placement_rule,
+                                     &adjusted_rel_x,
+                                     &adjusted_rel_y);
+      adjusted_unconstrained.x = parent_x + adjusted_rel_x;
+      adjusted_unconstrained.y = parent_y + adjusted_rel_y;
+    }
+  else if (window->placement.state == META_PLACEMENT_STATE_CONSTRAINED_PENDING)
+    {
+      adjusted_rel_x = window->placement.pending.rel_x;
+      adjusted_rel_y = window->placement.pending.rel_y;
+      adjusted_unconstrained.x = window->placement.pending.x;
+      adjusted_unconstrained.y = window->placement.pending.y;
+    }
+  else
+    {
+      adjusted_rel_x = window->placement.current.rel_x;
+      adjusted_rel_y = window->placement.current.rel_y;
+    }
+
+  mtk_rectangle_intersect (&adjusted_unconstrained, &info->work_area_monitor,
+                           &intersection);
+
+  constraint_satisfied = (mtk_rectangle_equal (&info->current,
+                                               &adjusted_unconstrained) &&
+                          is_custom_rule_satisfied (&adjusted_unconstrained,
+                                                    placement_rule,
+                                                    &intersection));
+
+  if (check_only)
     return constraint_satisfied;
+
+  info->current = adjusted_unconstrained;
+  info->rel_x = adjusted_rel_x;
+  info->rel_y = adjusted_rel_y;
+  info->temporary = temporary_rect;
+
+  switch (window->placement.state)
+    {
+    case META_PLACEMENT_STATE_CONSTRAINED_FINISHED:
+      if (!placement_rule->is_reactive)
+        return TRUE;
+      break;
+    case META_PLACEMENT_STATE_CONSTRAINED_PENDING:
+    case META_PLACEMENT_STATE_CONSTRAINED_CONFIGURED:
+      return TRUE;
+    case META_PLACEMENT_STATE_UNCONSTRAINED:
+    case META_PLACEMENT_STATE_INVALIDATED:
+      break;
+    }
+
+  if (constraint_satisfied)
+    goto done;
+
+  /*
+   * Process the placement rule in order either until constraints are
+   * satisfied, or there are no more rules to process.
+   */
 
   current_rule = *placement_rule;
 
@@ -813,7 +1013,12 @@ constrain_custom_rule (MetaWindow         *window,
     {
       try_flip_window_position (window, info, &current_rule,
                                 META_PLACEMENT_CONSTRAINT_ADJUSTMENT_FLIP_X,
-                                &info->current, &intersection);
+                                parent_x,
+                                parent_y,
+                                &info->current,
+                                &info->rel_x,
+                                &info->rel_y,
+                                &intersection);
     }
   if (info->current.height != intersection.height &&
       (current_rule.constraint_adjustment &
@@ -821,56 +1026,115 @@ constrain_custom_rule (MetaWindow         *window,
     {
       try_flip_window_position (window, info, &current_rule,
                                 META_PLACEMENT_CONSTRAINT_ADJUSTMENT_FLIP_Y,
-                                &info->current, &intersection);
+                                parent_x,
+                                parent_y,
+                                &info->current,
+                                &info->rel_x,
+                                &info->rel_y,
+                                &intersection);
     }
 
-  meta_rectangle_intersect (&info->current, &info->work_area_monitor,
-                            &intersection);
-  constraint_satisfied = is_custom_rule_satisfied (info,
+  mtk_rectangle_intersect (&info->current, &info->work_area_monitor,
+                           &intersection);
+  constraint_satisfied = is_custom_rule_satisfied (&info->current,
                                                    placement_rule,
                                                    &intersection);
 
   if (constraint_satisfied)
-    return TRUE;
+    goto done;
 
   if (current_rule.constraint_adjustment &
       META_PLACEMENT_CONSTRAINT_ADJUSTMENT_SLIDE_X)
     {
-      if (info->current.x != intersection.x)
-        info->current.x = intersection.x;
-      else if (info->current.width != intersection.width)
-        info->current.x -= info->current.width - intersection.width;
+      int current_x2;
+      int work_area_monitor_x2;
+      int new_x;
+
+      current_x2 = info->current.x + info->current.width;
+      work_area_monitor_x2 = (info->work_area_monitor.x +
+                              info->work_area_monitor.width);
+
+      if (current_x2 > work_area_monitor_x2)
+        {
+          new_x = MAX (info->work_area_monitor.x,
+                       work_area_monitor_x2 - info->current.width);
+        }
+      else if (info->current.x < info->work_area_monitor.x)
+        {
+          new_x = info->work_area_monitor.x;
+        }
+      else
+        {
+          new_x = info->current.x;
+        }
+
+      info->rel_x += new_x - info->current.x;
+      info->current.x = new_x;
     }
   if (current_rule.constraint_adjustment &
       META_PLACEMENT_CONSTRAINT_ADJUSTMENT_SLIDE_Y)
     {
-      if (info->current.y != intersection.y)
-        info->current.y = intersection.y;
-      else if (info->current.height != intersection.height)
-        info->current.y -= info->current.height - intersection.height;
+      int current_y2;
+      int work_area_monitor_y2;
+      int new_y;
+
+      current_y2 = info->current.y + info->current.height;
+      work_area_monitor_y2 = (info->work_area_monitor.y +
+                              info->work_area_monitor.height);
+
+      if (current_y2 > work_area_monitor_y2)
+        {
+          new_y = MAX (info->work_area_monitor.y,
+                       work_area_monitor_y2 - info->current.height);
+        }
+      else if (info->current.y < info->work_area_monitor.y)
+        {
+          new_y = info->work_area_monitor.y;
+        }
+      else
+        {
+          new_y = info->current.y;
+        }
+
+      info->rel_y += new_y - info->current.y;
+      info->current.y = new_y;
     }
 
-  meta_rectangle_intersect (&info->current, &info->work_area_monitor,
-                            &intersection);
-  constraint_satisfied = is_custom_rule_satisfied (info,
+  mtk_rectangle_intersect (&info->current, &info->work_area_monitor,
+                           &intersection);
+  constraint_satisfied = is_custom_rule_satisfied (&info->current,
                                                    placement_rule,
                                                    &intersection);
 
   if (constraint_satisfied)
-    return TRUE;
+    goto done;
 
   if (current_rule.constraint_adjustment &
       META_PLACEMENT_CONSTRAINT_ADJUSTMENT_RESIZE_X)
     {
-      info->current.x = intersection.x;
+      int new_x;
+      new_x = intersection.x;
       info->current.width = intersection.width;
+      info->rel_x += new_x - info->current.x;
+      info->current.x = new_x;
     }
   if (current_rule.constraint_adjustment &
       META_PLACEMENT_CONSTRAINT_ADJUSTMENT_RESIZE_Y)
     {
-      info->current.y = intersection.y;
+      int new_y;
+      new_y = intersection.y;
       info->current.height = intersection.height;
+      info->rel_y += new_y - info->current.y;
+      info->current.y = new_y;
     }
+
+done:
+  window->placement.state = META_PLACEMENT_STATE_CONSTRAINED_PENDING;
+
+  window->placement.pending.rel_x = info->rel_x;
+  window->placement.pending.rel_y = info->rel_y;
+  window->placement.pending.x = info->current.x;
+  window->placement.pending.y = info->current.y;
 
   return TRUE;
 }
@@ -883,10 +1147,11 @@ constrain_modal_dialog (MetaWindow         *window,
 {
   int x, y;
   MetaWindow *parent = meta_window_get_transient_for (window);
-  MetaRectangle child_rect, parent_rect;
+  MtkRectangle child_rect, parent_rect;
   gboolean constraint_already_satisfied;
 
-  if (!meta_window_is_attached_dialog (window) ||
+  if (!parent ||
+      !meta_window_is_attached_dialog (window) ||
       meta_window_get_placement_rule (window))
     return TRUE;
 
@@ -926,8 +1191,9 @@ constrain_maximization (MetaWindow         *window,
                         ConstraintPriority  priority,
                         gboolean            check_only)
 {
-  MetaRectangle target_size;
-  MetaRectangle min_size, max_size;
+  MetaWorkspaceManager *workspace_manager = window->display->workspace_manager;
+  MtkRectangle target_size;
+  MtkRectangle min_size, max_size;
   gboolean hminbad, vminbad;
   gboolean horiz_equal, vert_equal;
   gboolean constraint_already_satisfied;
@@ -965,7 +1231,7 @@ constrain_maximization (MetaWindow         *window,
         direction = META_DIRECTION_HORIZONTAL;
       else
         direction = META_DIRECTION_VERTICAL;
-      active_workspace_struts = window->screen->active_workspace->all_struts;
+      active_workspace_struts = workspace_manager->active_workspace->all_struts;
 
       target_size = info->current;
       meta_rectangle_expand_to_avoiding_struts (&target_size,
@@ -1014,8 +1280,8 @@ constrain_tiling (MetaWindow         *window,
                   ConstraintPriority  priority,
                   gboolean            check_only)
 {
-  MetaRectangle target_size;
-  MetaRectangle min_size, max_size;
+  MtkRectangle target_size;
+  MtkRectangle min_size, max_size;
   gboolean hminbad, vminbad;
   gboolean horiz_equal, vert_equal;
   gboolean constraint_already_satisfied;
@@ -1066,7 +1332,7 @@ constrain_fullscreen (MetaWindow         *window,
                       ConstraintPriority  priority,
                       gboolean            check_only)
 {
-  MetaRectangle min_size, max_size, monitor;
+  MtkRectangle min_size, max_size, monitor;
   gboolean too_big, too_small, constraint_already_satisfied;
 
   if (priority > PRIORITY_FULLSCREEN)
@@ -1079,14 +1345,14 @@ constrain_fullscreen (MetaWindow         *window,
   monitor = info->entire_monitor;
 
   get_size_limits (window, &min_size, &max_size);
-  too_big =   !meta_rectangle_could_fit_rect (&monitor, &min_size);
-  too_small = !meta_rectangle_could_fit_rect (&max_size, &monitor);
+  too_big = !mtk_rectangle_could_fit_rect (&monitor, &min_size);
+  too_small = !mtk_rectangle_could_fit_rect (&max_size, &monitor);
   if (too_big || too_small)
     return TRUE;
 
   /* Determine whether constraint is already satisfied; exit if it is */
   constraint_already_satisfied =
-    meta_rectangle_equal (&info->current, &monitor);
+    mtk_rectangle_equal (&info->current, &monitor);
   if (check_only || constraint_already_satisfied)
     return constraint_already_satisfied;
 
@@ -1104,8 +1370,8 @@ constrain_size_increments (MetaWindow         *window,
   int bh, hi, bw, wi, extra_height, extra_width;
   int new_width, new_height;
   gboolean constraint_already_satisfied;
-  MetaRectangle *start_rect;
-  MetaRectangle client_rect;
+  MtkRectangle *start_rect;
+  MtkRectangle client_rect;
 
   if (priority > PRIORITY_SIZE_HINTS_INCREMENTS)
     return TRUE;
@@ -1158,13 +1424,7 @@ constrain_size_increments (MetaWindow         *window,
     new_height = client_rect.height;
   }
 
-  /* Figure out what original rect to pass to meta_rectangle_resize_with_gravity
-   * See bug 448183
-   */
-  if (info->action_type == ACTION_MOVE_AND_RESIZE)
-    start_rect = &info->current;
-  else
-    start_rect = &info->orig;
+  start_rect = get_start_rect_for_resize (window, info);
 
   /* Resize to the new size */
   meta_rectangle_resize_with_gravity (start_rect,
@@ -1181,10 +1441,10 @@ constrain_size_limits (MetaWindow         *window,
                        ConstraintPriority  priority,
                        gboolean            check_only)
 {
-  MetaRectangle min_size, max_size;
+  MtkRectangle min_size, max_size;
   gboolean too_big, too_small, constraint_already_satisfied;
   int new_width, new_height;
-  MetaRectangle *start_rect;
+  MtkRectangle *start_rect;
 
   if (priority > PRIORITY_SIZE_HINTS_LIMITS)
     return TRUE;
@@ -1204,23 +1464,17 @@ constrain_size_limits (MetaWindow         *window,
     max_size.width = MAX (max_size.width, info->current.width);
   if (window->maximized_vertically)
     max_size.height = MAX (max_size.height, info->current.height);
-  too_small = !meta_rectangle_could_fit_rect (&info->current, &min_size);
-  too_big   = !meta_rectangle_could_fit_rect (&max_size, &info->current);
+  too_small = !mtk_rectangle_could_fit_rect (&info->current, &min_size);
+  too_big = !mtk_rectangle_could_fit_rect (&max_size, &info->current);
   constraint_already_satisfied = !too_big && !too_small;
   if (check_only || constraint_already_satisfied)
     return constraint_already_satisfied;
 
   /*** Enforce constraint ***/
-  new_width  = CLAMP (info->current.width,  min_size.width,  max_size.width);
+  new_width = CLAMP (info->current.width,  min_size.width,  max_size.width);
   new_height = CLAMP (info->current.height, min_size.height, max_size.height);
 
-  /* Figure out what original rect to pass to meta_rectangle_resize_with_gravity
-   * See bug 448183
-   */
-  if (info->action_type == ACTION_MOVE_AND_RESIZE)
-    start_rect = &info->current;
-  else
-    start_rect = &info->orig;
+  start_rect = get_start_rect_for_resize (window, info);
 
   meta_rectangle_resize_with_gravity (start_rect,
                                       &info->current,
@@ -1241,8 +1495,8 @@ constrain_aspect_ratio (MetaWindow         *window,
   int fudge, new_width, new_height;
   double best_width, best_height;
   double alt_width, alt_height;
-  MetaRectangle *start_rect;
-  MetaRectangle client_rect;
+  MtkRectangle *start_rect;
+  MtkRectangle client_rect;
 
   if (priority > PRIORITY_ASPECT_RATIO)
     return TRUE;
@@ -1277,19 +1531,19 @@ constrain_aspect_ratio (MetaWindow         *window,
    */
   switch (info->resize_gravity)
     {
-    case WestGravity:
-    case NorthGravity:
-    case SouthGravity:
-    case EastGravity:
+    case META_GRAVITY_WEST:
+    case META_GRAVITY_NORTH:
+    case META_GRAVITY_SOUTH:
+    case META_GRAVITY_EAST:
       fudge = 2;
       break;
 
-    case NorthWestGravity:
-    case SouthWestGravity:
-    case CenterGravity:
-    case NorthEastGravity:
-    case SouthEastGravity:
-    case StaticGravity:
+    case META_GRAVITY_NORTH_WEST:
+    case META_GRAVITY_SOUTH_WEST:
+    case META_GRAVITY_CENTER:
+    case META_GRAVITY_NORTH_EAST:
+    case META_GRAVITY_SOUTH_EAST:
+    case META_GRAVITY_STATIC:
     default:
       fudge = 1;
       break;
@@ -1309,24 +1563,24 @@ constrain_aspect_ratio (MetaWindow         *window,
 
   switch (info->resize_gravity)
     {
-    case WestGravity:
-    case EastGravity:
+    case META_GRAVITY_WEST:
+    case META_GRAVITY_EAST:
       /* Yeah, I suck for doing implicit rounding -- sue me */
       new_height = CLAMP (new_height, new_width / maxr,  new_width / minr);
       break;
 
-    case NorthGravity:
-    case SouthGravity:
+    case META_GRAVITY_NORTH:
+    case META_GRAVITY_SOUTH:
       /* Yeah, I suck for doing implicit rounding -- sue me */
       new_width  = CLAMP (new_width,  new_height * minr, new_height * maxr);
       break;
 
-    case NorthWestGravity:
-    case SouthWestGravity:
-    case CenterGravity:
-    case NorthEastGravity:
-    case SouthEastGravity:
-    case StaticGravity:
+    case META_GRAVITY_NORTH_WEST:
+    case META_GRAVITY_SOUTH_WEST:
+    case META_GRAVITY_CENTER:
+    case META_GRAVITY_NORTH_EAST:
+    case META_GRAVITY_SOUTH_EAST:
+    case META_GRAVITY_STATIC:
     default:
       /* Find what width would correspond to new_height, and what height would
        * correspond to new_width */
@@ -1360,13 +1614,7 @@ constrain_aspect_ratio (MetaWindow         *window,
     new_height = client_rect.height;
   }
 
-  /* Figure out what original rect to pass to meta_rectangle_resize_with_gravity
-   * See bug 448183
-   */
-  if (info->action_type == ACTION_MOVE_AND_RESIZE)
-    start_rect = &info->current;
-  else
-    start_rect = &info->orig;
+  start_rect = get_start_rect_for_resize (window, info);
 
   meta_rectangle_resize_with_gravity (start_rect,
                                       &info->current,
@@ -1385,7 +1633,7 @@ do_screen_and_monitor_relative_constraints (
   gboolean        check_only)
 {
   gboolean exit_early = FALSE, constraint_satisfied;
-  MetaRectangle how_far_it_can_be_smushed, min_size, max_size;
+  MtkRectangle how_far_it_can_be_smushed, min_size, max_size;
 
 #ifdef WITH_VERBOSE_MODE
   if (meta_is_verbose ())
@@ -1394,9 +1642,9 @@ do_screen_and_monitor_relative_constraints (
       char spanning_region[1 + 28 * g_list_length (region_spanning_rectangles)];
 
       meta_topic (META_DEBUG_GEOMETRY,
-             "screen/monitor constraint; region_spanning_rectangles: %s\n",
-             meta_rectangle_region_to_string (region_spanning_rectangles, ", ",
-                                              spanning_region));
+                  "screen/monitor constraint; region_spanning_rectangles: %s",
+                  meta_rectangle_region_to_string (region_spanning_rectangles, ", ",
+                                                   spanning_region));
     }
 #endif
 
@@ -1452,9 +1700,8 @@ constrain_to_single_monitor (MetaWindow         *window,
                              ConstraintPriority  priority,
                              gboolean            check_only)
 {
-  MetaBackend *backend = meta_get_backend ();
   MetaMonitorManager *monitor_manager =
-    meta_backend_get_monitor_manager (backend);
+    meta_backend_get_monitor_manager (info->backend);
 
   if (priority > PRIORITY_ENTIRELY_VISIBLE_ON_SINGLE_MONITOR)
     return TRUE;
@@ -1519,15 +1766,21 @@ constrain_titlebar_visible (MetaWindow         *window,
   int bottom_amount;
   int horiz_amount_offscreen, vert_amount_offscreen;
   int horiz_amount_onscreen,  vert_amount_onscreen;
+  MetaWindowDrag *window_drag;
 
   if (priority > PRIORITY_TITLEBAR_VISIBLE)
     return TRUE;
+
+  window_drag = meta_compositor_get_current_window_drag (window->display->compositor);
 
   /* Allow the titlebar beyond the top of the screen only if the user wasn't
    * clicking on the frame to start the move.
    */
   unconstrained_user_action =
-    info->is_user_action && !window->display->grab_frame_action;
+    info->is_user_action &&
+    (!window_drag ||
+     (meta_window_drag_get_grab_op (window_drag) &
+      META_GRAB_OP_WINDOW_FLAG_UNCONSTRAINED) != 0);
 
   /* Exit early if we know the constraint won't apply--note that this constraint
    * is only meant for normal windows (e.g. we don't want docks to be shoved
@@ -1564,7 +1817,7 @@ constrain_titlebar_visible (MetaWindow         *window,
       MetaFrameBorders borders;
       meta_frame_calc_borders (window->frame, &borders);
 
-      bottom_amount = info->current.height + borders.visible.bottom;
+      bottom_amount = info->current.height - borders.visible.top;
       vert_amount_onscreen = borders.visible.top;
     }
   else
@@ -1643,7 +1896,7 @@ constrain_partially_onscreen (MetaWindow         *window,
       MetaFrameBorders borders;
       meta_frame_calc_borders (window->frame, &borders);
 
-      bottom_amount = info->current.height + borders.visible.bottom;
+      bottom_amount = info->current.height - borders.visible.top;
       vert_amount_onscreen = borders.visible.top;
     }
   else

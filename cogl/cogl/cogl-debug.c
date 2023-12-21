@@ -28,16 +28,14 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
 #include <stdlib.h>
 
-#include "cogl-i18n-private.h"
-#include "cogl-private.h"
-#include "cogl-debug.h"
-#include "cogl1-context.h"
+#include "cogl/cogl-i18n-private.h"
+#include "cogl/cogl-private.h"
+#include "cogl/cogl-debug.h"
+#include "cogl/cogl1-context.h"
 
 /* XXX: If you add a debug option, please also add an option
  * definition to cogl-debug-options.h. This will enable us - for
@@ -59,12 +57,14 @@ static const GDebugKey cogl_log_debug_keys[] = {
   { "opengl", COGL_DEBUG_OPENGL },
   { "pango", COGL_DEBUG_PANGO },
   { "show-source", COGL_DEBUG_SHOW_SOURCE},
+  { "framebuffer", COGL_DEBUG_FRAMEBUFFER },
   { "offscreen", COGL_DEBUG_OFFSCREEN },
   { "texture-pixmap", COGL_DEBUG_TEXTURE_PIXMAP },
   { "bitmap", COGL_DEBUG_BITMAP },
   { "clipping", COGL_DEBUG_CLIPPING },
   { "winsys", COGL_DEBUG_WINSYS },
-  { "performance", COGL_DEBUG_PERFORMANCE }
+  { "performance", COGL_DEBUG_PERFORMANCE },
+  { "textures", COGL_DEBUG_TEXTURES },
 };
 static const int n_cogl_log_debug_keys =
   G_N_ELEMENTS (cogl_log_debug_keys);
@@ -72,22 +72,19 @@ static const int n_cogl_log_debug_keys =
 static const GDebugKey cogl_behavioural_debug_keys[] = {
   { "rectangles", COGL_DEBUG_RECTANGLES },
   { "disable-batching", COGL_DEBUG_DISABLE_BATCHING },
-  { "disable-vbos", COGL_DEBUG_DISABLE_VBOS },
   { "disable-pbos", COGL_DEBUG_DISABLE_PBOS },
   { "disable-software-transform", COGL_DEBUG_DISABLE_SOFTWARE_TRANSFORM },
-  { "dump-atlas-image", COGL_DEBUG_DUMP_ATLAS_IMAGE },
   { "disable-atlas", COGL_DEBUG_DISABLE_ATLAS },
   { "disable-shared-atlas", COGL_DEBUG_DISABLE_SHARED_ATLAS },
   { "disable-texturing", COGL_DEBUG_DISABLE_TEXTURING},
-  { "disable-arbfp", COGL_DEBUG_DISABLE_ARBFP},
-  { "disable-fixed", COGL_DEBUG_DISABLE_FIXED},
-  { "disable-glsl", COGL_DEBUG_DISABLE_GLSL},
   { "disable-blending", COGL_DEBUG_DISABLE_BLENDING},
-  { "disable-npot-textures", COGL_DEBUG_DISABLE_NPOT_TEXTURES},
   { "wireframe", COGL_DEBUG_WIREFRAME},
   { "disable-software-clip", COGL_DEBUG_DISABLE_SOFTWARE_CLIP},
   { "disable-program-caches", COGL_DEBUG_DISABLE_PROGRAM_CACHES},
-  { "disable-fast-read-pixel", COGL_DEBUG_DISABLE_FAST_READ_PIXEL}
+  { "disable-fast-read-pixel", COGL_DEBUG_DISABLE_FAST_READ_PIXEL},
+  { "sync-primitive", COGL_DEBUG_SYNC_PRIMITIVE },
+  { "sync-frame", COGL_DEBUG_SYNC_FRAME},
+  { "stencilling", COGL_DEBUG_STENCILLING },
 };
 static const int n_cogl_behavioural_debug_keys =
   G_N_ELEMENTS (cogl_behavioural_debug_keys);
@@ -97,7 +94,7 @@ GHashTable *_cogl_debug_instances;
 
 static void
 _cogl_parse_debug_string_for_keys (const char *value,
-                                   CoglBool enable,
+                                   gboolean enable,
                                    const GDebugKey *keys,
                                    unsigned int nkeys)
 {
@@ -155,8 +152,8 @@ _cogl_parse_debug_string_for_keys (const char *value,
 
 void
 _cogl_parse_debug_string (const char *value,
-                          CoglBool enable,
-                          CoglBool ignore_help)
+                          gboolean enable,
+                          gboolean ignore_help)
 {
   if (ignore_help && strcmp (value, "help") == 0)
     return;
@@ -181,7 +178,7 @@ _cogl_parse_debug_string (const char *value,
       g_printerr ("\n\n%28s\n", _("Supported debug values:"));
 #define OPT(MASK_NAME, GROUP, NAME, NAME_FORMATTED, DESCRIPTION) \
       g_printerr ("%28s %s\n", NAME ":", DESCRIPTION);
-#include "cogl-debug-options.h"
+#include "cogl/cogl-debug-options.h"
       g_printerr ("\n%28s\n", _("Special debug values:"));
       OPT (IGNORED, "ignored", "all", "ignored", \
            N_("Enables all non-behavioural debug options"));
@@ -213,40 +210,6 @@ _cogl_parse_debug_string (const char *value,
     }
 }
 
-#ifdef COGL_ENABLE_DEBUG
-static CoglBool
-cogl_arg_debug_cb (const char *key,
-                   const char *value,
-                   void *user_data)
-{
-  _cogl_parse_debug_string (value,
-                            TRUE /* enable the flags */,
-                            FALSE /* don't ignore help */);
-  return TRUE;
-}
-
-static CoglBool
-cogl_arg_no_debug_cb (const char *key,
-                      const char *value,
-                      void *user_data)
-{
-  _cogl_parse_debug_string (value,
-                            FALSE, /* disable the flags */
-                            TRUE /* ignore help */);
-  return TRUE;
-}
-#endif /* COGL_ENABLE_DEBUG */
-
-static GOptionEntry cogl_args[] = {
-#ifdef COGL_ENABLE_DEBUG
-  { "cogl-debug", 0, 0, G_OPTION_ARG_CALLBACK, cogl_arg_debug_cb,
-    N_("Cogl debugging flags to set"), "FLAGS" },
-  { "cogl-no-debug", 0, 0, G_OPTION_ARG_CALLBACK, cogl_arg_no_debug_cb,
-    N_("Cogl debugging flags to unset"), "FLAGS" },
-#endif /* COGL_ENABLE_DEBUG */
-  { NULL, },
-};
-
 void
 _cogl_debug_check_environment (void)
 {
@@ -269,34 +232,4 @@ _cogl_debug_check_environment (void)
                                 FALSE /* don't ignore help */);
       env_string = NULL;
     }
-}
-
-static CoglBool
-pre_parse_hook (GOptionContext *context,
-                GOptionGroup *group,
-                void *data,
-                GError **error)
-{
-  _cogl_init ();
-
-  return TRUE;
-}
-
-/* XXX: GOption based library initialization is not reliable because the
- * GOption API has no way to represent dependencies between libraries.
- */
-GOptionGroup *
-cogl_get_option_group (void)
-{
-  GOptionGroup *group;
-
-  group = g_option_group_new ("cogl",
-                              _("Cogl Options"),
-                              _("Show Cogl options"),
-                              NULL, NULL);
-
-  g_option_group_set_parse_hooks (group, pre_parse_hook, NULL);
-  g_option_group_add_entries (group, cogl_args);
-
-  return group;
 }

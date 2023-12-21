@@ -21,15 +21,14 @@
  * Author: Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_KEYFRAME_TRANSITION_H__
-#define __CLUTTER_KEYFRAME_TRANSITION_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-types.h>
-#include <clutter/clutter-property-transition.h>
+#include "clutter/clutter-types.h"
+#include "clutter/clutter-property-transition.h"
 
 G_BEGIN_DECLS
 
@@ -43,14 +42,6 @@ G_BEGIN_DECLS
 typedef struct _ClutterKeyframeTransitionPrivate        ClutterKeyframeTransitionPrivate;
 typedef struct _ClutterKeyframeTransitionClass          ClutterKeyframeTransitionClass;
 
-/**
- * ClutterKeyframeTransition:
- *
- * The `ClutterKeyframeTransition` structure contains only private
- * data and should be accessed using the provided API.
- *
- * Since: 1.12
- */
 struct _ClutterKeyframeTransition
 {
   /*< private >*/
@@ -64,59 +55,53 @@ struct _ClutterKeyframeTransition
  *
  * The `ClutterKeyframeTransitionClass` structure contains only
  * private data.
- *
- * Since: 1.12
  */
 struct _ClutterKeyframeTransitionClass
 {
   /*< private >*/
   ClutterPropertyTransitionClass parent_class;
-
-  gpointer _padding[8];
 };
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 GType clutter_keyframe_transition_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 ClutterTransition *     clutter_keyframe_transition_new                 (const char *property_name);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                    clutter_keyframe_transition_set_key_frames      (ClutterKeyframeTransition  *transition,
                                                                          guint                       n_key_frames,
                                                                          const double               *key_frames);
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                    clutter_keyframe_transition_set_values          (ClutterKeyframeTransition  *transition,
                                                                          guint                       n_values,
                                                                          const GValue               *values);
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                    clutter_keyframe_transition_set_modes           (ClutterKeyframeTransition  *transition,
                                                                          guint                       n_modes,
                                                                          const ClutterAnimationMode *modes);
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                    clutter_keyframe_transition_set                 (ClutterKeyframeTransition  *transition,
                                                                          GType                       gtype,
                                                                          guint                       n_key_frames,
                                                                          ...);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                    clutter_keyframe_transition_set_key_frame       (ClutterKeyframeTransition  *transition,
                                                                          guint                       index_,
                                                                          double                      key,
                                                                          ClutterAnimationMode        mode,
                                                                          const GValue               *value);
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                    clutter_keyframe_transition_get_key_frame       (ClutterKeyframeTransition  *transition,
                                                                          guint                       index_,
                                                                          double                     *key,
                                                                          ClutterAnimationMode       *mode,
                                                                          GValue                     *value);
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 guint                   clutter_keyframe_transition_get_n_key_frames    (ClutterKeyframeTransition  *transition);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                    clutter_keyframe_transition_clear               (ClutterKeyframeTransition  *transition);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_KEYFRAME_TRANSITION_H__ */

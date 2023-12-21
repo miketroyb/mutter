@@ -14,26 +14,31 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_SETTINGS_PRIVATE_H
-#define META_SETTINGS_PRIVATE_H
+#pragma once
 
 #include <glib-object.h>
 
 #include "meta/meta-settings.h"
 #include "meta/types.h"
+#include "core/util-private.h"
 
 typedef enum _MetaExperimentalFeature
 {
   META_EXPERIMENTAL_FEATURE_NONE = 0,
   META_EXPERIMENTAL_FEATURE_SCALE_MONITOR_FRAMEBUFFER = (1 << 0),
-  META_EXPERIMENTAL_FEATURE_SCREEN_CAST = (1 << 1),
-  META_EXPERIMENTAL_FEATURE_REMOTE_DESKTOP  = (1 << 2),
+  META_EXPERIMENTAL_FEATURE_KMS_MODIFIERS  = (1 << 1),
+  META_EXPERIMENTAL_FEATURE_RT_SCHEDULER = (1 << 2),
+  META_EXPERIMENTAL_FEATURE_AUTOCLOSE_XWAYLAND  = (1 << 3),
 } MetaExperimentalFeature;
+
+typedef enum _MetaXwaylandExtension
+{
+  META_XWAYLAND_EXTENSION_SECURITY = (1 << 0),
+  META_XWAYLAND_EXTENSION_XTEST = (1 << 1),
+} MetaXwaylandExtension;
 
 #define META_TYPE_SETTINGS (meta_settings_get_type ())
 G_DECLARE_FINAL_TYPE (MetaSettings, meta_settings,
@@ -48,20 +53,30 @@ void meta_settings_update_ui_scaling_factor (MetaSettings *settings);
 gboolean meta_settings_get_global_scaling_factor (MetaSettings *settings,
                                                   int          *scaing_factor);
 
+META_EXPORT_TEST
 gboolean meta_settings_is_experimental_feature_enabled (MetaSettings           *settings,
                                                         MetaExperimentalFeature feature);
 
 MetaExperimentalFeature meta_settings_get_experimental_features (MetaSettings *settings);
 
+META_EXPORT_TEST
 void meta_settings_override_experimental_features (MetaSettings *settings);
 
+META_EXPORT_TEST
 void meta_settings_enable_experimental_feature (MetaSettings           *settings,
                                                 MetaExperimentalFeature feature);
 
 void meta_settings_get_xwayland_grab_patterns (MetaSettings  *settings,
-                                               GPtrArray    **whitelist_patterns,
-                                               GPtrArray    **blacklist_patterns);
+                                               GPtrArray    **allow_list_patterns,
+                                               GPtrArray    **deny_list_patterns);
 
-gboolean  meta_settings_are_xwayland_grabs_allowed (MetaSettings *settings);
+gboolean meta_settings_are_xwayland_grabs_allowed (MetaSettings *settings);
 
-#endif /* META_SETTINGS_PRIVATE_H */
+int meta_settings_get_xwayland_disable_extensions (MetaSettings *settings);
+
+gboolean meta_settings_are_xwayland_byte_swapped_clients_allowed (MetaSettings *settings);
+
+gboolean meta_settings_is_privacy_screen_enabled (MetaSettings *settings);
+
+void meta_settings_set_privacy_screen_enabled (MetaSettings *settings,
+                                               gboolean      enabled);

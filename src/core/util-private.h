@@ -17,24 +17,42 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_UTIL_PRIVATE_H
-#define META_UTIL_PRIVATE_H
+#pragma once
 
-#include <meta/util.h>
 #include <glib/gi18n-lib.h>
+#include <sys/time.h>
+
+#include "meta/util.h"
+#include "meta/common.h"
+
+/* META_EXPORT_TEST should be used to export symbols that are exported only
+ * for testability purposes */
+#define META_EXPORT_TEST META_EXPORT
 
 void     meta_set_verbose (gboolean setting);
 void     meta_set_debugging (gboolean setting);
-void     meta_set_syncing (gboolean setting);
-void     meta_set_replace_current_wm (gboolean setting);
+
 void     meta_set_is_wayland_compositor (gboolean setting);
 
 char *   meta_generate_random_id (GRand *rand,
                                   int    length);
 
-#endif
+void meta_init_debug_utils (void);
+
+static inline int64_t
+meta_timeval_to_microseconds (const struct timeval *tv)
+{
+  return ((int64_t) tv->tv_sec) * G_USEC_PER_SEC + tv->tv_usec;
+}
+
+#define META_POINT_IN_RECT(xcoord, ycoord, rect) \
+  ((xcoord) >= (rect).x &&                   \
+   (xcoord) <  ((rect).x + (rect).width) &&  \
+   (ycoord) >= (rect).y &&                   \
+   (ycoord) <  ((rect).y + (rect).height))
+
+#define META_CONTAINER_OF(ptr, type, member) \
+  (type *) ((uint8_t *) (ptr) - G_STRUCT_OFFSET (type, member))

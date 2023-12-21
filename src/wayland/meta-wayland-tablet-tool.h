@@ -19,15 +19,14 @@
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#ifndef META_WAYLAND_TABLET_TOOL_H
-#define META_WAYLAND_TABLET_TOOL_H
-
-#include <wayland-server.h>
+#pragma once
 
 #include <glib.h>
+#include <wayland-server.h>
 
-#include "meta-wayland-types.h"
-#include "meta-cursor-renderer.h"
+#include "backends/meta-cursor-renderer.h"
+#include "backends/meta-cursor-sprite-xcursor.h"
+#include "wayland/meta-wayland-types.h"
 
 struct _MetaWaylandTabletTool
 {
@@ -43,8 +42,7 @@ struct _MetaWaylandTabletTool
   MetaWaylandSurface *cursor_surface;
   struct wl_listener cursor_surface_destroy_listener;
   MetaCursorRenderer *cursor_renderer;
-  MetaCursorSprite *default_sprite;
-  guint prepare_at_signal_id;
+  MetaCursorSpriteXcursor *default_sprite;
 
   MetaWaylandSurface *current;
   guint32 pressed_buttons;
@@ -78,12 +76,8 @@ void     meta_wayland_tablet_tool_update              (MetaWaylandTabletTool  *t
 gboolean meta_wayland_tablet_tool_handle_event        (MetaWaylandTabletTool  *tool,
                                                        const ClutterEvent     *event);
 
-void     meta_wayland_tablet_tool_set_cursor_position (MetaWaylandTabletTool  *tool,
-                                                       float                   new_x,
-                                                       float                   new_y);
-
 gboolean meta_wayland_tablet_tool_can_grab_surface (MetaWaylandTabletTool *tool,
                                                     MetaWaylandSurface    *surface,
                                                     uint32_t               serial);
-
-#endif /* META_WAYLAND_TABLET_TOOL_H */
+gboolean meta_wayland_tablet_tool_can_popup        (MetaWaylandTabletTool *tool,
+                                                    uint32_t               serial);

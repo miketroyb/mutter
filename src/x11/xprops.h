@@ -19,15 +19,12 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_XPROPS_H
-#define META_XPROPS_H
+#pragma once
 
-#include <config.h>
-
-#include <meta/display.h>
 #include <X11/Xutil.h>
-
 #include <X11/extensions/sync.h>
+
+#include "meta/display.h"
 
 /* Copied from Lesstif by way of GTK. Rudimentary docs can be
  * found in some Motif reference guides online.
@@ -71,42 +68,38 @@ typedef struct {
 /* These all return the memory from Xlib, so require an XFree()
  * when they return TRUE. They return TRUE on success.
  */
-gboolean meta_prop_get_motif_hints   (MetaDisplay   *display,
-                                      Window         xwindow,
-                                      Atom           xatom,
-                                      MotifWmHints **hints_p);
-gboolean meta_prop_get_cardinal_list (MetaDisplay   *display,
-                                      Window         xwindow,
-                                      Atom           xatom,
-                                      uint32_t     **cardinals_p,
-                                      int           *n_cardinals_p);
-gboolean meta_prop_get_latin1_string (MetaDisplay   *display,
-                                      Window         xwindow,
-                                      Atom           xatom,
-                                      char         **str_p);
-gboolean meta_prop_get_utf8_list     (MetaDisplay   *display,
-                                      Window         xwindow,
-                                      Atom           xatom,
-                                      char        ***str_p,
-                                      int           *n_str_p);
+gboolean meta_prop_get_cardinal_list (MetaX11Display *x11_display,
+                                      Window          xwindow,
+                                      Atom            xatom,
+                                      uint32_t      **cardinals_p,
+                                      int            *n_cardinals_p);
+gboolean meta_prop_get_latin1_string (MetaX11Display *x11_display,
+                                      Window          xwindow,
+                                      Atom            xatom,
+                                      char          **str_p);
+gboolean meta_prop_get_utf8_list     (MetaX11Display *x11_display,
+                                      Window          xwindow,
+                                      Atom            xatom,
+                                      char         ***str_p,
+                                      int            *n_str_p);
 void     meta_prop_set_utf8_string_hint
-                                     (MetaDisplay *display,
-                                      Window xwindow,
-                                      Atom atom,
-                                      const char *val);
-gboolean meta_prop_get_window        (MetaDisplay   *display,
-                                      Window         xwindow,
-                                      Atom           xatom,
-                                      Window        *window_p);
-gboolean meta_prop_get_cardinal      (MetaDisplay   *display,
-                                      Window         xwindow,
-                                      Atom           xatom,
-                                      uint32_t      *cardinal_p);
-gboolean meta_prop_get_cardinal_with_atom_type (MetaDisplay   *display,
-                                                Window         xwindow,
-                                                Atom           xatom,
-                                                Atom           prop_type,
-                                                uint32_t      *cardinal_p);
+                                     (MetaX11Display *x11_display,
+                                      Window          xwindow,
+                                      Atom            atom,
+                                      const char     *val);
+gboolean meta_prop_get_window        (MetaX11Display *x11_display,
+                                      Window          xwindow,
+                                      Atom            xatom,
+                                      Window         *window_p);
+gboolean meta_prop_get_cardinal      (MetaX11Display *x11_display,
+                                      Window          xwindow,
+                                      Atom            xatom,
+                                      uint32_t       *cardinal_p);
+gboolean meta_prop_get_cardinal_with_atom_type (MetaX11Display *x11_display,
+                                                Window          xwindow,
+                                                Atom            xatom,
+                                                Atom            prop_type,
+                                                uint32_t       *cardinal_p);
 
 typedef enum
 {
@@ -134,6 +127,7 @@ typedef struct
   MetaPropValueType type;
   Atom atom;
   Atom required_type; /* autofilled if None */
+  Window source_xwindow;
 
   union
   {
@@ -183,16 +177,10 @@ typedef struct
  * else type comes back as it originated, and the data
  * is filled in.
  */
-void meta_prop_get_values (MetaDisplay   *display,
-                           Window         xwindow,
-                           MetaPropValue *values,
-                           int            n_values);
+void meta_prop_get_values (MetaX11Display *x11_display,
+                           Window          xwindow,
+                           MetaPropValue  *values,
+                           int             n_values);
 
 void meta_prop_free_values (MetaPropValue *values,
                             int            n_values);
-
-#endif
-
-
-
-

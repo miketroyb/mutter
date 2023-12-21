@@ -19,14 +19,12 @@
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#ifndef META_WAYLAND_TABLET_MANAGER_H
-#define META_WAYLAND_TABLET_MANAGER_H
-
-#include <wayland-server.h>
+#pragma once
 
 #include <glib.h>
+#include <wayland-server.h>
 
-#include "meta-wayland-types.h"
+#include "wayland/meta-wayland-types.h"
 
 struct _MetaWaylandTabletManager
 {
@@ -38,7 +36,7 @@ struct _MetaWaylandTabletManager
 };
 
 void     meta_wayland_tablet_manager_init (MetaWaylandCompositor    *compositor);
-void     meta_wayland_tablet_manager_free (MetaWaylandTabletManager *tablet_manager);
+void     meta_wayland_tablet_manager_finalize (MetaWaylandCompositor *compositor);
 
 gboolean meta_wayland_tablet_manager_consumes_event (MetaWaylandTabletManager *manager,
                                                      const ClutterEvent       *event);
@@ -50,8 +48,3 @@ gboolean meta_wayland_tablet_manager_handle_event   (MetaWaylandTabletManager *m
 MetaWaylandTabletSeat *
          meta_wayland_tablet_manager_ensure_seat    (MetaWaylandTabletManager *manager,
                                                      MetaWaylandSeat          *seat);
-
-void     meta_wayland_tablet_manager_update_cursor_position (MetaWaylandTabletManager *manager,
-                                                             const ClutterEvent       *event);
-
-#endif /* META_WAYLAND_TABLET_MANAGER_H */

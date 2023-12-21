@@ -18,23 +18,17 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __CALLY_H__
-#define __CALLY_H__
+#pragma once
 
 #define __CALLY_H_INSIDE__
 
-#include "cally-actor.h"
-#include "cally-clone.h"
-#include "cally-factory.h"
-#include "cally-group.h"
-#include "cally-main.h"
-#include "cally-rectangle.h"
-#include "cally-root.h"
-#include "cally-stage.h"
-#include "cally-text.h"
-#include "cally-texture.h"
-#include "cally-util.h"
+#include "cally/cally-actor.h"
+#include "cally/cally-clone.h"
+#include "cally/cally-factory.h"
+#include "cally/cally-main.h"
+#include "cally/cally-root.h"
+#include "cally/cally-stage.h"
+#include "cally/cally-text.h"
+#include "cally/cally-util.h"
 
 #undef __CALLY_H_INSIDE__
-
-#endif /* __CALLY_H__ */

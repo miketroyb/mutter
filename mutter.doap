@@ -19,25 +19,46 @@ environment.</description>
   <!--
   <homepage rdf:resource="http://www.gnome.org/" />
   -->
-  <mailing-list rdf:resource="http://mail.gnome.org/mailman/listinfo/gnome-shell-list" />
+  <support-forum rdf:resource="https://discourse.gnome.org/" />
   <download-page rdf:resource="http://download.gnome.org/sources/mutter/" />
-  <bug-database rdf:resource="http://bugzilla.gnome.org/browse.cgi?product=mutter" />
+  <bug-database rdf:resource="https://gitlab.gnome.org/GNOME/mutter/issues/" />
 
   <category rdf:resource="http://api.gnome.org/doap-extensions#core" />
   <programming-language>C</programming-language>
 
-  <maintainer>
+  <author>
     <foaf:Person>
       <foaf:name>Tomas Frydrych</foaf:name>
       <foaf:mbox rdf:resource="mailto:tf@linux.intel.com" />
       <gnome:userid>tomasf</gnome:userid>
     </foaf:Person>
-  </maintainer>
-  <maintainer>
+  </author>
+  <author>
     <foaf:Person>
       <foaf:name>Owen Taylor</foaf:name>
       <foaf:mbox rdf:resource="mailto:otaylor@redhat.com" />
       <gnome:userid>otaylor</gnome:userid>
+    </foaf:Person>
+  </author>
+  <maintainer>
+    <foaf:Person>
+      <foaf:name>Jonas Ådahl</foaf:name>
+      <foaf:mbox rdf:resource="mailto:jadahl@gmail.com" />
+      <gnome:userid>jadahl</gnome:userid>
+    </foaf:Person>
+  </maintainer>
+  <maintainer>
+    <foaf:Person>
+      <foaf:name>Carlos Garnacho</foaf:name>
+      <foaf:mbox rdf:resource="mailto:carlosg@gnome.org" />
+      <gnome:userid>carlosg</gnome:userid>
+    </foaf:Person>
+  </maintainer>
+  <maintainer>
+    <foaf:Person>
+      <foaf:name>Georges Basile Stavracas Neto</foaf:name>
+      <foaf:mbox rdf:resource="mailto:gbsneto@gnome.org" />
+      <gnome:userid>gbsneto</gnome:userid>
     </foaf:Person>
   </maintainer>
   <maintainer>
@@ -45,6 +66,12 @@ environment.</description>
       <foaf:name>Florian Müllner</foaf:name>
       <foaf:mbox rdf:resource="mailto:fmuellner@gnome.org" />
       <gnome:userid>fmuellner</gnome:userid>
+    </foaf:Person>
+  </maintainer>
+  <maintainer>
+    <foaf:Person>
+      <foaf:name>Marge Bot</foaf:name>
+      <gnome:userid>marge-bot</gnome:userid>
     </foaf:Person>
   </maintainer>
 </Project>

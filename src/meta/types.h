@@ -17,24 +17,18 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_TYPES_H
-#define META_TYPES_H
+#pragma once
 
-/**
- * MetaCompositor: (skip)
- *
- */
 typedef struct _MetaBackend     MetaBackend;
+typedef struct _MetaContext     MetaContext;
 typedef struct _MetaCompositor  MetaCompositor;
 typedef struct _MetaDisplay     MetaDisplay;
+typedef struct _MetaX11Display  MetaX11Display;
 typedef struct _MetaFrame       MetaFrame;
-typedef struct _MetaScreen      MetaScreen;
 typedef struct _MetaWindow      MetaWindow;
 typedef struct _MetaWorkspace   MetaWorkspace;
-/**
- * MetaGroup: (skip)
- *
- */
+typedef struct _MetaLaters      MetaLaters;
+
 typedef struct _MetaGroup       MetaGroup;
 typedef struct _MetaKeyBinding  MetaKeyBinding;
 typedef struct _MetaCursorTracker MetaCursorTracker;
@@ -42,4 +36,5 @@ typedef struct _MetaCursorTracker MetaCursorTracker;
 typedef struct _MetaDnd         MetaDnd;
 typedef struct _MetaSettings    MetaSettings;
 
-#endif
+typedef struct _MetaWorkspaceManager MetaWorkspaceManager;
+typedef struct _MetaSelection   MetaSelection;

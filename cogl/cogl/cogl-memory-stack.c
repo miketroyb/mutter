@@ -44,9 +44,9 @@
  *   rewind the entire stack back to the start. There is no
  *   the concept of stack frames to allow partial rewinds.
  *
- * For example; we plan to use this in our tesselator which has to
+ * For example; we plan to use this in our tessellator which has to
  * allocate lots of small vertex, edge and face structures because
- * when tesselation has been finished we just want to free the whole
+ * when tessellation has been finished we just want to free the whole
  * lot in one go.
  *
  *
@@ -54,12 +54,10 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
-#include "cogl-memory-stack-private.h"
-#include "cogl-list.h"
+#include "cogl/cogl-memory-stack-private.h"
+#include "cogl/cogl-list.h"
 
 #include <stdint.h>
 
@@ -83,7 +81,7 @@ struct _CoglMemoryStack
 static CoglMemorySubStack *
 _cogl_memory_sub_stack_alloc (size_t bytes)
 {
-  CoglMemorySubStack *sub_stack = g_slice_new (CoglMemorySubStack);
+  CoglMemorySubStack *sub_stack = g_new0 (CoglMemorySubStack, 1);
   sub_stack->bytes = bytes;
   sub_stack->data = g_malloc (bytes);
   return sub_stack;
@@ -103,7 +101,7 @@ _cogl_memory_stack_add_sub_stack (CoglMemoryStack *stack,
 CoglMemoryStack *
 _cogl_memory_stack_new (size_t initial_size_bytes)
 {
-  CoglMemoryStack *stack = g_slice_new0 (CoglMemoryStack);
+  CoglMemoryStack *stack = g_new0 (CoglMemoryStack, 1);
 
   _cogl_list_init (&stack->sub_stacks);
 
@@ -177,7 +175,7 @@ static void
 _cogl_memory_sub_stack_free (CoglMemorySubStack *sub_stack)
 {
   g_free (sub_stack->data);
-  g_slice_free (CoglMemorySubStack, sub_stack);
+  g_free (sub_stack);
 }
 
 void
@@ -192,5 +190,5 @@ _cogl_memory_stack_free (CoglMemoryStack *stack)
       _cogl_memory_sub_stack_free (sub_stack);
     }
 
-  g_slice_free (CoglMemoryStack, stack);
+  g_free (stack);
 }

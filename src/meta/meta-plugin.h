@@ -19,39 +19,24 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_PLUGIN_H_
-#define META_PLUGIN_H_
+#pragma once
 
-#include <meta/types.h>
-#include <meta/compositor.h>
-#include <meta/compositor-mutter.h>
-#include <meta/meta-version.h>
-#include <meta/meta-close-dialog.h>
-#include <meta/meta-inhibit-shortcuts-dialog.h>
-
-#include <clutter/clutter.h>
 #include <X11/extensions/Xfixes.h>
 #include <gmodule.h>
 
-#define META_TYPE_PLUGIN            (meta_plugin_get_type ())
-#define META_PLUGIN(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), META_TYPE_PLUGIN, MetaPlugin))
-#define META_PLUGIN_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  META_TYPE_PLUGIN, MetaPluginClass))
-#define META_IS_PLUGIN(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), META_TYPE_PLUGIN))
-#define META_IS_PLUGIN_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  META_TYPE_PLUGIN))
-#define META_PLUGIN_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  META_TYPE_PLUGIN, MetaPluginClass))
+#include "clutter/clutter.h"
+#include "meta/compositor-mutter.h"
+#include "meta/compositor.h"
+#include "meta/meta-close-dialog.h"
+#include "meta/meta-inhibit-shortcuts-dialog.h"
+#include "meta/types.h"
 
-typedef struct _MetaPlugin        MetaPlugin;
-typedef struct _MetaPluginClass   MetaPluginClass;
-typedef struct _MetaPluginVersion MetaPluginVersion;
+#define META_TYPE_PLUGIN (meta_plugin_get_type ())
+
+META_EXPORT
+G_DECLARE_DERIVABLE_TYPE (MetaPlugin, meta_plugin, META, PLUGIN, GObject)
+
 typedef struct _MetaPluginInfo    MetaPluginInfo;
-typedef struct _MetaPluginPrivate MetaPluginPrivate;
-
-struct _MetaPlugin
-{
-  GObject parent;
-
-  MetaPluginPrivate *priv;
-};
 
 /**
  * MetaPluginClass:
@@ -110,8 +95,8 @@ struct _MetaPluginClass
   void (*size_change)      (MetaPlugin         *plugin,
                             MetaWindowActor    *actor,
                             MetaSizeChange      which_change,
-                            MetaRectangle      *old_frame_rect,
-                            MetaRectangle      *old_buffer_rect);
+                            MtkRectangle       *old_frame_rect,
+                            MtkRectangle       *old_buffer_rect);
 
   /**
    * MetaPluginClass::map:
@@ -146,7 +131,7 @@ struct _MetaPluginClass
 
   void (*show_tile_preview) (MetaPlugin      *plugin,
                              MetaWindow      *window,
-                             MetaRectangle   *tile_rect,
+                             MtkRectangle    *tile_rect,
                              int              tile_monitor_number);
   void (*hide_tile_preview) (MetaPlugin      *plugin);
 
@@ -157,9 +142,9 @@ struct _MetaPluginClass
                              int                 y);
 
   void (*show_window_menu_for_rect)  (MetaPlugin         *plugin,
-		                      MetaWindow         *window,
-				      MetaWindowMenuType  menu,
-				      MetaRectangle      *rect);
+		                                  MetaWindow         *window,
+				                              MetaWindowMenuType  menu,
+				                              MtkRectangle       *rect);
 
   /**
    * MetaPluginClass::kill_window_effects:
@@ -251,6 +236,16 @@ struct _MetaPluginClass
    */
   MetaInhibitShortcutsDialog * (* create_inhibit_shortcuts_dialog) (MetaPlugin *plugin,
                                                                     MetaWindow *window);
+
+  /**
+   * MetaPluginClass::locate_pointer:
+   *
+   * Virtual function called when the user triggered the "locate-pointer"
+   * mechanism.
+   * The common way to implement this function is to show some animation
+   * on screen to draw user attention on the pointer location.
+   */
+  void (*locate_pointer) (MetaPlugin      *plugin);
 };
 
 /**
@@ -270,162 +265,77 @@ struct _MetaPluginInfo
   const gchar *description;
 };
 
-GType meta_plugin_get_type (void);
-
+META_EXPORT
 const MetaPluginInfo * meta_plugin_get_info (MetaPlugin *plugin);
-
-/**
- * MetaPluginVersion:
- * @version_major: major component of the version number of Meta with which the plugin was compiled
- * @version_minor: minor component of the version number of Meta with which the plugin was compiled
- * @version_micro: micro component of the version number of Meta with which the plugin was compiled
- * @version_api: version of the plugin API
- */
-struct _MetaPluginVersion
-{
-  /*
-   * Version information; the first three numbers match the Meta version
-   * with which the plugin was compiled (see clutter-plugins/simple.c for sample
-   * code).
-   */
-  guint version_major;
-  guint version_minor;
-  guint version_micro;
-
-  /*
-   * Version of the plugin API; this is unrelated to the matacity version
-   * per se. The API version is checked by the plugin manager and must match
-   * the one used by it (see clutter-plugins/default.c for sample code).
-   */
-  guint version_api;
-};
 
 /*
  * Convenience macro to set up the plugin type. Based on GEdit.
  */
-#define META_PLUGIN_DECLARE(ObjectName, object_name)                    \
-  G_MODULE_EXPORT MetaPluginVersion meta_plugin_version =               \
-    {                                                                   \
-      META_MAJOR_VERSION,                                               \
-      META_MINOR_VERSION,                                               \
-      META_MICRO_VERSION,                                               \
-      META_PLUGIN_API_VERSION                                           \
-    };                                                                  \
-                                                                        \
-  static GType g_define_type_id = 0;                                    \
-                                                                        \
+#define META_PLUGIN_DECLARE_WITH_CODE(ObjectName, object_name, CODE)    \
   /* Prototypes */                                                      \
-  G_MODULE_EXPORT                                                       \
-  GType object_name##_get_type (void);                                  \
+  G_MODULE_EXPORT GType                                                 \
+  object_name##_get_type (void);                                        \
                                                                         \
-  G_MODULE_EXPORT                                                       \
-  GType object_name##_register_type (GTypeModule *type_module);         \
-                                                                        \
-  G_MODULE_EXPORT                                                       \
-  GType meta_plugin_register_type (GTypeModule *type_module);           \
-                                                                        \
-  GType                                                                 \
-  object_name##_get_type (void)                                         \
-  {                                                                     \
-    return g_define_type_id;                                            \
-  }                                                                     \
-                                                                        \
-  static void object_name##_init (ObjectName *self);                    \
-  static void object_name##_class_init (ObjectName##Class *klass);      \
-  static gpointer object_name##_parent_class = NULL;                    \
-  static void object_name##_class_intern_init (gpointer klass)          \
-  {                                                                     \
-    object_name##_parent_class = g_type_class_peek_parent (klass);      \
-    object_name##_class_init ((ObjectName##Class *) klass);             \
-  }                                                                     \
-                                                                        \
-  GType                                                                 \
-  object_name##_register_type (GTypeModule *type_module)                \
-  {                                                                     \
-    static const GTypeInfo our_info =                                   \
-      {                                                                 \
-        sizeof (ObjectName##Class),                                     \
-        NULL, /* base_init */                                           \
-        NULL, /* base_finalize */                                       \
-        (GClassInitFunc) object_name##_class_intern_init,               \
-        NULL,                                                           \
-        NULL, /* class_data */                                          \
-        sizeof (ObjectName),                                            \
-        0, /* n_preallocs */                                            \
-        (GInstanceInitFunc) object_name##_init                          \
-      };                                                                \
-                                                                        \
-    g_define_type_id = g_type_module_register_type (type_module,        \
-                                                    META_TYPE_PLUGIN,   \
-                                                    #ObjectName,        \
-                                                    &our_info,          \
-                                                    0);                 \
+  G_MODULE_EXPORT GType                                                 \
+  meta_plugin_register_type (GTypeModule *type_module);                 \
                                                                         \
                                                                         \
-    return g_define_type_id;                                            \
-  }                                                                     \
+  G_DEFINE_DYNAMIC_TYPE_EXTENDED(ObjectName, object_name,               \
+                                 META_TYPE_PLUGIN, 0, CODE)             \
+                                                                        \
+  /* Unused, but required by G_DEFINE_DYNAMIC_TYPE */                   \
+  static void                                                           \
+  object_name##_class_finalize (ObjectName##Class *klass) {}            \
                                                                         \
   G_MODULE_EXPORT GType                                                 \
   meta_plugin_register_type (GTypeModule *type_module)                  \
   {                                                                     \
-    return object_name##_register_type (type_module);                   \
+    object_name##_register_type (type_module);                          \
+    return object_name##_get_type ();                                   \
   }                                                                     \
 
+#define META_PLUGIN_DECLARE(ObjectName, object_name)                    \
+  META_PLUGIN_DECLARE_WITH_CODE(ObjectName, object_name, {})
+
+META_EXPORT
 void
 meta_plugin_switch_workspace_completed (MetaPlugin *plugin);
 
+META_EXPORT
 void
 meta_plugin_minimize_completed (MetaPlugin      *plugin,
                                 MetaWindowActor *actor);
 
+META_EXPORT
 void
 meta_plugin_unminimize_completed (MetaPlugin      *plugin,
                                   MetaWindowActor *actor);
 
+META_EXPORT
 void
 meta_plugin_size_change_completed (MetaPlugin      *plugin,
                                    MetaWindowActor *actor);
 
+META_EXPORT
 void
 meta_plugin_map_completed (MetaPlugin      *plugin,
                            MetaWindowActor *actor);
 
+META_EXPORT
 void
 meta_plugin_destroy_completed (MetaPlugin      *plugin,
                                MetaWindowActor *actor);
 
+META_EXPORT
 void
 meta_plugin_complete_display_change (MetaPlugin *plugin,
                                      gboolean    ok);
 
-/**
- * MetaModalOptions:
- * @META_MODAL_POINTER_ALREADY_GRABBED: if set the pointer is already
- *   grabbed by the plugin and should not be grabbed again.
- * @META_MODAL_KEYBOARD_ALREADY_GRABBED: if set the keyboard is already
- *   grabbed by the plugin and should not be grabbed again.
- *
- * Options that can be provided when calling meta_plugin_begin_modal().
- */
-typedef enum {
-  META_MODAL_POINTER_ALREADY_GRABBED = 1 << 0,
-  META_MODAL_KEYBOARD_ALREADY_GRABBED = 1 << 1
-} MetaModalOptions;
-
-gboolean
-meta_plugin_begin_modal (MetaPlugin      *plugin,
-                         MetaModalOptions options,
-                         guint32          timestamp);
-
-void
-meta_plugin_end_modal (MetaPlugin *plugin,
-                       guint32     timestamp);
-
-MetaScreen *meta_plugin_get_screen        (MetaPlugin *plugin);
+META_EXPORT
+MetaDisplay *meta_plugin_get_display (MetaPlugin *plugin);
 
 void _meta_plugin_set_compositor (MetaPlugin *plugin, MetaCompositor *compositor);
 
 /* XXX: Putting this in here so it's in the public header. */
+META_EXPORT
 void     meta_plugin_manager_set_plugin_type (GType gtype);
-
-#endif /* META_PLUGIN_H_ */

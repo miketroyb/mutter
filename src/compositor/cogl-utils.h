@@ -18,14 +18,14 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __META_COGL_UTILS_H__
-#define __META_COGL_UTILS_H__
+#pragma once
 
-#include <cogl/cogl.h>
+#include "cogl/cogl.h"
 
 CoglPipeline * meta_create_texture_pipeline (CoglTexture *texture);
 
-typedef enum {
+typedef enum
+{
   META_TEXTURE_FLAGS_NONE = 0,
   META_TEXTURE_ALLOW_SLICING = 1 << 1
 } MetaTextureFlags;
@@ -35,4 +35,3 @@ CoglTexture *meta_create_texture (int                   width,
                                   CoglTextureComponents components,
                                   MetaTextureFlags      flags);
 
-#endif /* __META_COGL_UTILS_H__ */

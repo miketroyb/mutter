@@ -14,26 +14,26 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jasper St. Pierre <jstpierre@mecheye.net>
  */
 
-#ifndef META_CURSOR_RENDERER_NATIVE_H
-#define META_CURSOR_RENDERER_NATIVE_H
+#pragma once
 
-#include "meta-cursor-renderer.h"
+#include "backends/meta-cursor-renderer.h"
+#include "backends/native/meta-backend-native-types.h"
+#include "meta/meta-backend.h"
 
 #define META_TYPE_CURSOR_RENDERER_NATIVE (meta_cursor_renderer_native_get_type ())
 G_DECLARE_FINAL_TYPE (MetaCursorRendererNative, meta_cursor_renderer_native,
                       META, CURSOR_RENDERER_NATIVE,
                       MetaCursorRenderer)
 
-void meta_cursor_renderer_native_force_update (MetaCursorRendererNative *renderer);
+void meta_cursor_renderer_native_prepare_frame (MetaCursorRendererNative *cursor_renderer_native,
+                                                MetaRendererView         *view,
+                                                ClutterFrame             *frame);
 
-MetaCursorRendererNative * meta_cursor_renderer_native_new (MetaBackend *backend);
-
-#endif /* META_CURSOR_RENDERER_NATIVE_H */
+MetaCursorRendererNative * meta_cursor_renderer_native_new (MetaBackend        *backend,
+                                                            ClutterInputDevice *device);

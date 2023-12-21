@@ -27,10 +27,9 @@
  *
  */
 
-#ifndef _COGL_TEXTURE_GL_PRIVATE_H_
-#define _COGL_TEXTURE_GL_PRIVATE_H_
+#pragma once
 
-#include "cogl-context.h"
+#include "cogl/cogl-context.h"
 
 void
 _cogl_texture_gl_prep_alignment_for_pixels_upload (CoglContext *ctx,
@@ -45,8 +44,7 @@ _cogl_texture_gl_prep_alignment_for_pixels_download (CoglContext *ctx,
 void
 _cogl_texture_gl_flush_legacy_texobj_wrap_modes (CoglTexture *texture,
                                                  unsigned int wrap_mode_s,
-                                                 unsigned int wrap_mode_t,
-                                                 unsigned int wrap_mode_p);
+                                                 unsigned int wrap_mode_t);
 
 void
 _cogl_texture_gl_flush_legacy_texobj_filters (CoglTexture *texture,
@@ -54,8 +52,8 @@ _cogl_texture_gl_flush_legacy_texobj_filters (CoglTexture *texture,
                                               unsigned int mag_filter);
 
 void
-_cogl_texture_gl_maybe_update_max_level (CoglTexture *texture,
-                                         int max_level);
+cogl_texture_gl_set_max_level (CoglTexture *texture,
+                               int max_level);
 
 void
 _cogl_texture_gl_generate_mipmaps (CoglTexture *texture);
@@ -63,4 +61,9 @@ _cogl_texture_gl_generate_mipmaps (CoglTexture *texture);
 GLenum
 _cogl_texture_gl_get_format (CoglTexture *texture);
 
-#endif /* _COGL_TEXTURE_GL_PRIVATE_H_ */
+static inline GLfloat
+_cogl_texture_min_filter_get_lod_bias (GLenum min_filter)
+{
+  return (min_filter == GL_NEAREST_MIPMAP_NEAREST ||
+          min_filter == GL_LINEAR_MIPMAP_NEAREST) ? -0.5f : 0.0f;
+}

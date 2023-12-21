@@ -19,21 +19,39 @@
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#ifndef META_INPUT_SETTINGS_PRIVATE_H
-#define META_INPUT_SETTINGS_PRIVATE_H
+#pragma once
 
-#include "display-private.h"
-#include "meta-monitor-manager-private.h"
-
-#include <clutter/clutter.h>
+#include <gdesktop-enums.h>
 
 #ifdef HAVE_LIBWACOM
 #include <libwacom/libwacom.h>
 #endif
 
+#include "backends/meta-backend-types.h"
+#include "clutter/clutter.h"
+#include "meta/display.h"
+
 #define META_TYPE_INPUT_SETTINGS (meta_input_settings_get_type ())
 G_DECLARE_DERIVABLE_TYPE (MetaInputSettings, meta_input_settings,
                           META, INPUT_SETTINGS, GObject)
+
+/**
+ * MetaKbdA11ySettings:
+ *
+ * The #MetaKbdA11ySettings structure contains keyboard accessibility
+ * settings
+ *
+ */
+typedef struct _MetaKbdA11ySettings
+{
+  MetaKeyboardA11yFlags controls;
+  int slowkeys_delay;
+  int debounce_delay;
+  int timeout_delay;
+  int mousekeys_init_delay;
+  int mousekeys_max_speed;
+  int mousekeys_accel_time;
+} MetaKbdA11ySettings;
 
 struct _MetaInputSettingsClass
 {
@@ -44,7 +62,7 @@ struct _MetaInputSettingsClass
                               GDesktopDeviceSendEvents  mode);
   void (* set_matrix)        (MetaInputSettings  *settings,
                               ClutterInputDevice *device,
-                              gfloat              matrix[6]);
+                              const float         matrix[6]);
   void (* set_speed)         (MetaInputSettings  *settings,
                               ClutterInputDevice *device,
                               gdouble             speed);
@@ -54,9 +72,15 @@ struct _MetaInputSettingsClass
   void (* set_tap_enabled)   (MetaInputSettings  *settings,
                               ClutterInputDevice *device,
                               gboolean            enabled);
+  void (* set_tap_button_map) (MetaInputSettings            *settings,
+                               ClutterInputDevice           *device,
+                               GDesktopTouchpadTapButtonMap  mode);
   void (* set_tap_and_drag_enabled) (MetaInputSettings  *settings,
                                      ClutterInputDevice *device,
                                      gboolean            enabled);
+  void (* set_tap_and_drag_lock_enabled) (MetaInputSettings  *settings,
+                                          ClutterInputDevice *device,
+                                          gboolean            enabled);
   void (* set_disable_while_typing) (MetaInputSettings  *settings,
                                      ClutterInputDevice *device,
                                      gboolean            enabled);
@@ -71,7 +95,8 @@ struct _MetaInputSettingsClass
                                   gboolean            enabled);
   void (* set_scroll_button) (MetaInputSettings  *settings,
                               ClutterInputDevice *device,
-                              guint               button);
+                              guint               button,
+                              gboolean            button_lock);
 
   void (* set_click_method)  (MetaInputSettings            *settings,
                               ClutterInputDevice           *device,
@@ -85,10 +110,9 @@ struct _MetaInputSettingsClass
   void (* set_tablet_mapping)        (MetaInputSettings      *settings,
                                       ClutterInputDevice     *device,
                                       GDesktopTabletMapping   mapping);
-  void (* set_tablet_keep_aspect)    (MetaInputSettings      *settings,
+  void (* set_tablet_aspect_ratio)   (MetaInputSettings      *settings,
                                       ClutterInputDevice     *device,
-                                      MetaLogicalMonitor     *logical_monitor,
-                                      gboolean                keep_aspect);
+                                      double                  ratio);
   void (* set_tablet_area)           (MetaInputSettings      *settings,
                                       ClutterInputDevice     *device,
                                       gdouble                 padding_left,
@@ -99,9 +123,18 @@ struct _MetaInputSettingsClass
   void (* set_mouse_accel_profile) (MetaInputSettings          *settings,
                                     ClutterInputDevice         *device,
                                     GDesktopPointerAccelProfile profile);
+  void (* set_touchpad_accel_profile) (MetaInputSettings           *settings,
+                                       ClutterInputDevice          *device,
+                                       GDesktopPointerAccelProfile  profile);
   void (* set_trackball_accel_profile) (MetaInputSettings          *settings,
                                         ClutterInputDevice         *device,
                                         GDesktopPointerAccelProfile profile);
+  void (* set_pointing_stick_accel_profile) (MetaInputSettings           *settings,
+                                             ClutterInputDevice          *device,
+                                             GDesktopPointerAccelProfile  profile);
+  void (* set_pointing_stick_scroll_method) (MetaInputSettings                 *settings,
+                                             ClutterInputDevice                *device,
+                                             GDesktopPointingStickScrollMethod  profile);
 
   void (* set_stylus_pressure) (MetaInputSettings            *settings,
                                 ClutterInputDevice           *device,
@@ -113,34 +146,49 @@ struct _MetaInputSettingsClass
                                   GDesktopStylusButtonAction  primary,
                                   GDesktopStylusButtonAction  secondary,
                                   GDesktopStylusButtonAction  tertiary);
+
+  void (* set_mouse_middle_click_emulation) (MetaInputSettings  *settings,
+                                             ClutterInputDevice *device,
+                                             gboolean            enabled);
+  void (* set_touchpad_middle_click_emulation) (MetaInputSettings  *settings,
+                                                ClutterInputDevice *device,
+                                                gboolean            enabled);
+  void (* set_trackball_middle_click_emulation) (MetaInputSettings  *settings,
+                                                 ClutterInputDevice *device,
+                                                 gboolean            enabled);
+
   gboolean (* has_two_finger_scroll) (MetaInputSettings  *settings,
                                       ClutterInputDevice *device);
+  gboolean (* is_pointing_stick_device) (MetaInputSettings  *settings,
+                                         ClutterInputDevice *device);
 };
 
-GSettings *           meta_input_settings_get_tablet_settings (MetaInputSettings  *settings,
-                                                               ClutterInputDevice *device);
-MetaLogicalMonitor *  meta_input_settings_get_tablet_logical_monitor (MetaInputSettings  *settings,
-                                                                      ClutterInputDevice *device);
+void meta_input_settings_maybe_save_numlock_state (MetaInputSettings *input_settings,
+                                                   gboolean           numlock_state);
+gboolean meta_input_settings_maybe_restore_numlock_state (MetaInputSettings *input_settings);
 
-GDesktopTabletMapping meta_input_settings_get_tablet_mapping (MetaInputSettings  *settings,
-                                                              ClutterInputDevice *device);
+void meta_input_settings_set_device_matrix (MetaInputSettings  *input_settings,
+                                            ClutterInputDevice *device,
+                                            float               matrix[6]);
+void meta_input_settings_set_device_enabled (MetaInputSettings  *input_settings,
+                                             ClutterInputDevice *device,
+                                             gboolean            enabled);
+void meta_input_settings_set_device_aspect_ratio (MetaInputSettings  *input_settings,
+                                                  ClutterInputDevice *device,
+                                                  double              aspect_ratio);
 
-gboolean                   meta_input_settings_is_pad_button_grabbed     (MetaInputSettings  *input_settings,
-                                                                          ClutterInputDevice *pad,
-                                                                          guint               button);
+void meta_input_settings_get_kbd_a11y_settings (MetaInputSettings   *input_settings,
+                                                MetaKbdA11ySettings *a11y_settings);
 
-gboolean                   meta_input_settings_handle_pad_event          (MetaInputSettings    *input_settings,
-                                                                          const ClutterEvent   *event);
-gchar *                    meta_input_settings_get_pad_action_label      (MetaInputSettings  *input_settings,
-                                                                          ClutterInputDevice *pad,
-                                                                          MetaPadActionType   action,
-                                                                          guint               number);
+void meta_input_settings_add_device (MetaInputSettings  *input_settings,
+                                     ClutterInputDevice *device);
+void meta_input_settings_remove_device (MetaInputSettings  *input_settings,
+                                        ClutterInputDevice *device);
+void meta_input_settings_notify_tool_change (MetaInputSettings      *input_settings,
+                                             ClutterInputDevice     *device,
+                                             ClutterInputDeviceTool *tool);
+void meta_input_settings_notify_kbd_a11y_change (MetaInputSettings     *input_settings,
+                                                 MetaKeyboardA11yFlags  new_flags,
+                                                 MetaKeyboardA11yFlags  what_changed);
 
-#ifdef HAVE_LIBWACOM
-WacomDevice * meta_input_settings_get_tablet_wacom_device (MetaInputSettings *settings,
-                                                           ClutterInputDevice *device);
-#endif
-
-gboolean meta_input_device_is_trackball (ClutterInputDevice *device);
-
-#endif /* META_INPUT_SETTINGS_PRIVATE_H */
+MetaBackend * meta_input_settings_get_backend (MetaInputSettings *input_settings);

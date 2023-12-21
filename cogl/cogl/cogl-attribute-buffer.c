@@ -31,15 +31,13 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
-#include "cogl-object-private.h"
-#include "cogl-attribute-buffer.h"
-#include "cogl-attribute-buffer-private.h"
-#include "cogl-context-private.h"
-#include "cogl-gtype-private.h"
+#include "cogl/cogl-object-private.h"
+#include "cogl/cogl-attribute-buffer.h"
+#include "cogl/cogl-attribute-buffer-private.h"
+#include "cogl/cogl-context-private.h"
+#include "cogl/cogl-gtype-private.h"
 
 static void _cogl_attribute_buffer_free (CoglAttributeBuffer *array);
 
@@ -50,7 +48,7 @@ CoglAttributeBuffer *
 cogl_attribute_buffer_new_with_size (CoglContext *context,
                                      size_t bytes)
 {
-  CoglAttributeBuffer *buffer = g_slice_new (CoglAttributeBuffer);
+  CoglAttributeBuffer *buffer = g_new0 (CoglAttributeBuffer, 1);
 
   /* parent's constructor */
   _cogl_buffer_initialize (COGL_BUFFER (buffer),
@@ -73,7 +71,7 @@ cogl_attribute_buffer_new (CoglContext *context,
   buffer = cogl_attribute_buffer_new_with_size (context, bytes);
 
   /* Note: to keep the common cases simple this API doesn't throw
-   * CoglErrors, so developers can assume this function never returns
+   * GErrors, so developers can assume this function never returns
    * NULL and we will simply abort on error.
    *
    * Developers wanting to catch errors can use
@@ -99,6 +97,6 @@ _cogl_attribute_buffer_free (CoglAttributeBuffer *array)
   /* parent's destructor */
   _cogl_buffer_fini (COGL_BUFFER (array));
 
-  g_slice_free (CoglAttributeBuffer, array);
+  g_free (array);
 }
 

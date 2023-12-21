@@ -14,25 +14,32 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jasper St. Pierre <jstpierre@mecheye.net>
  */
 
-#ifndef META_CURSOR_RENDERER_H
-#define META_CURSOR_RENDERER_H
+#pragma once
 
 #include <glib-object.h>
-#include <X11/Xcursor/Xcursor.h>
-#ifdef HAVE_WAYLAND
-#include <wayland-server.h>
-#endif
 
-#include <meta/screen.h>
-#include "meta-cursor.h"
+#include "backends/meta-backend-types.h"
+#include "backends/meta-cursor.h"
+#include "core/util-private.h"
+
+#define META_TYPE_HW_CURSOR_INHIBITOR (meta_hw_cursor_inhibitor_get_type ())
+G_DECLARE_INTERFACE (MetaHwCursorInhibitor, meta_hw_cursor_inhibitor,
+                     META, HW_CURSOR_INHIBITOR, GObject)
+
+struct _MetaHwCursorInhibitorInterface
+{
+  GTypeInterface parent_iface;
+
+  gboolean (* is_cursor_inhibited) (MetaHwCursorInhibitor *inhibitor);
+};
+
+gboolean meta_hw_cursor_inhibitor_is_cursor_inhibited (MetaHwCursorInhibitor *inhibitor);
 
 #define META_TYPE_CURSOR_RENDERER (meta_cursor_renderer_get_type ())
 G_DECLARE_DERIVABLE_TYPE (MetaCursorRenderer, meta_cursor_renderer,
@@ -44,42 +51,29 @@ struct _MetaCursorRendererClass
 
   gboolean (* update_cursor) (MetaCursorRenderer *renderer,
                               MetaCursorSprite   *cursor_sprite);
-#ifdef HAVE_WAYLAND
-  void (* realize_cursor_from_wl_buffer) (MetaCursorRenderer *renderer,
-                                          MetaCursorSprite *cursor_sprite,
-                                          struct wl_resource *buffer);
-#endif
-  void (* realize_cursor_from_xcursor) (MetaCursorRenderer *renderer,
-                                        MetaCursorSprite *cursor_sprite,
-                                        XcursorImage *xc_image);
 };
 
-MetaCursorRenderer * meta_cursor_renderer_new (void);
+MetaCursorRenderer * meta_cursor_renderer_new (MetaBackend        *backend,
+                                               ClutterInputDevice *device);
 
 void meta_cursor_renderer_set_cursor (MetaCursorRenderer *renderer,
                                       MetaCursorSprite   *cursor_sprite);
 
-void meta_cursor_renderer_set_position (MetaCursorRenderer *renderer,
-                                        float               x,
-                                        float               y);
+void meta_cursor_renderer_update_position (MetaCursorRenderer *renderer);
 void meta_cursor_renderer_force_update (MetaCursorRenderer *renderer);
 
+META_EXPORT_TEST
 MetaCursorSprite * meta_cursor_renderer_get_cursor (MetaCursorRenderer *renderer);
 
-ClutterRect meta_cursor_renderer_calculate_rect (MetaCursorRenderer *renderer,
-                                                 MetaCursorSprite   *cursor_sprite);
-
-#ifdef HAVE_WAYLAND
-void meta_cursor_renderer_realize_cursor_from_wl_buffer (MetaCursorRenderer *renderer,
-                                                         MetaCursorSprite   *cursor_sprite,
-                                                         struct wl_resource *buffer);
-#endif
-
-void meta_cursor_renderer_realize_cursor_from_xcursor (MetaCursorRenderer *renderer,
-                                                       MetaCursorSprite   *cursor_sprite,
-                                                       XcursorImage       *xc_image);
+graphene_rect_t meta_cursor_renderer_calculate_rect (MetaCursorRenderer *renderer,
+                                                     MetaCursorSprite   *cursor_sprite);
 
 void meta_cursor_renderer_emit_painted (MetaCursorRenderer *renderer,
-                                        MetaCursorSprite   *cursor_sprite);
+                                        MetaCursorSprite   *cursor_sprite,
+                                        ClutterStageView   *stage_view);
+ClutterInputDevice * meta_cursor_renderer_get_input_device (MetaCursorRenderer *renderer);
 
-#endif /* META_CURSOR_RENDERER_H */
+void meta_cursor_renderer_update_stage_overlay (MetaCursorRenderer *renderer,
+                                                MetaCursorSprite   *cursor_sprite);
+
+MetaBackend * meta_cursor_renderer_get_backend (MetaCursorRenderer *renderer);

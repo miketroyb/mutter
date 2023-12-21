@@ -28,12 +28,10 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
-#include "cogl-output-private.h"
-#include "cogl-gtype-private.h"
+#include "cogl/cogl-output-private.h"
+#include "cogl/cogl-gtype-private.h"
 
 #include <string.h>
 
@@ -47,7 +45,7 @@ _cogl_output_new (const char *name)
 {
   CoglOutput *output;
 
-  output = g_slice_new0 (CoglOutput);
+  output = g_new0 (CoglOutput, 1);
   output->name = g_strdup (name);
 
   return _cogl_output_object_new (output);
@@ -58,7 +56,7 @@ _cogl_output_free (CoglOutput *output)
 {
   g_free (output->name);
 
-  g_slice_free (CoglOutput, output);
+  g_free (output);
 }
 
 gboolean

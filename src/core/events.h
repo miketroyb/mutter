@@ -20,12 +20,17 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <meta/display.h>
+#pragma once
 
-#ifndef META_EVENTS_H
-#define META_EVENTS_H
+#include "meta/display.h"
+
+/**
+ * META_PRIORITY_EVENTS: (value 0)
+ *
+ * This is the priority that events from the X server are given in the main loop.
+ */
+#define META_PRIORITY_EVENTS    (G_PRIORITY_DEFAULT)
+
 
 void meta_display_init_events (MetaDisplay *display);
 void meta_display_free_events (MetaDisplay *display);
-
-#endif

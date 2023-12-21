@@ -19,14 +19,15 @@
 
 #include "config.h"
 
+#include <glib.h>
+#include <glib/gi18n-lib.h>
+#include <glib-unix.h>
 #include <stdlib.h>
 
-#include <meta/main.h>
-#include <meta/util.h>
-#include <glib/gi18n-lib.h>
-#include "meta-plugin-manager.h"
-
-#include <glib.h>
+#include "compositor/meta-plugin-manager.h"
+#include "meta/main.h"
+#include "meta/meta-context.h"
+#include "meta/util.h"
 
 static gboolean
 print_version (const gchar    *option_name,
@@ -34,17 +35,37 @@ print_version (const gchar    *option_name,
                gpointer        data,
                GError        **error)
 {
-  const int latest_year = 2011;
-
-  g_print (_("mutter %s\n"
-             "Copyright © 2001-%d Havoc Pennington, Red Hat, Inc., and others\n"
-             "This is free software; see the source for copying conditions.\n"
-             "There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n"),
-           VERSION, latest_year);
+  g_print ("mutter %s\n", VERSION);
   exit (0);
 }
 
-static const char *plugin = "default";
+static void
+command_exited_cb (GPid     command_pid,
+                   int      status,
+                   gpointer user_data)
+{
+  MetaContext *context = user_data;
+
+  g_spawn_close_pid (command_pid);
+
+  if (status)
+    {
+      GError *error;
+
+      error = g_error_new (G_IO_ERROR, G_IO_ERROR_FAILED,
+                           "The command exited with a nonzero status: %d\n",
+                           status);
+
+      meta_context_terminate_with_error (context, error);
+    }
+  else
+    {
+      meta_context_terminate (context);
+    }
+}
+
+static const char *plugin = "libdefault";
+static char **argv_ignored = NULL;
 
 GOptionEntry mutter_options[] = {
   {
@@ -59,28 +80,104 @@ GOptionEntry mutter_options[] = {
     N_("Mutter plugin to use"),
     "PLUGIN",
   },
+  {
+    G_OPTION_REMAINING,
+    .arg = G_OPTION_ARG_STRING_ARRAY,
+    &argv_ignored,
+    .arg_description = "[[--] COMMAND [ARGUMENT…]]"
+  },
   { NULL }
 };
+
+
+static gboolean
+on_sigterm (gpointer user_data)
+{
+  MetaContext *context = META_CONTEXT (user_data);
+
+  meta_context_terminate (context);
+
+  return G_SOURCE_REMOVE;
+}
+
+static void
+init_signal_handlers (MetaContext *context)
+{
+  struct sigaction act = { 0 };
+  sigset_t empty_mask;
+
+  sigemptyset (&empty_mask);
+  act.sa_handler = SIG_IGN;
+  act.sa_mask = empty_mask;
+  act.sa_flags = 0;
+  if (sigaction (SIGPIPE,  &act, NULL) < 0)
+    g_warning ("Failed to register SIGPIPE handler: %s", g_strerror (errno));
+#ifdef SIGXFSZ
+  if (sigaction (SIGXFSZ,  &act, NULL) < 0)
+    g_warning ("Failed to register SIGXFSZ handler: %s", g_strerror (errno));
+#endif
+
+  g_unix_signal_add (SIGTERM, on_sigterm, context);
+}
 
 int
 main (int argc, char **argv)
 {
-  GOptionContext *ctx;
-  GError *error = NULL;
+  g_autoptr (MetaContext) context = NULL;
+  g_autoptr (GError) error = NULL;
 
-  ctx = meta_get_option_context ();
-  g_option_context_add_main_entries (ctx, mutter_options, GETTEXT_PACKAGE);
-  if (!g_option_context_parse (ctx, &argc, &argv, &error))
+  context = meta_create_context ("Mutter");
+
+  meta_context_add_option_entries (context, mutter_options, GETTEXT_PACKAGE);
+  if (!meta_context_configure (context, &argc, &argv, &error))
     {
-      g_printerr ("mutter: %s\n", error->message);
-      exit (1);
+      g_printerr ("Failed to configure: %s\n", error->message);
+      return EXIT_FAILURE;
     }
-  g_option_context_free (ctx);
 
-  if (plugin)
-    meta_plugin_manager_load (plugin);
+  meta_context_set_plugin_name (context, plugin);
 
-  meta_init ();
-  meta_register_with_session ();
-  return meta_run ();
+  init_signal_handlers (context);
+
+  if (!meta_context_setup (context, &error))
+    {
+      g_printerr ("Failed to setup: %s\n", error->message);
+      return EXIT_FAILURE;
+    }
+
+  if (!meta_context_start (context, &error))
+    {
+      g_printerr ("Failed to start: %s\n", error->message);
+      return EXIT_FAILURE;
+    }
+
+  meta_context_notify_ready (context);
+  if (argv_ignored)
+    {
+      GPid command_pid;
+      g_auto (GStrv) command_argv = NULL;
+
+      command_argv = g_steal_pointer (&argv_ignored);
+
+      if (!g_spawn_async (NULL, command_argv, NULL,
+                          G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH,
+                          NULL, NULL, &command_pid, &error))
+        {
+          g_printerr ("Failed to run the command: %s\n", error->message);
+          return EXIT_FAILURE;
+        }
+
+      g_child_watch_add (command_pid, command_exited_cb, context);
+    }
+
+  if (meta_context_get_compositor_type (context) == META_COMPOSITOR_TYPE_WAYLAND)
+    meta_context_raise_rlimit_nofile (context, NULL);
+
+  if (!meta_context_run_main_loop (context, &error))
+    {
+      g_printerr ("Mutter terminated with a failure: %s\n", error->message);
+      return EXIT_FAILURE;
+    }
+
+  return EXIT_SUCCESS;
 }

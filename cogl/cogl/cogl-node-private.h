@@ -31,18 +31,17 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifndef __COGL_NODE_PRIVATE_H
-#define __COGL_NODE_PRIVATE_H
+#pragma once
 
-#include "cogl-object-private.h"
-#include "cogl-list.h"
+#include "cogl/cogl-object-private.h"
+#include "cogl/cogl-list.h"
 
 typedef struct _CoglNode CoglNode;
 
 /* Pipelines and layers represent their state in a tree structure where
  * some of the state relating to a given pipeline or layer may actually
  * be owned by one if is ancestors in the tree. We have a common data
- * type to track the tree heirachy so we can share code... */
+ * type to track the tree hierarchy so we can share code... */
 struct _CoglNode
 {
   /* the parent in terms of class hierarchy, so anything inheriting
@@ -60,7 +59,7 @@ struct _CoglNode
 
   /* TRUE if the node took a strong reference on its parent. Weak
    * pipelines for instance don't take a reference on their parent. */
-  CoglBool has_parent_reference;
+  gboolean has_parent_reference;
 };
 
 #define COGL_NODE(X) ((CoglNode *)(X))
@@ -74,16 +73,14 @@ void
 _cogl_pipeline_node_set_parent_real (CoglNode *node,
                                      CoglNode *parent,
                                      CoglNodeUnparentVFunc unparent,
-                                     CoglBool take_strong_reference);
+                                     gboolean take_strong_reference);
 
 void
 _cogl_pipeline_node_unparent_real (CoglNode *node);
 
-typedef CoglBool (*CoglNodeChildCallback) (CoglNode *child, void *user_data);
+typedef gboolean (*CoglNodeChildCallback) (CoglNode *child, void *user_data);
 
 void
 _cogl_pipeline_node_foreach_child (CoglNode *node,
                                    CoglNodeChildCallback callback,
                                    void *user_data);
-
-#endif /* __COGL_NODE_PRIVATE_H */

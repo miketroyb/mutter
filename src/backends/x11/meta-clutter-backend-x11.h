@@ -14,25 +14,49 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jonas Ådahl <jadahl@gmail.com>
  */
 
-#ifndef META_CLUTTER_BACKEND_X11_H
-#define META_CLUTTER_BACKEND_X11_H
+#pragma once
 
 #include <glib-object.h>
 
-#include "clutter/clutter.h"
-#include "clutter/x11/clutter-backend-x11.h"
+#include "backends/meta-backend-types.h"
+#include "clutter/clutter-mutter.h"
+
+struct _MetaClutterBackendX11
+{
+  ClutterBackend parent_instance;
+
+  Display *xdisplay;
+
+  /* event source */
+  GSList  *event_filters;
+
+  /* props */
+  Atom atom_NET_WM_PID;
+  Atom atom_NET_WM_PING;
+  Atom atom_NET_WM_STATE;
+  Atom atom_NET_WM_USER_TIME;
+  Atom atom_WM_PROTOCOLS;
+  Atom atom_WM_DELETE_WINDOW;
+  Atom atom_XEMBED;
+  Atom atom_XEMBED_INFO;
+  Atom atom_NET_WM_NAME;
+  Atom atom_UTF8_STRING;
+
+  Time last_event_time;
+};
 
 #define META_TYPE_CLUTTER_BACKEND_X11 (meta_clutter_backend_x11_get_type ())
 G_DECLARE_FINAL_TYPE (MetaClutterBackendX11, meta_clutter_backend_x11,
                       META, CLUTTER_BACKEND_X11,
-                      ClutterBackendX11)
+                      ClutterBackend)
 
-#endif /* META_CLUTTER_BACKEND_X11_H */
+MetaClutterBackendX11 * meta_clutter_backend_x11_new (MetaBackend *backend);
+
+void meta_clutter_x11_set_use_stereo_stage (gboolean use_stereo);
+gboolean meta_clutter_x11_get_use_stereo_stage (void);

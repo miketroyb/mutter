@@ -31,13 +31,12 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifndef __COGL_PRIMITIVE_PRIVATE_H
-#define __COGL_PRIMITIVE_PRIVATE_H
+#pragma once
 
-#include "cogl-object-private.h"
-#include "cogl-attribute-buffer-private.h"
-#include "cogl-attribute-private.h"
-#include "cogl-framebuffer.h"
+#include "cogl/cogl-object-private.h"
+#include "cogl/cogl-attribute-buffer-private.h"
+#include "cogl/cogl-attribute-private.h"
+#include "cogl/cogl-framebuffer.h"
 
 struct _CoglPrimitive
 {
@@ -63,11 +62,8 @@ _cogl_primitive_immutable_ref (CoglPrimitive *primitive);
 void
 _cogl_primitive_immutable_unref (CoglPrimitive *primitive);
 
-void
+COGL_EXPORT void
 _cogl_primitive_draw (CoglPrimitive *primitive,
                       CoglFramebuffer *framebuffer,
                       CoglPipeline *pipeline,
                       CoglDrawFlags flags);
-
-#endif /* __COGL_PRIMITIVE_PRIVATE_H */
-

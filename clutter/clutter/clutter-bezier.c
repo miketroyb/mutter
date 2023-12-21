@@ -21,12 +21,13 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "clutter-build-config.h"
+#include "clutter/clutter-build-config.h"
 
 #include <glib.h>
 #include <string.h>
-#include "clutter-bezier.h"
-#include "clutter-debug.h"
+
+#include "clutter/clutter-bezier.h"
+#include "clutter/clutter-debug.h"
 
 /*
  * We have some experimental code here to allow for constant velocity
@@ -35,7 +36,7 @@
 #undef CBZ_L2T_INTERPOLATION
 
 /****************************************************************************
- * ClutterBezier -- represenation of a cubic bezier curve                   *
+ * ClutterBezier -- representation of a cubic bezier curve                   *
  * (private; a building block for the public bspline object)                *
  ****************************************************************************/
 
@@ -104,7 +105,7 @@ struct _ClutterBezier
 ClutterBezier *
 _clutter_bezier_new (void)
 {
-  return g_slice_new0 (ClutterBezier);
+  return g_new0 (ClutterBezier, 1);
 }
 
 void
@@ -112,7 +113,7 @@ _clutter_bezier_free (ClutterBezier * b)
 {
   if (G_LIKELY (b))
     {
-      g_slice_free (ClutterBezier, b);
+      g_free (b);
     }
 }
 
@@ -213,7 +214,7 @@ sqrti (int number)
      * algorithm does not calculate the square root, but its reciprocal ('y'
      * below), which is only at the end turned to the inverse value. In order
      * for the algorithm to produce satisfactory results, the reciprocal value
-     * must be represented with sufficient precission; the 16.16 we use
+     * must be represented with sufficient precision; the 16.16 we use
      * elsewhere in clutter is not good enough, and 10.22 is used instead.
      */
     _FixedT x;
@@ -236,7 +237,7 @@ sqrti (int number)
     /* Now, we convert the float to 10.22 fixed. We exploit the mechanism
      * described at http://www.d6.com/users/checker/pdfs/gdmfp.pdf.
      *
-     * We want 22 bit fraction; a single precission float uses 23 bit
+     * We want 22 bit fraction; a single precision float uses 23 bit
      * mantisa, so we only need to add 2^(23-22) (no need for the 1.5
      * multiplier as we are only dealing with positive numbers).
      *
@@ -256,7 +257,7 @@ sqrti (int number)
     flt2.i = (flt2.i >> 11) * (y_1 >> 11);
 
     /* If the original argument is less than 342, we do another
-     * iteration to improve precission (for arguments >= 342, the single
+     * iteration to improve precision (for arguments >= 342, the single
      * iteration produces generally better results).
      */
     if (x < 171)
@@ -324,7 +325,7 @@ _clutter_bezier_init (ClutterBezier *b,
    * triggers, we need to change those two functions a bit.
    */
   if (b->ax > 0x1fff || b->bx > 0x1fff || b->cx > 0x1fff)
-    g_warning ("Calculated coefficents will result in multiplication "
+    g_warning ("Calculated coefficients will result in multiplication "
                "overflow in clutter_bezier_t2x and clutter_bezier_t2y.");
 
   /*

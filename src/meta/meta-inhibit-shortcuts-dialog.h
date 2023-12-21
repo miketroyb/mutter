@@ -16,13 +16,14 @@
  *
  */
 
-#ifndef META_INHIBIT_SHORTCUTS_DIALOG_H
-#define META_INHIBIT_SHORTCUTS_DIALOG_H
+#pragma once
 
 #include <glib-object.h>
 #include <meta/window.h>
 
 #define META_TYPE_INHIBIT_SHORTCUTS_DIALOG (meta_inhibit_shortcuts_dialog_get_type ())
+
+META_EXPORT
 G_DECLARE_INTERFACE (MetaInhibitShortcutsDialog, meta_inhibit_shortcuts_dialog,
 		     META, INHIBIT_SHORTCUTS_DIALOG, GObject)
 
@@ -40,10 +41,12 @@ struct _MetaInhibitShortcutsDialogInterface
   void (* hide) (MetaInhibitShortcutsDialog *dialog);
 };
 
+META_EXPORT
 void meta_inhibit_shortcuts_dialog_show (MetaInhibitShortcutsDialog *dialog);
+
+META_EXPORT
 void meta_inhibit_shortcuts_dialog_hide (MetaInhibitShortcutsDialog *dialog);
 
+META_EXPORT
 void meta_inhibit_shortcuts_dialog_response (MetaInhibitShortcutsDialog        *dialog,
                                              MetaInhibitShortcutsDialogResponse response);
-
-#endif /* META_INHIBIT_SHORTCUTS_DIALOG_H */

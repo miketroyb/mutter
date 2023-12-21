@@ -22,14 +22,13 @@
  *   Lionel Landwerlin <lionel.g.landwerlin@linux.intel.com>
  */
 
-#ifndef __CLUTTER_ROTATE_ACTION_H__
-#define __CLUTTER_ROTATE_ACTION_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-gesture-action.h>
+#include "clutter/clutter-gesture-action.h"
 
 G_BEGIN_DECLS
 
@@ -44,14 +43,6 @@ typedef struct _ClutterRotateAction              ClutterRotateAction;
 typedef struct _ClutterRotateActionPrivate       ClutterRotateActionPrivate;
 typedef struct _ClutterRotateActionClass         ClutterRotateActionClass;
 
-/**
- * ClutterRotateAction:
- *
- * The #ClutterRotateAction structure contains
- * only private data and should be accessed using the provided API
- *
- * Since: 1.12
- */
 struct _ClutterRotateAction
 {
   /*< private >*/
@@ -66,35 +57,17 @@ struct _ClutterRotateAction
  *
  * The #ClutterRotateActionClass structure contains
  * only private data.
- *
- * Since: 1.12
  */
 struct _ClutterRotateActionClass
 {
   /*< private >*/
   ClutterGestureActionClass parent_class;
-
-  /*< public >*/
-  gboolean (* rotate)  (ClutterRotateAction *action,
-                        ClutterActor        *actor,
-                        gdouble              angle);
-
-  /*< private >*/
-  void (* _clutter_rotate_action1) (void);
-  void (* _clutter_rotate_action2) (void);
-  void (* _clutter_rotate_action3) (void);
-  void (* _clutter_rotate_action4) (void);
-  void (* _clutter_rotate_action5) (void);
-  void (* _clutter_rotate_action6) (void);
-  void (* _clutter_rotate_action7) (void);
 };
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 GType clutter_rotate_action_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 ClutterAction *clutter_rotate_action_new        (void);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_ROTATE_ACTION_H__ */

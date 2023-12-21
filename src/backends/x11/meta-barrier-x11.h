@@ -14,46 +14,32 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jonas Ådahl <jadahl@gmail.com>
  */
 
-#ifndef META_BARRIER_X11_H
-#define META_BARRIER_X11_H
+#pragma once
 
 #include "backends/meta-barrier-private.h"
+#include "backends/x11/meta-backend-x11-types.h"
 
 G_BEGIN_DECLS
 
-#define META_TYPE_BARRIER_IMPL_X11            (meta_barrier_impl_x11_get_type ())
-#define META_BARRIER_IMPL_X11(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), META_TYPE_BARRIER_IMPL_X11, MetaBarrierImplX11))
-#define META_BARRIER_IMPL_X11_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  META_TYPE_BARRIER_IMPL_X11, MetaBarrierImplX11Class))
-#define META_IS_BARRIER_IMPL_X11(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), META_TYPE_BARRIER_IMPL_X11))
-#define META_IS_BARRIER_IMPL_X11_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  META_TYPE_BARRIER_IMPL_X11))
-#define META_BARRIER_IMPL_X11_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  META_TYPE_BARRIER_IMPL_X11, MetaBarrierImplX11Class))
-
-typedef struct _MetaBarrierImplX11        MetaBarrierImplX11;
-typedef struct _MetaBarrierImplX11Class   MetaBarrierImplX11Class;
-typedef struct _MetaBarrierImplX11Private MetaBarrierImplX11Private;
-
-struct _MetaBarrierImplX11
-{
-  MetaBarrierImpl parent;
-};
-
-struct _MetaBarrierImplX11Class
-{
-  MetaBarrierImplClass parent_class;
-};
-
-GType meta_barrier_impl_x11_get_type (void) G_GNUC_CONST;
+#define META_TYPE_BARRIER_IMPL_X11 (meta_barrier_impl_x11_get_type ())
+G_DECLARE_FINAL_TYPE (MetaBarrierImplX11,
+                      meta_barrier_impl_x11,
+                      META, BARRIER_IMPL_X11,
+                      MetaBarrierImpl)
 
 MetaBarrierImpl *meta_barrier_impl_x11_new (MetaBarrier *barrier);
 
-G_END_DECLS
+MetaX11Barriers * meta_x11_barriers_new (MetaBackendX11 *backend_x11);
 
-#endif /* META_BARRIER_X11_H1 */
+void meta_x11_barriers_free (MetaX11Barriers *x11_barriers);
+
+gboolean meta_x11_barriers_process_xevent (MetaX11Barriers *barriers,
+                                           XIEvent         *event);
+
+G_END_DECLS

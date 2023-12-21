@@ -28,20 +28,17 @@
  *
  */
 
-#ifndef __COGL_JOURNAL_PRIVATE_H
-#define __COGL_JOURNAL_PRIVATE_H
+#pragma once
 
-#include "cogl-texture.h"
-#include "cogl-object-private.h"
-#include "cogl-clip-stack.h"
-#include "cogl-fence-private.h"
+#include "cogl/cogl-texture.h"
+#include "cogl/cogl-object-private.h"
+#include "cogl/cogl-clip-stack.h"
+#include "cogl/cogl-fence-private.h"
 
 #define COGL_JOURNAL_VBO_POOL_SIZE 8
 
 typedef struct _CoglJournal
 {
-  CoglObject _parent;
-
   /* A pointer the framebuffer that is using this journal. This is
      only valid when the journal is not empty. It *does* take a
      reference on the framebuffer. Although this creates a circular
@@ -78,6 +75,8 @@ typedef struct _CoglJournalEntry
   CoglPipeline            *pipeline;
   CoglMatrixEntry         *modelview_entry;
   CoglClipStack           *clip_stack;
+  float                    viewport[4];
+  gboolean                 dither_enabled;
   /* Offset into ctx->logged_vertices */
   size_t                   array_offset;
   int                      n_layers;
@@ -85,6 +84,9 @@ typedef struct _CoglJournalEntry
 
 CoglJournal *
 _cogl_journal_new (CoglFramebuffer *framebuffer);
+
+void
+_cogl_journal_free (CoglJournal *journal);
 
 void
 _cogl_journal_log_quad (CoglJournal  *journal,
@@ -101,21 +103,19 @@ _cogl_journal_flush (CoglJournal *journal);
 void
 _cogl_journal_discard (CoglJournal *journal);
 
-CoglBool
+gboolean
 _cogl_journal_all_entries_within_bounds (CoglJournal *journal,
                                          float clip_x0,
                                          float clip_y0,
                                          float clip_x1,
                                          float clip_y1);
 
-CoglBool
+gboolean
 _cogl_journal_try_read_pixel (CoglJournal *journal,
                               int x,
                               int y,
                               CoglBitmap *bitmap,
-                              CoglBool *found_intersection);
+                              gboolean *found_intersection);
 
-CoglBool
+gboolean
 _cogl_is_journal (void *object);
-
-#endif /* __COGL_JOURNAL_PRIVATE_H */

@@ -22,15 +22,15 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __CALLY_ACTOR_H__
-#define __CALLY_ACTOR_H__
+#pragma once
 
 #if !defined(__CALLY_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <cally/cally.h> can be included directly."
 #endif
 
 #include <atk/atk.h>
-#include <clutter/clutter.h>
+
+#include "clutter/clutter.h"
 
 G_BEGIN_DECLS
 
@@ -51,8 +51,6 @@ typedef struct _CallyActorPrivate    CallyActorPrivate;
  *
  * Action function, to be used on #AtkAction implementations as a individual
  * action
- *
- * Since: 1.4
  */
 typedef void (* CallyActionFunc) (CallyActor *cally_actor);
 
@@ -62,22 +60,14 @@ typedef void (* CallyActionFunc) (CallyActor *cally_actor);
  * @user_data: user data passed to the function
  *
  * Action function, to be used on #AtkAction implementations as
- * an individual action. Unlike #CallyActionFunc, this function
- * uses the @user_data argument passed to cally_actor_add_action_full().
- *
- * Since: 1.6
+ * an individual action.
+ * 
+ * Unlike #CallyActionFunc, this function uses the @user_data 
+ * argument passed to [method@Actor.add_action_full].
  */
 typedef void (* CallyActionCallback) (CallyActor *cally_actor,
                                       gpointer    user_data);
 
-/**
- * CallyActor:
- *
- * The <structname>CallyActor</structname> structure contains only private
- * data and should be accessed using the provided API
- *
- * Since: 1.4
- */
 struct _CallyActor
 {
   /*< private >*/
@@ -89,8 +79,6 @@ struct _CallyActor
 /**
  * CallyActorClass:
  * @notify_clutter: Signal handler for notify signal on Clutter actor
- * @focus_clutter: Signal handler for key-focus-in and key-focus-out
- *   signal on Clutter actor. This virtual functions is deprecated.
  * @add_actor: Signal handler for actor-added signal on
  *   ClutterContainer interface
  * @remove_actor: Signal handler for actor-added signal on
@@ -98,8 +86,6 @@ struct _CallyActor
  *
  * The <structname>CallyActorClass</structname> structure contains
  * only private data
- *
- * Since: 1.4
  */
 struct _CallyActorClass
 {
@@ -110,9 +96,6 @@ struct _CallyActorClass
   void     (*notify_clutter) (GObject    *object,
                               GParamSpec *pspec);
 
-  gboolean (*focus_clutter)  (ClutterActor *actor,
-                              gpointer      data);
-
   gint     (*add_actor)      (ClutterActor *container,
                               ClutterActor *actor,
                               gpointer      data);
@@ -120,25 +103,21 @@ struct _CallyActorClass
   gint     (*remove_actor)   (ClutterActor *container,
                               ClutterActor *actor,
                               gpointer      data);
-
-  /*< private >*/
-  /* padding for future expansion */
-  gpointer _padding_dummy[32];
 };
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 GType      cally_actor_get_type              (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 AtkObject* cally_actor_new                   (ClutterActor        *actor);
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 guint      cally_actor_add_action            (CallyActor          *cally_actor,
                                               const gchar         *action_name,
                                               const gchar         *action_description,
                                               const gchar         *action_keybinding,
                                               CallyActionFunc      action_func);
-CLUTTER_AVAILABLE_IN_1_6
+CLUTTER_EXPORT
 guint      cally_actor_add_action_full       (CallyActor          *cally_actor,
                                               const gchar         *action_name,
                                               const gchar         *action_description,
@@ -147,14 +126,12 @@ guint      cally_actor_add_action_full       (CallyActor          *cally_actor,
                                               gpointer             user_data,
                                               GDestroyNotify       notify);
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 gboolean   cally_actor_remove_action         (CallyActor          *cally_actor,
                                               gint                 action_id);
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 gboolean   cally_actor_remove_action_by_name (CallyActor          *cally_actor,
                                               const gchar         *action_name);
 
 G_END_DECLS
-
-#endif /* __CALLY_ACTOR_H__ */

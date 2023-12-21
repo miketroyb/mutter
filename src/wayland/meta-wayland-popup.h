@@ -18,14 +18,13 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_WAYLAND_POPUP_H
-#define META_WAYLAND_POPUP_H
+#pragma once
 
 #include <glib.h>
 #include <wayland-server.h>
 
-#include "meta-wayland-types.h"
-#include "meta-wayland-pointer.h"
+#include "wayland/meta-wayland-types.h"
+#include "wayland/meta-wayland-pointer.h"
 
 #define META_TYPE_WAYLAND_POPUP_SURFACE (meta_wayland_popup_surface_get_type ())
 G_DECLARE_INTERFACE (MetaWaylandPopupSurface, meta_wayland_popup_surface,
@@ -58,5 +57,3 @@ void meta_wayland_popup_destroy (MetaWaylandPopup *popup);
 void meta_wayland_popup_dismiss (MetaWaylandPopup *popup);
 
 MetaWaylandSurface *meta_wayland_popup_get_top_popup (MetaWaylandPopup *popup);
-
-#endif /* META_WAYLAND_POPUP_H */

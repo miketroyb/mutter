@@ -14,37 +14,39 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
-
-#define _GNU_SOURCE
 
 #include "config.h"
 
 #include <glib.h>
 #include <glib/gi18n-lib.h>
-
 #include <wayland-server.h>
-#include "tablet-unstable-v2-server-protocol.h"
+
 #include "backends/meta-input-settings-private.h"
+#include "core/display-private.h"
+#include "compositor/meta-surface-actor-wayland.h"
+#include "wayland/meta-wayland-private.h"
+#include "wayland/meta-wayland-tablet-pad-group.h"
+#include "wayland/meta-wayland-tablet-pad-ring.h"
+#include "wayland/meta-wayland-tablet-pad-strip.h"
+#include "wayland/meta-wayland-tablet-pad.h"
+#include "wayland/meta-wayland-tablet-seat.h"
+#include "wayland/meta-wayland-tablet.h"
 
-#include "meta-surface-actor-wayland.h"
-#include "meta-wayland-private.h"
-#include "meta-wayland-tablet-seat.h"
-#include "meta-wayland-tablet.h"
-#include "meta-wayland-tablet-pad.h"
-#include "meta-wayland-tablet-pad-group.h"
-#include "meta-wayland-tablet-pad-ring.h"
-#include "meta-wayland-tablet-pad-strip.h"
+#include "tablet-unstable-v2-server-protocol.h"
 
-#ifdef HAVE_NATIVE_BACKEND
-#include <clutter/evdev/clutter-evdev.h>
-#include "backends/native/meta-backend-native.h"
-#endif
+static MetaDisplay *
+display_from_pad (MetaWaylandTabletPad *pad)
+{
+  MetaWaylandCompositor *compositor =
+    meta_wayland_seat_get_compositor (pad->tablet_seat->seat);
+  MetaContext *context = meta_wayland_compositor_get_context (compositor);
+
+  return meta_context_get_display (context);
+}
 
 static void
 unbind_resource (struct wl_resource *resource)
@@ -66,41 +68,20 @@ group_rings_strips (MetaWaylandTabletPad *pad)
 {
   gint n_group, n_elem;
   GList *g, *l;
-#ifdef HAVE_NATIVE_BACKEND
-  MetaBackend *backend = meta_get_backend ();
-  struct libinput_device *libinput_device = NULL;
-
-  if (META_IS_BACKEND_NATIVE (backend))
-    libinput_device = clutter_evdev_input_device_get_libinput_device (pad->device);
-#endif
 
   for (n_group = 0, g = pad->groups; g; g = g->next)
     {
       MetaWaylandTabletPadGroup *group = g->data;
-#ifdef HAVE_NATIVE_BACKEND
-      struct libinput_tablet_pad_mode_group *mode_group = NULL;
-
-      if (libinput_device)
-        mode_group = libinput_device_tablet_pad_get_mode_group (libinput_device, n_group);
-#endif
 
       for (n_elem = 0, l = pad->rings; l; l = l->next)
         {
           MetaWaylandTabletPadRing *ring = l->data;
 
-#ifdef HAVE_NATIVE_BACKEND
-          if (mode_group)
-            {
-              if (libinput_tablet_pad_mode_group_has_ring (mode_group, n_elem))
-                meta_wayland_tablet_pad_ring_set_group (ring, group);
-            }
-          else
-#endif
-            {
-              /* Assign everything to the first group */
-              if (n_group == 0)
-                meta_wayland_tablet_pad_ring_set_group (ring, group);
-            }
+          if (clutter_input_device_get_pad_feature_group (pad->device,
+                                                          CLUTTER_PAD_FEATURE_RING,
+                                                          n_elem) == n_group)
+            meta_wayland_tablet_pad_ring_set_group (ring, group);
+
           n_elem++;
         }
 
@@ -108,19 +89,10 @@ group_rings_strips (MetaWaylandTabletPad *pad)
         {
           MetaWaylandTabletPadStrip *strip = l->data;
 
-#ifdef HAVE_NATIVE_BACKEND
-          if (mode_group)
-            {
-              if (libinput_tablet_pad_mode_group_has_strip (mode_group, n_elem))
-                meta_wayland_tablet_pad_strip_set_group (strip, group);
-            }
-          else
-#endif
-            {
-              /* Assign everything to the first group */
-              if (n_group == 0)
-                meta_wayland_tablet_pad_strip_set_group (strip, group);
-            }
+          if (clutter_input_device_get_pad_feature_group (pad->device,
+                                                          CLUTTER_PAD_FEATURE_STRIP,
+                                                          n_elem) == n_group)
+            meta_wayland_tablet_pad_strip_set_group (strip, group);
 
           n_elem++;
         }
@@ -133,11 +105,10 @@ MetaWaylandTabletPad *
 meta_wayland_tablet_pad_new (ClutterInputDevice    *device,
                              MetaWaylandTabletSeat *tablet_seat)
 {
-  MetaBackend *backend = meta_get_backend ();
   MetaWaylandTabletPad *pad;
   guint n_elems, i;
 
-  pad = g_slice_new0 (MetaWaylandTabletPad);
+  pad = g_new0 (MetaWaylandTabletPad, 1);
   wl_list_init (&pad->resource_list);
   wl_list_init (&pad->focus_resource_list);
   pad->focus_surface_listener.notify = pad_handle_focus_surface_destroy;
@@ -147,16 +118,7 @@ meta_wayland_tablet_pad_new (ClutterInputDevice    *device,
   pad->feedback = g_hash_table_new_full (NULL, NULL, NULL,
                                          (GDestroyNotify) g_free);
 
-#ifdef HAVE_NATIVE_BACKEND
-  /* Buttons, only can be honored this with the native backend */
-  if (META_IS_BACKEND_NATIVE (backend))
-    {
-      struct libinput_device *libinput_device;
-
-      libinput_device = clutter_evdev_input_device_get_libinput_device (device);
-      pad->n_buttons = libinput_device_tablet_pad_get_num_buttons (libinput_device);
-    }
-#endif
+  pad->n_buttons = clutter_input_device_get_n_buttons (device);
 
   n_elems = clutter_input_device_get_n_mode_groups (pad->device);
 
@@ -214,7 +176,7 @@ meta_wayland_tablet_pad_free (MetaWaylandTabletPad *pad)
 
   g_hash_table_destroy (pad->feedback);
 
-  g_slice_free (MetaWaylandTabletPad, pad);
+  g_free (pad);
 }
 
 static MetaWaylandTabletPadGroup *
@@ -243,15 +205,14 @@ tablet_pad_set_feedback (struct wl_client   *client,
 {
   MetaWaylandTabletPad *pad = wl_resource_get_user_data (resource);
   MetaWaylandTabletPadGroup *group = tablet_pad_lookup_button_group (pad, button);
-  MetaInputSettings *input_settings;
+  MetaPadActionMapper *mapper;
 
   if (!group || group->mode_switch_serial != serial)
     return;
 
-  input_settings = meta_backend_get_input_settings (meta_get_backend ());
+  mapper = display_from_pad (pad)->pad_action_mapper;
 
-  if (input_settings &&
-      meta_input_settings_is_pad_button_grabbed (input_settings, pad->device, button))
+  if (meta_pad_action_mapper_is_button_grabbed (mapper, pad->device, button))
     return;
 
   if (meta_wayland_tablet_pad_group_is_mode_switch_button (group, button))
@@ -277,9 +238,13 @@ meta_wayland_tablet_pad_notify (MetaWaylandTabletPad  *pad,
                                 struct wl_resource    *resource)
 {
   struct wl_client *client = wl_resource_get_client (resource);
+  const gchar *node_path;
   GList *l;
 
-  zwp_tablet_pad_v2_send_path (resource, clutter_input_device_get_device_node (pad->device));
+  node_path = clutter_input_device_get_device_node (pad->device);
+  if (node_path)
+    zwp_tablet_pad_v2_send_path (resource, node_path);
+
   zwp_tablet_pad_v2_send_buttons (resource, pad->n_buttons);
 
   for (l = pad->groups; l; l = l->next)
@@ -337,14 +302,17 @@ handle_pad_button_event (MetaWaylandTabletPad *pad,
   enum zwp_tablet_pad_v2_button_state button_state;
   struct wl_list *focus_resources = &pad->focus_resource_list;
   struct wl_resource *resource;
+  ClutterEventType event_type;
 
   if (wl_list_empty (focus_resources))
     return FALSE;
 
-  if (event->type == CLUTTER_PAD_BUTTON_PRESS)
-    button_state = ZWP_TABLET_TOOL_V2_BUTTON_STATE_PRESSED;
-  else if (event->type == CLUTTER_PAD_BUTTON_RELEASE)
-    button_state = ZWP_TABLET_TOOL_V2_BUTTON_STATE_RELEASED;
+  event_type = clutter_event_type (event);
+
+  if (event_type == CLUTTER_PAD_BUTTON_PRESS)
+    button_state = ZWP_TABLET_PAD_V2_BUTTON_STATE_PRESSED;
+  else if (event_type == CLUTTER_PAD_BUTTON_RELEASE)
+    button_state = ZWP_TABLET_PAD_V2_BUTTON_STATE_RELEASED;
   else
     return FALSE;
 
@@ -352,7 +320,8 @@ handle_pad_button_event (MetaWaylandTabletPad *pad,
     {
       zwp_tablet_pad_v2_send_button (resource,
                                      clutter_event_get_time (event),
-                                     event->pad_button.button, button_state);
+                                     clutter_event_get_button (event),
+                                     button_state);
     }
 
   return TRUE;
@@ -362,15 +331,14 @@ static gboolean
 meta_wayland_tablet_pad_handle_event_action (MetaWaylandTabletPad *pad,
                                              const ClutterEvent   *event)
 {
-  MetaInputSettings *input_settings;
+  MetaPadActionMapper *mapper;
   ClutterInputDevice *device;
 
   device = clutter_event_get_source_device (event);
-  input_settings = meta_backend_get_input_settings (meta_get_backend ());
+  mapper = display_from_pad (pad)->pad_action_mapper;
 
-  if (input_settings &&
-      meta_input_settings_is_pad_button_grabbed (input_settings, device,
-                                                 event->pad_button.button))
+  if (meta_pad_action_mapper_is_button_grabbed (mapper, device,
+                                                clutter_event_get_button (event)))
     return TRUE;
 
   return FALSE;
@@ -404,6 +372,7 @@ meta_wayland_tablet_pad_handle_event (MetaWaylandTabletPad *pad,
     case CLUTTER_PAD_STRIP:
       if (group)
         return meta_wayland_tablet_pad_group_handle_event (group, event);
+      G_GNUC_FALLTHROUGH;
     default:
       return FALSE;
     }
@@ -509,7 +478,7 @@ meta_wayland_tablet_pad_set_focus (MetaWaylandTabletPad *pad,
   tablet = meta_wayland_tablet_seat_lookup_paired_tablet (pad->tablet_seat,
                                                           pad);
 
-  if (tablet != NULL && surface != NULL)
+  if (tablet != NULL && surface != NULL && surface->resource != NULL)
     {
       struct wl_client *client;
 
@@ -566,24 +535,31 @@ meta_wayland_tablet_pad_label_mode_switch_button (MetaWaylandTabletPad *pad,
   return NULL;
 }
 
-gchar *
-meta_wayland_tablet_pad_get_label (MetaWaylandTabletPad *pad,
-				   MetaPadActionType     type,
-				   guint                 action)
+char *
+meta_wayland_tablet_pad_get_button_label (MetaWaylandTabletPad *pad,
+                                          int                   button)
 {
-  const gchar *label = NULL;
-  gchar *mode_label;
+  const char *label = NULL;
+  char *mode_label;
 
-  switch (type)
+  mode_label = meta_wayland_tablet_pad_label_mode_switch_button (pad, button);
+  if (mode_label)
+    return mode_label;
+
+  label = g_hash_table_lookup (pad->feedback, GUINT_TO_POINTER (button));
+  return g_strdup (label);
+}
+
+char *
+meta_wayland_tablet_pad_get_feature_label (MetaWaylandTabletPad *pad,
+                                           MetaPadFeatureType    feature,
+                                           int                   action)
+{
+  const char *label = NULL;
+
+  switch (feature)
     {
-    case META_PAD_ACTION_BUTTON:
-      mode_label = meta_wayland_tablet_pad_label_mode_switch_button (pad, action);
-      if (mode_label)
-        return mode_label;
-
-      label = g_hash_table_lookup (pad->feedback, GUINT_TO_POINTER (action));
-      break;
-    case META_PAD_ACTION_RING:
+    case META_PAD_FEATURE_RING:
       {
         MetaWaylandTabletPadRing *ring;
 
@@ -592,7 +568,7 @@ meta_wayland_tablet_pad_get_label (MetaWaylandTabletPad *pad,
           label = ring->feedback;
         break;
       }
-    case META_PAD_ACTION_STRIP:
+    case META_PAD_FEATURE_STRIP:
       {
         MetaWaylandTabletPadStrip *strip;
 

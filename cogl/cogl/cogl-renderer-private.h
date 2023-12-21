@@ -28,28 +28,23 @@
  *
  */
 
-#ifndef __COGL_RENDERER_PRIVATE_H
-#define __COGL_RENDERER_PRIVATE_H
+#pragma once
 
 #include <gmodule.h>
 
-#include "cogl-object-private.h"
-#include "cogl-winsys-private.h"
-#include "cogl-driver.h"
-#include "cogl-texture-driver.h"
-#include "cogl-context.h"
-#include "cogl-closure-list-private.h"
-
-#ifdef COGL_HAS_XLIB_SUPPORT
-#include <X11/Xlib.h>
-#endif
+#include "cogl/cogl-object-private.h"
+#include "cogl/cogl-driver.h"
+#include "cogl/cogl-texture-driver.h"
+#include "cogl/cogl-context.h"
+#include "cogl/cogl-closure-list-private.h"
+#include "cogl/winsys/cogl-winsys-private.h"
 
 typedef const CoglWinsysVtable *(*CoglCustomWinsysVtableGetter) (CoglRenderer *renderer);
 
 struct _CoglRenderer
 {
   CoglObject _parent;
-  CoglBool connected;
+  gboolean connected;
   CoglDriver driver_override;
   const CoglDriverVtable *driver_vtable;
   const CoglTextureDriver *texture_driver;
@@ -67,11 +62,10 @@ struct _CoglRenderer
 
   GList *outputs;
 
-#ifdef COGL_HAS_XLIB_SUPPORT
+#ifdef COGL_HAS_XLIB
   Display *foreign_xdpy;
-  CoglBool xlib_enable_event_retrieval;
-  CoglBool xlib_want_reset_on_video_memory_purge;
-  CoglBool xlib_enable_threaded_swap_wait;
+  gboolean xlib_enable_event_retrieval;
+  gboolean xlib_want_reset_on_video_memory_purge;
 #endif
 
   CoglDriver driver;
@@ -83,11 +77,6 @@ struct _CoglRenderer
   GSList *event_filters;
   void *winsys;
 };
-
-/* Mask of constraints that effect driver selection. All of the other
- * constraints effect only the winsys selection */
-#define COGL_RENDERER_DRIVER_CONSTRAINTS \
-  COGL_RENDERER_CONSTRAINT_SUPPORTS_COGL_GLES2
 
 typedef CoglFilterReturn (* CoglNativeFilterFunc) (void *native_event,
                                                    void *data);
@@ -109,6 +98,4 @@ _cogl_renderer_remove_native_filter (CoglRenderer *renderer,
 void *
 _cogl_renderer_get_proc_address (CoglRenderer *renderer,
                                  const char *name,
-                                 CoglBool in_core);
-
-#endif /* __COGL_RENDERER_PRIVATE_H */
+                                 gboolean in_core);

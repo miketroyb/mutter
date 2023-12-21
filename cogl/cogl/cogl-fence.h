@@ -28,15 +28,14 @@
  *
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
 
-#ifndef __COGL_FENCE_H__
-#define __COGL_FENCE_H__
-
-#include <cogl/cogl-types.h>
-#include <cogl/cogl-framebuffer.h>
+#include "cogl/cogl-types.h"
+#include "cogl/cogl-framebuffer.h"
 
 /**
  * SECTION:cogl-fence
@@ -53,9 +52,6 @@
  * An opaque object representing a fence. This type is currently
  * unused but in the future may be used to pass extra information
  * about the fence completion.
- *
- * Since: 2.0
- * Stability: Unstable
  */
 typedef struct _CoglFence CoglFence;
 
@@ -69,9 +65,6 @@ typedef struct _CoglFence CoglFence;
  * The callback prototype used with
  * cogl_framebuffer_add_fence_callback() for notification of GPU
  * command completion.
- *
- * Since: 2.0
- * Stability: Unstable
  */
 typedef void (* CoglFenceCallback) (CoglFence *fence,
                                     void *user_data);
@@ -81,9 +74,6 @@ typedef void (* CoglFenceCallback) (CoglFence *fence,
  *
  * An opaque type representing one future callback to be made when the
  * GPU command stream has passed a certain point.
- *
- * Since: 2.0
- * Stability: Unstable
  */
 typedef struct _CoglFenceClosure CoglFenceClosure;
 
@@ -93,11 +83,8 @@ typedef struct _CoglFenceClosure CoglFenceClosure;
  *
  * Returns the user_data submitted to cogl_framebuffer_add_fence() which
  * returned a given #CoglFenceClosure.
- *
- * Since: 2.0
- * Stability: Unstable
  */
-void *
+COGL_EXPORT void *
 cogl_fence_closure_get_user_data (CoglFenceClosure *closure);
 
 /**
@@ -114,11 +101,8 @@ cogl_fence_closure_get_user_data (CoglFenceClosure *closure);
  * be inserted and the callback will never be called.  The user does not
  * need to free the closure; it will be freed automatically when the
  * callback is called, or cancelled.
- *
- * Since: 2.0
- * Stability: Unstable
  */
-CoglFenceClosure *
+COGL_EXPORT CoglFenceClosure *
 cogl_framebuffer_add_fence_callback (CoglFramebuffer *framebuffer,
                                      CoglFenceCallback callback,
                                      void *user_data);
@@ -132,12 +116,7 @@ cogl_framebuffer_add_fence_callback (CoglFramebuffer *framebuffer,
  * Removes a fence previously submitted with
  * cogl_framebuffer_add_fence_callback(); the callback will not be
  * called.
- *
- * Since: 2.0
- * Stability: Unstable
  */
-void
+COGL_EXPORT void
 cogl_framebuffer_cancel_fence_callback (CoglFramebuffer *framebuffer,
                                         CoglFenceClosure *closure);
-
-#endif /* __COGL_FENCE_H__ */

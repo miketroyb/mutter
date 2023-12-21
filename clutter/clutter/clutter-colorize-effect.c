@@ -23,34 +23,28 @@
  */
 
 /**
- * SECTION:clutter-colorize-effect
- * @short_description: A colorization effect
- * @see_also: #ClutterEffect, #ClutterOffscreenEffect
+ * ClutterColorizeEffect:
+ * 
+ * A colorization effect
  *
  * #ClutterColorizeEffect is a sub-class of #ClutterEffect that
  * colorizes an actor with the given tint.
- *
- * #ClutterColorizeEffect is available since Clutter 1.4
  */
 
 #define CLUTTER_COLORIZE_EFFECT_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), CLUTTER_TYPE_COLORIZE_EFFECT, ClutterColorizeEffectClass))
 #define CLUTTER_IS_COLORIZE_EFFECT_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), CLUTTER_TYPE_COLORIZE_EFFECT))
 #define CLUTTER_COLORIZE_EFFECT_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj), CLUTTER_TYPE_COLORIZE_EFFECT, ClutterColorizeEffectClass))
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
-#define CLUTTER_ENABLE_EXPERIMENTAL_API
-
-#include "clutter-colorize-effect.h"
+#include "clutter/clutter-colorize-effect.h"
 
 #include "cogl/cogl.h"
 
-#include "clutter-debug.h"
-#include "clutter-enum-types.h"
-#include "clutter-offscreen-effect.h"
-#include "clutter-private.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-enum-types.h"
+#include "clutter/clutter-offscreen-effect.h"
+#include "clutter/clutter-private.h"
 
 struct _ClutterColorizeEffect
 {
@@ -60,9 +54,6 @@ struct _ClutterColorizeEffect
   ClutterColor tint;
 
   gint tint_uniform;
-
-  gint tex_width;
-  gint tex_height;
 
   CoglPipeline *pipeline;
 };
@@ -106,66 +97,15 @@ G_DEFINE_TYPE (ClutterColorizeEffect,
                clutter_colorize_effect,
                CLUTTER_TYPE_OFFSCREEN_EFFECT);
 
-static gboolean
-clutter_colorize_effect_pre_paint (ClutterEffect *effect)
+static CoglPipeline *
+clutter_colorize_effect_create_pipeline (ClutterOffscreenEffect *effect,
+                                         CoglTexture            *texture)
 {
-  ClutterColorizeEffect *self = CLUTTER_COLORIZE_EFFECT (effect);
-  ClutterEffectClass *parent_class;
+  ClutterColorizeEffect *colorize_effect = CLUTTER_COLORIZE_EFFECT (effect);
 
-  if (!clutter_actor_meta_get_enabled (CLUTTER_ACTOR_META (effect)))
-    return FALSE;
+  cogl_pipeline_set_layer_texture (colorize_effect->pipeline, 0, texture);
 
-  if (!clutter_feature_available (CLUTTER_FEATURE_SHADERS_GLSL))
-    {
-      /* if we don't have support for GLSL shaders then we
-       * forcibly disable the ActorMeta
-       */
-      g_warning ("Unable to use the ShaderEffect: the graphics hardware "
-                 "or the current GL driver does not implement support "
-                 "for the GLSL shading language.");
-      clutter_actor_meta_set_enabled (CLUTTER_ACTOR_META (effect), FALSE);
-      return FALSE;
-    }
-
-  parent_class = CLUTTER_EFFECT_CLASS (clutter_colorize_effect_parent_class);
-  if (parent_class->pre_paint (effect))
-    {
-      ClutterOffscreenEffect *offscreen_effect =
-        CLUTTER_OFFSCREEN_EFFECT (effect);
-      CoglHandle texture;
-
-      texture = clutter_offscreen_effect_get_texture (offscreen_effect);
-      self->tex_width = cogl_texture_get_width (texture);
-      self->tex_height = cogl_texture_get_height (texture);
-
-      cogl_pipeline_set_layer_texture (self->pipeline, 0, texture);
-
-      return TRUE;
-    }
-  else
-    return FALSE;
-}
-
-static void
-clutter_colorize_effect_paint_target (ClutterOffscreenEffect *effect)
-{
-  ClutterColorizeEffect *self = CLUTTER_COLORIZE_EFFECT (effect);
-  ClutterActor *actor;
-  guint8 paint_opacity;
-
-  actor = clutter_actor_meta_get_actor (CLUTTER_ACTOR_META (effect));
-  paint_opacity = clutter_actor_get_paint_opacity (actor);
-
-  cogl_pipeline_set_color4ub (self->pipeline,
-                              paint_opacity,
-                              paint_opacity,
-                              paint_opacity,
-                              paint_opacity);
-  cogl_push_source (self->pipeline);
-
-  cogl_rectangle (0, 0, self->tex_width, self->tex_height);
-
-  cogl_pop_source ();
+  return cogl_object_ref (colorize_effect->pipeline);
 }
 
 static void
@@ -226,14 +166,11 @@ clutter_colorize_effect_get_property (GObject    *gobject,
 static void
 clutter_colorize_effect_class_init (ClutterColorizeEffectClass *klass)
 {
-  ClutterEffectClass *effect_class = CLUTTER_EFFECT_CLASS (klass);
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   ClutterOffscreenEffectClass *offscreen_class;
 
   offscreen_class = CLUTTER_OFFSCREEN_EFFECT_CLASS (klass);
-  offscreen_class->paint_target = clutter_colorize_effect_paint_target;
-
-  effect_class->pre_paint = clutter_colorize_effect_pre_paint;
+  offscreen_class->create_pipeline = clutter_colorize_effect_create_pipeline;
 
   gobject_class->set_property = clutter_colorize_effect_set_property;
   gobject_class->get_property = clutter_colorize_effect_get_property;
@@ -243,13 +180,9 @@ clutter_colorize_effect_class_init (ClutterColorizeEffectClass *klass)
    * ClutterColorizeEffect:tint:
    *
    * The tint to apply to the actor
-   *
-   * Since: 1.4
    */
   obj_props[PROP_TINT] =
-    clutter_param_spec_color ("tint",
-                              P_("Tint"),
-                              P_("The tint to apply"),
+    clutter_param_spec_color ("tint", NULL, NULL,
                               &default_tint,
                               CLUTTER_PARAM_READWRITE);
 
@@ -294,9 +227,7 @@ clutter_colorize_effect_init (ClutterColorizeEffect *self)
       cogl_pipeline_add_snippet (klass->base_pipeline, snippet);
       cogl_object_unref (snippet);
 
-      cogl_pipeline_set_layer_null_texture (klass->base_pipeline,
-                                            0, /* layer number */
-                                            COGL_TEXTURE_TYPE_2D);
+      cogl_pipeline_set_layer_null_texture (klass->base_pipeline, 0);
     }
 
   self->pipeline = cogl_pipeline_copy (klass->base_pipeline);
@@ -317,8 +248,6 @@ clutter_colorize_effect_init (ClutterColorizeEffect *self)
  * clutter_actor_add_effect()
  *
  * Return value: the newly created #ClutterColorizeEffect or %NULL
- *
- * Since: 1.4
  */
 ClutterEffect *
 clutter_colorize_effect_new (const ClutterColor *tint)
@@ -334,8 +263,6 @@ clutter_colorize_effect_new (const ClutterColor *tint)
  * @tint: the color to be used
  *
  * Sets the tint to be used when colorizing
- *
- * Since: 1.4
  */
 void
 clutter_colorize_effect_set_tint (ClutterColorizeEffect *effect,
@@ -358,8 +285,6 @@ clutter_colorize_effect_set_tint (ClutterColorizeEffect *effect,
  * @tint: (out caller-allocates): return location for the color used
  *
  * Retrieves the tint used by @effect
- *
- * Since: 1.4
  */
 void
 clutter_colorize_effect_get_tint (ClutterColorizeEffect *effect,

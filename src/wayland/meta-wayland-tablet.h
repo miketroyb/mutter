@@ -19,15 +19,14 @@
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#ifndef META_WAYLAND_TABLET_H
-#define META_WAYLAND_TABLET_H
+#pragma once
 
 #include <wayland-server.h>
 
 #include <glib.h>
 
-#include "meta-wayland-types.h"
-#include "meta-cursor-renderer.h"
+#include "backends/meta-cursor-renderer.h"
+#include "wayland/meta-wayland-types.h"
 
 struct _MetaWaylandTablet
 {
@@ -54,5 +53,3 @@ struct wl_resource *
 
 void         meta_wayland_tablet_notify              (MetaWaylandTablet  *tablet,
                                                       struct wl_resource *resource);
-
-#endif /* META_WAYLAND_TABLET_H */

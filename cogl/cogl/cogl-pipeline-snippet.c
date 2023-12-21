@@ -31,16 +31,14 @@
  *   Neil Roberts <neil@linux.intel.com>
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
 #include <string.h>
 
-#include "cogl-types.h"
-#include "cogl-pipeline-snippet-private.h"
-#include "cogl-snippet-private.h"
-#include "cogl-util.h"
+#include "cogl/cogl-types.h"
+#include "cogl/cogl-pipeline-snippet-private.h"
+#include "cogl/cogl-snippet-private.h"
+#include "cogl/cogl-util.h"
 
 /* Helper functions that are used by both GLSL pipeline backends */
 
@@ -270,7 +268,7 @@ _cogl_pipeline_snippet_list_hash (CoglPipelineSnippetList *list,
     }
 }
 
-CoglBool
+gboolean
 _cogl_pipeline_snippet_list_equal (CoglPipelineSnippetList *list0,
                                    CoglPipelineSnippetList *list1)
 {

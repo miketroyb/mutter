@@ -12,32 +12,28 @@
  * Library General Public License for more details.
  *
  * You should have received a copy of the GNU Library General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  *
  * Author: Stef Walter <stefw@collabora.co.uk>
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
-#include "clutter-text-buffer.h"
-#include "clutter-marshal.h"
-#include "clutter-private.h"
+#include "clutter/clutter-text-buffer.h"
+#include "clutter/clutter-marshal.h"
+#include "clutter/clutter-private.h"
 
 #include <string.h>
 
 /**
- * SECTION:clutter-text-buffer
- * @title: ClutterTextBuffer
- * @short_description: Text buffer for ClutterText
+ * ClutterTextBuffer:
+ * 
+ * Text buffer for [class@Text]
  *
  * The #ClutterTextBuffer class contains the actual text displayed in a
- * #ClutterText widget.
+ * [class@Text] widget.
  *
- * A single #ClutterTextBuffer object can be shared by multiple #ClutterText
+ * A single #ClutterTextBuffer object can be shared by multiple [class@Text]
  * widgets which will then share the same text content, but not the cursor
  * position, visibility attributes, icon etc.
  *
@@ -45,14 +41,13 @@
  * text to be stored in an alternate location, such as non-pageable memory,
  * useful in the case of important passwords. Or a derived class could
  * integrate with an application's concept of undo/redo.
- *
- * Since: 1.10
  */
 
 /* Initial size of buffer, in bytes */
 #define MIN_SIZE 16
 
-enum {
+enum
+{
   PROP_0,
   PROP_TEXT,
   PROP_LENGTH,
@@ -62,7 +57,8 @@ enum {
 
 static GParamSpec *obj_props[PROP_LAST] = { NULL, };
 
-enum {
+enum
+{
   INSERTED_TEXT,
   DELETED_TEXT,
   LAST_SIGNAL
@@ -171,7 +167,7 @@ clutter_text_buffer_normal_insert_text (ClutterTextBuffer *buffer,
 
   /* Actual text insertion */
   at = g_utf8_offset_to_pointer (pv->normal_text, position) - pv->normal_text;
-  g_memmove (pv->normal_text + at + n_bytes, pv->normal_text + at, pv->normal_text_bytes - at);
+  memmove (pv->normal_text + at + n_bytes, pv->normal_text + at, pv->normal_text_bytes - at);
   memcpy (pv->normal_text + at, chars, n_bytes);
 
   /* Book keeping */
@@ -201,7 +197,7 @@ clutter_text_buffer_normal_delete_text (ClutterTextBuffer *buffer,
       start = g_utf8_offset_to_pointer (pv->normal_text, position) - pv->normal_text;
       end = g_utf8_offset_to_pointer (pv->normal_text, position + n_chars) - pv->normal_text;
 
-      g_memmove (pv->normal_text + start, pv->normal_text + end, pv->normal_text_bytes + 1 - end);
+      memmove (pv->normal_text + start, pv->normal_text + end, pv->normal_text_bytes + 1 - end);
       pv->normal_text_chars -= n_chars;
       pv->normal_text_bytes -= (end - start);
 
@@ -228,8 +224,8 @@ clutter_text_buffer_real_inserted_text (ClutterTextBuffer *buffer,
                                      const gchar    *chars,
                                      guint           n_chars)
 {
-  g_object_notify (G_OBJECT (buffer), "text");
-  g_object_notify (G_OBJECT (buffer), "length");
+  g_object_notify_by_pspec (G_OBJECT (buffer), obj_props[PROP_TEXT]);
+  g_object_notify_by_pspec (G_OBJECT (buffer), obj_props[PROP_LENGTH]);
 }
 
 static void
@@ -237,8 +233,8 @@ clutter_text_buffer_real_deleted_text (ClutterTextBuffer *buffer,
                                     guint           position,
                                     guint           n_chars)
 {
-  g_object_notify (G_OBJECT (buffer), "text");
-  g_object_notify (G_OBJECT (buffer), "length");
+  g_object_notify_by_pspec (G_OBJECT (buffer), obj_props[PROP_TEXT]);
+  g_object_notify_by_pspec (G_OBJECT (buffer), obj_props[PROP_LENGTH]);
 }
 
 /* --------------------------------------------------------------------------------
@@ -339,13 +335,9 @@ clutter_text_buffer_class_init (ClutterTextBufferClass *klass)
    * ClutterTextBuffer:text:
    *
    * The contents of the buffer.
-   *
-   * Since: 1.10
    */
   obj_props[PROP_TEXT] =
-      g_param_spec_string ("text",
-                           P_("Text"),
-                           P_("The contents of the buffer"),
+      g_param_spec_string ("text", NULL, NULL,
                            "",
                            G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
@@ -353,13 +345,9 @@ clutter_text_buffer_class_init (ClutterTextBufferClass *klass)
    * ClutterTextBuffer:length:
    *
    * The length (in characters) of the text in buffer.
-   *
-   * Since: 1.10
    */
   obj_props[PROP_LENGTH] =
-      g_param_spec_uint ("length",
-                         P_("Text length"),
-                         P_("Length of the text currently in the buffer"),
+      g_param_spec_uint ("length", NULL, NULL,
                          0, CLUTTER_TEXT_BUFFER_MAX_SIZE, 0,
                          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
 
@@ -367,13 +355,9 @@ clutter_text_buffer_class_init (ClutterTextBufferClass *klass)
    * ClutterTextBuffer:max-length:
    *
    * The maximum length (in characters) of the text in the buffer.
-   *
-   * Since: 1.10
    */
   obj_props[PROP_MAX_LENGTH] =
-      g_param_spec_int ("max-length",
-                        P_("Maximum length"),
-                        P_("Maximum number of characters for this entry. Zero if no maximum"),
+      g_param_spec_int ("max-length", NULL, NULL,
                         0, CLUTTER_TEXT_BUFFER_MAX_SIZE, 0,
                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
@@ -387,8 +371,6 @@ clutter_text_buffer_class_init (ClutterTextBufferClass *klass)
    * @n_chars: The number of characters that were inserted.
    *
    * This signal is emitted after text is inserted into the buffer.
-   *
-   * Since: 1.10
    */
   signals[INSERTED_TEXT] =
     g_signal_new (I_("inserted-text"),
@@ -409,8 +391,6 @@ clutter_text_buffer_class_init (ClutterTextBufferClass *klass)
    * @n_chars: The number of characters that were deleted.
    *
    * This signal is emitted after text is deleted from the buffer.
-   *
-   * Since: 1.10
    */
   signals[DELETED_TEXT] =
     g_signal_new (I_("deleted-text"),
@@ -434,8 +414,6 @@ clutter_text_buffer_class_init (ClutterTextBufferClass *klass)
  * Create a new ClutterTextBuffer object.
  *
  * Return value: A new ClutterTextBuffer object.
- *
- * Since: 1.10
  **/
 ClutterTextBuffer*
 clutter_text_buffer_new (void)
@@ -452,8 +430,6 @@ clutter_text_buffer_new (void)
  * Create a new ClutterTextBuffer object with some text.
  *
  * Return value: A new ClutterTextBuffer object.
- *
- * Since: 1.10
  **/
 ClutterTextBuffer*
 clutter_text_buffer_new_with_text (const gchar   *text,
@@ -473,8 +449,6 @@ clutter_text_buffer_new_with_text (const gchar   *text,
  * Retrieves the length in characters of the buffer.
  *
  * Return value: The number of characters in the buffer.
- *
- * Since: 1.10
  **/
 guint
 clutter_text_buffer_get_length (ClutterTextBuffer *buffer)
@@ -494,11 +468,9 @@ clutter_text_buffer_get_length (ClutterTextBuffer *buffer)
  * @buffer: a #ClutterTextBuffer
  *
  * Retrieves the length in bytes of the buffer.
- * See clutter_text_buffer_get_length().
+ * See [method@TextBuffer.get_length].
  *
  * Return value: The byte length of the buffer.
- *
- * Since: 1.10
  **/
 gsize
 clutter_text_buffer_get_bytes (ClutterTextBuffer *buffer)
@@ -528,8 +500,6 @@ clutter_text_buffer_get_bytes (ClutterTextBuffer *buffer)
  *      string. This string points to internally allocated
  *      storage in the buffer and must not be freed, modified or
  *      stored.
- *
- * Since: 1.10
  **/
 const gchar*
 clutter_text_buffer_get_text (ClutterTextBuffer *buffer)
@@ -552,12 +522,10 @@ clutter_text_buffer_get_text (ClutterTextBuffer *buffer)
  *
  * Sets the text in the buffer.
  *
- * This is roughly equivalent to calling clutter_text_buffer_delete_text()
- * and clutter_text_buffer_insert_text().
+ * This is roughly equivalent to calling [method@TextBuffer.delete_text]
+ * and [method@TextBuffer.insert_text].
  *
  * Note that @n_chars is in characters, not in bytes.
- *
- * Since: 1.10
  **/
 void
 clutter_text_buffer_set_text (ClutterTextBuffer *buffer,
@@ -580,11 +548,10 @@ clutter_text_buffer_set_text (ClutterTextBuffer *buffer,
  *   (other than the maximum length of entries.) The value passed in will
  *   be clamped to the range [ 0, %CLUTTER_TEXT_BUFFER_MAX_SIZE ].
  *
- * Sets the maximum allowed length of the contents of the buffer. If
- * the current contents are longer than the given length, then they
- * will be truncated to fit.
- *
- * Since: 1.10
+ * Sets the maximum allowed length of the contents of the buffer. 
+ * 
+ * If the current contents are longer than the given length,
+ * then they will be truncated to fit.
  **/
 void
 clutter_text_buffer_set_max_length (ClutterTextBuffer *buffer,
@@ -598,7 +565,7 @@ clutter_text_buffer_set_max_length (ClutterTextBuffer *buffer,
     clutter_text_buffer_delete_text (buffer, max_length, -1);
 
   buffer->priv->max_length = max_length;
-  g_object_notify (G_OBJECT (buffer), "max-length");
+  g_object_notify_by_pspec (G_OBJECT (buffer), obj_props[PROP_MAX_LENGTH]);
 }
 
 /**
@@ -606,12 +573,10 @@ clutter_text_buffer_set_max_length (ClutterTextBuffer *buffer,
  * @buffer: a #ClutterTextBuffer
  *
  * Retrieves the maximum allowed length of the text in
- * @buffer. See clutter_text_buffer_set_max_length().
+ * @buffer. See [method@TextBuffer.set_max_length].
  *
  * Return value: the maximum allowed number of characters
  *               in #ClutterTextBuffer, or 0 if there is no maximum.
- *
- * Since: 1.10
  */
 gint
 clutter_text_buffer_get_max_length (ClutterTextBuffer *buffer)
@@ -638,8 +603,6 @@ clutter_text_buffer_get_max_length (ClutterTextBuffer *buffer)
  * Note that the position and length are in characters, not in bytes.
  *
  * Returns: The number of characters actually inserted.
- *
- * Since: 1.10
  */
 guint
 clutter_text_buffer_insert_text (ClutterTextBuffer *buffer,
@@ -694,8 +657,6 @@ clutter_text_buffer_insert_text (ClutterTextBuffer *buffer,
  * Note that the positions are specified in characters, not bytes.
  *
  * Returns: The number of characters deleted.
- *
- * Since: 1.10
  */
 guint
 clutter_text_buffer_delete_text (ClutterTextBuffer *buffer,
@@ -728,11 +689,9 @@ clutter_text_buffer_delete_text (ClutterTextBuffer *buffer,
  * @chars: text that was inserted
  * @n_chars: number of characters inserted
  *
- * Emits the #ClutterTextBuffer::inserted-text signal on @buffer.
+ * Emits the [signal@TextBuffer::inserted-text] signal on @buffer.
  *
  * Used when subclassing #ClutterTextBuffer
- *
- * Since: 1.10
  */
 void
 clutter_text_buffer_emit_inserted_text (ClutterTextBuffer *buffer,
@@ -750,11 +709,9 @@ clutter_text_buffer_emit_inserted_text (ClutterTextBuffer *buffer,
  * @position: position at which text was deleted
  * @n_chars: number of characters deleted
  *
- * Emits the #ClutterTextBuffer::deleted-text signal on @buffer.
+ * Emits the [signal@TextBuffer::deleted-text] signal on @buffer.
  *
  * Used when subclassing #ClutterTextBuffer
- *
- * Since: 1.10
  */
 void
 clutter_text_buffer_emit_deleted_text (ClutterTextBuffer *buffer,

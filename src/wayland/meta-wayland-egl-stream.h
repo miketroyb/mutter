@@ -14,22 +14,21 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jonas Ådahl <jadahl@gmail.com>
  */
 
-#ifndef META_WAYLAND_EGL_STREAM_H
-#define META_WAYLAND_EGL_STREAM_H
+#pragma once
 
 #include <glib.h>
 #include <glib-object.h>
 
 #include "cogl/cogl.h"
 #include "wayland/meta-wayland-types.h"
+
+gboolean meta_wayland_eglstream_controller_init (MetaWaylandCompositor *compositor);
 
 #define META_TYPE_WAYLAND_EGL_STREAM (meta_wayland_egl_stream_get_type ())
 G_DECLARE_FINAL_TYPE (MetaWaylandEglStream, meta_wayland_egl_stream,
@@ -45,8 +44,6 @@ gboolean meta_wayland_egl_stream_attach (MetaWaylandEglStream *stream,
 
 CoglTexture2D * meta_wayland_egl_stream_create_texture (MetaWaylandEglStream *stream,
                                                         GError              **error);
-CoglSnippet * meta_wayland_egl_stream_create_snippet (void);
+CoglSnippet * meta_wayland_egl_stream_create_snippet (MetaWaylandEglStream *stream);
 
 gboolean meta_wayland_egl_stream_is_y_inverted (MetaWaylandEglStream *stream);
-
-#endif /* META_WAYLAND_EGL_STREAM_H */

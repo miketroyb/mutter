@@ -21,15 +21,14 @@
  * Author: Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_TRANSITION_H__
-#define __CLUTTER_TRANSITION_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-types.h>
-#include <clutter/clutter-timeline.h>
+#include "clutter/clutter-types.h"
+#include "clutter/clutter-timeline.h"
 
 G_BEGIN_DECLS
 
@@ -43,14 +42,6 @@ G_BEGIN_DECLS
 typedef struct _ClutterTransitionPrivate        ClutterTransitionPrivate;
 typedef struct _ClutterTransitionClass          ClutterTransitionClass;
 
-/**
- * ClutterTransition:
- *
- * The #ClutterTransition structure contains private
- * data and should only be accessed using the provided API.
- *
- * Since: 1.10
- */
 struct _ClutterTransition
 {
   /*< private >*/
@@ -70,8 +61,6 @@ struct _ClutterTransition
  *
  * The #ClutterTransitionClass structure contains
  * private data.
- *
- * Since: 1.10
  */
 struct _ClutterTransitionClass
 {
@@ -88,45 +77,40 @@ struct _ClutterTransitionClass
                           ClutterAnimatable *animatable,
                           ClutterInterval   *interval,
                           gdouble            progress);
-
-  /*< private >*/
-  gpointer _padding[8];
 };
 
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 GType clutter_transition_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 void                    clutter_transition_set_interval                 (ClutterTransition *transition,
                                                                          ClutterInterval   *interval);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 ClutterInterval *       clutter_transition_get_interval                 (ClutterTransition *transition);
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                    clutter_transition_set_from_value               (ClutterTransition *transition,
                                                                          const GValue      *value);
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                    clutter_transition_set_to_value                 (ClutterTransition *transition,
                                                                          const GValue      *value);
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                    clutter_transition_set_from                     (ClutterTransition *transition,
                                                                          GType              value_type,
                                                                          ...);
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                    clutter_transition_set_to                       (ClutterTransition *transition,
                                                                          GType              value_type,
                                                                          ...);
 
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 void                    clutter_transition_set_animatable               (ClutterTransition *transition,
                                                                          ClutterAnimatable *animatable);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 ClutterAnimatable *     clutter_transition_get_animatable               (ClutterTransition *transition);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 void                    clutter_transition_set_remove_on_complete       (ClutterTransition *transition,
                                                                          gboolean           remove_complete);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 gboolean                clutter_transition_get_remove_on_complete       (ClutterTransition *transition);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_TRANSITION_H__ */

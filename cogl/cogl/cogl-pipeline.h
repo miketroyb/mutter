@@ -28,25 +28,24 @@
  *
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
-
-#ifndef __COGL_PIPELINE_H__
-#define __COGL_PIPELINE_H__
 
 /* We forward declare the CoglPipeline type here to avoid some circular
  * dependency issues with the following headers.
  */
 typedef struct _CoglPipeline CoglPipeline;
 
-#include <cogl/cogl-types.h>
-#include <cogl/cogl-context.h>
-#include <cogl/cogl-snippet.h>
+#include "cogl/cogl-types.h"
+#include "cogl/cogl-context.h"
+#include "cogl/cogl-snippet.h"
 
 #include <glib-object.h>
 
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 /**
  * SECTION:cogl-pipeline
@@ -69,21 +68,19 @@ COGL_BEGIN_DECLS
  *
  * Returns: a #GType that can be used with the GLib type system.
  */
+COGL_EXPORT
 GType cogl_pipeline_get_gtype (void);
 
 /**
- * cogl_pipeline_new:
+ * cogl_pipeline_new: (constructor)
  * @context: a #CoglContext
  *
  * Allocates and initializes a default simple pipeline that will color
  * a primitive white.
  *
  * Return value: (transfer full): a pointer to a new #CoglPipeline
- *
- * Since: 2.0
- * Stability: Unstable
  */
-CoglPipeline *
+COGL_EXPORT CoglPipeline *
 cogl_pipeline_new (CoglContext *context);
 
 /**
@@ -100,11 +97,8 @@ cogl_pipeline_new (CoglContext *context);
  * state changes.
  *
  * Return value: (transfer full): a pointer to the newly allocated #CoglPipeline
- *
- * Since: 2.0
- * Stability: Unstable
  */
-CoglPipeline *
+COGL_EXPORT CoglPipeline *
 cogl_pipeline_copy (CoglPipeline *source);
 
 /**
@@ -115,26 +109,20 @@ cogl_pipeline_copy (CoglPipeline *source);
  *
  * Return value: %TRUE if the @object references a #CoglPipeline,
  *   %FALSE otherwise
- *
- * Since: 2.0
- * Stability: Unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_is_pipeline (void *object);
 
 /**
  * CoglPipelineLayerCallback:
- * @pipeline: The #CoglPipeline whos layers are being iterated
+ * @pipeline: The #CoglPipeline whose layers are being iterated
  * @layer_index: The current layer index
  * @user_data: The private data passed to cogl_pipeline_foreach_layer()
  *
  * The callback prototype used with cogl_pipeline_foreach_layer() for
  * iterating all the layers of a @pipeline.
- *
- * Since: 2.0
- * Stability: Unstable
  */
-typedef CoglBool (*CoglPipelineLayerCallback) (CoglPipeline *pipeline,
+typedef gboolean (*CoglPipelineLayerCallback) (CoglPipeline *pipeline,
                                                int layer_index,
                                                void *user_data);
 
@@ -147,11 +135,8 @@ typedef CoglBool (*CoglPipelineLayerCallback) (CoglPipeline *pipeline,
  *             callback
  *
  * Iterates all the layer indices of the given @pipeline.
- *
- * Since: 2.0
- * Stability: Unstable
  */
-void
+COGL_EXPORT void
 cogl_pipeline_foreach_layer (CoglPipeline *pipeline,
                              CoglPipelineLayerCallback callback,
                              void *user_data);
@@ -172,14 +157,9 @@ cogl_pipeline_foreach_layer (CoglPipeline *pipeline,
  * before calling this function.
  *
  * Return value: A integer representing the location of the given uniform.
- *
- * Since: 2.0
- * Stability: Unstable
  */
-int
+COGL_EXPORT int
 cogl_pipeline_get_uniform_location (CoglPipeline *pipeline,
                                     const char *uniform_name);
 
-COGL_END_DECLS
-
-#endif /* __COGL_PIPELINE_H__ */
+G_END_DECLS

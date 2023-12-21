@@ -30,21 +30,26 @@
  * Authors:
  *   Owen Taylor <otaylor@redhat.com>
  */
+
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
 
-#ifndef __COGL_FRAME_INFO_H
-#define __COGL_FRAME_INFO_H
-
-#include <cogl/cogl-types.h>
-#include <cogl/cogl-output.h>
+#include "cogl/cogl-types.h"
+#include "cogl/cogl-output.h"
 
 #include <glib-object.h>
 #include <glib.h>
 
 G_BEGIN_DECLS
 
+/**
+ * CoglFrameInfo:
+ *
+ * Frame information.
+ */
 typedef struct _CoglFrameInfo CoglFrameInfo;
 #define COGL_FRAME_INFO(X) ((CoglFrameInfo *)(X))
 
@@ -53,6 +58,7 @@ typedef struct _CoglFrameInfo CoglFrameInfo;
  *
  * Returns: a #GType that can be used with the GLib type system.
  */
+COGL_EXPORT
 GType cogl_frame_info_get_gtype (void);
 
 /**
@@ -63,10 +69,8 @@ GType cogl_frame_info_get_gtype (void);
  *
  * Return value: %TRUE if the object references a #CoglFrameInfo
  *   and %FALSE otherwise.
- * Since: 2.0
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_is_frame_info (void *object);
 
 /**
@@ -77,34 +81,27 @@ cogl_is_frame_info (void *object);
  * to this frame.
  *
  * Return value: The frame counter value
- * Since: 1.14
- * Stability: unstable
  */
+COGL_EXPORT
 int64_t cogl_frame_info_get_frame_counter (CoglFrameInfo *info);
 
 /**
- * cogl_frame_info_get_presentation_time:
+ * cogl_frame_info_get_presentation_time_us:
  * @info: a #CoglFrameInfo object
  *
  * Gets the presentation time for the frame. This is the time at which
  * the frame became visible to the user.
  *
- * The presentation time measured in nanoseconds is based on a
- * monotonic time source. The time source is not necessarily
- * correlated with system/wall clock time and may represent the time
- * elapsed since some undefined system event such as when the system
- * last booted.
+ * The presentation time measured in microseconds, is based on
+ * CLOCK_MONOTONIC.
  *
- * <note>Linux kernel version less that 3.8 can result in
- * non-monotonic timestamps being reported when using a drm based
- * OpenGL driver. Also some buggy Mesa drivers up to 9.0.1 may also
+ * <note>Some buggy Mesa drivers up to 9.0.1 may
  * incorrectly report non-monotonic timestamps.</note>
  *
  * Return value: the presentation time for the frame
- * Since: 1.14
- * Stability: unstable
  */
-int64_t cogl_frame_info_get_presentation_time (CoglFrameInfo *info);
+COGL_EXPORT
+int64_t cogl_frame_info_get_presentation_time_us (CoglFrameInfo *info);
 
 /**
  * cogl_frame_info_get_refresh_rate:
@@ -120,30 +117,35 @@ int64_t cogl_frame_info_get_presentation_time (CoglFrameInfo *info);
  * cogl_output_get_refresh_rate().</note>
  *
  * Return value: the refresh rate in Hertz
- * Since: 1.14
- * Stability: unstable
  */
+COGL_EXPORT
 float cogl_frame_info_get_refresh_rate (CoglFrameInfo *info);
-
-/**
- * cogl_frame_info_get_output:
- * @info: a #CoglFrameInfo object
- *
- * Gets the #CoglOutput that the swapped frame was presented to.
- *
- * Return value: (transfer none): The #CoglOutput that the frame was
- *        presented to, or %NULL if this could not be determined.
- * Since: 1.14
- * Stability: unstable
- */
-CoglOutput *
-cogl_frame_info_get_output (CoglFrameInfo *info);
 
 /**
  * cogl_frame_info_get_global_frame_counter: (skip)
  */
+COGL_EXPORT
 int64_t cogl_frame_info_get_global_frame_counter (CoglFrameInfo *info);
 
-G_END_DECLS
+COGL_EXPORT
+gboolean cogl_frame_info_get_is_symbolic (CoglFrameInfo *info);
 
-#endif /* __COGL_FRAME_INFO_H */
+COGL_EXPORT
+gboolean cogl_frame_info_is_hw_clock (CoglFrameInfo *info);
+
+COGL_EXPORT
+gboolean cogl_frame_info_is_zero_copy (CoglFrameInfo *info);
+
+COGL_EXPORT
+gboolean cogl_frame_info_is_vsync (CoglFrameInfo *info);
+
+COGL_EXPORT
+unsigned int cogl_frame_info_get_sequence (CoglFrameInfo *info);
+
+COGL_EXPORT
+int64_t cogl_frame_info_get_rendering_duration_ns (CoglFrameInfo *info);
+
+COGL_EXPORT
+int64_t cogl_frame_info_get_time_before_buffer_swap_us (CoglFrameInfo *info);
+
+G_END_DECLS

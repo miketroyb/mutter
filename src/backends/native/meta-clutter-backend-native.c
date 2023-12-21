@@ -14,78 +14,91 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jonas Ådahl <jadahl@gmail.com>
  */
 
+/**
+ * MetaClutterBackendNative:
+ *
+ * A native backend which renders using EGL.
+ *
+ * MetaClutterBackendNative is the #ClutterBackend which is used by the native
+ * (as opposed to the X) backend. It creates a stage with #MetaStageNative and
+ * renders using the #CoglRenderer.
+ *
+ * Note that MetaClutterBackendNative is something different than a
+ * #MetaBackendNative. The former is a #ClutterBackend implementation, while
+ * the latter is a #MetaBackend implementation.
+ */
+
 #include "config.h"
+
+#include "backends/native/meta-clutter-backend-native.h"
 
 #include <glib-object.h>
 
 #include "backends/meta-backend-private.h"
 #include "backends/meta-renderer.h"
-#include "backends/native/meta-clutter-backend-native.h"
+#include "backends/native/meta-backend-native.h"
+#include "backends/native/meta-seat-native.h"
 #include "backends/native/meta-stage-native.h"
 #include "clutter/clutter.h"
-#include "meta/meta-backend.h"
 #include "core/bell.h"
+#include "meta/meta-backend.h"
 
 struct _MetaClutterBackendNative
 {
-  ClutterBackendEglNative parent;
+  ClutterBackend parent;
 
-  MetaStageNative *stage_native;
+  MetaBackend *backend;
 };
 
 G_DEFINE_TYPE (MetaClutterBackendNative, meta_clutter_backend_native,
-               CLUTTER_TYPE_BACKEND_EGL_NATIVE)
-
-MetaStageNative *
-meta_clutter_backend_native_get_stage_native (ClutterBackend *backend)
-{
-  MetaClutterBackendNative *clutter_backend_native =
-    META_CLUTTER_BACKEND_NATIVE (backend);
-
-  return clutter_backend_native->stage_native;
-}
+               CLUTTER_TYPE_BACKEND)
 
 static CoglRenderer *
 meta_clutter_backend_native_get_renderer (ClutterBackend  *clutter_backend,
                                           GError         **error)
 {
-  MetaBackend *backend = meta_get_backend ();
+  MetaClutterBackendNative *clutter_backend_nativen =
+    META_CLUTTER_BACKEND_NATIVE (clutter_backend);
+  MetaBackend *backend = clutter_backend_nativen->backend;
   MetaRenderer *renderer = meta_backend_get_renderer (backend);
 
   return meta_renderer_create_cogl_renderer (renderer);
 }
 
 static ClutterStageWindow *
-meta_clutter_backend_native_create_stage (ClutterBackend  *backend,
+meta_clutter_backend_native_create_stage (ClutterBackend  *clutter_backend,
                                           ClutterStage    *wrapper,
                                           GError         **error)
 {
   MetaClutterBackendNative *clutter_backend_native =
-    META_CLUTTER_BACKEND_NATIVE (backend);
+    META_CLUTTER_BACKEND_NATIVE (clutter_backend);
 
-  g_assert (!clutter_backend_native->stage_native);
-
-  clutter_backend_native->stage_native = g_object_new (META_TYPE_STAGE_NATIVE,
-                                                       "backend", backend,
-                                                       "wrapper", wrapper,
-                                                       NULL);
-  return CLUTTER_STAGE_WINDOW (clutter_backend_native->stage_native);
+  return g_object_new (META_TYPE_STAGE_NATIVE,
+                       "backend", clutter_backend_native->backend,
+                       "wrapper", wrapper,
+                       NULL);
 }
 
-static void
-meta_clutter_backend_native_bell_notify (ClutterBackend  *backend)
+static ClutterSeat *
+meta_clutter_backend_native_get_default_seat (ClutterBackend *clutter_backend)
 {
-  MetaDisplay *display = meta_get_display ();
+  MetaClutterBackendNative *clutter_backend_nativen =
+    META_CLUTTER_BACKEND_NATIVE (clutter_backend);
+  MetaBackend *backend = clutter_backend_nativen->backend;
 
-  meta_bell_notify (display, NULL);
+  return meta_backend_get_default_seat (backend);
+}
+
+static gboolean
+meta_clutter_backend_native_is_display_server (ClutterBackend *clutter_backend)
+{
+  return TRUE;
 }
 
 static void
@@ -100,5 +113,18 @@ meta_clutter_backend_native_class_init (MetaClutterBackendNativeClass *klass)
 
   clutter_backend_class->get_renderer = meta_clutter_backend_native_get_renderer;
   clutter_backend_class->create_stage = meta_clutter_backend_native_create_stage;
-  clutter_backend_class->bell_notify = meta_clutter_backend_native_bell_notify;
+  clutter_backend_class->get_default_seat = meta_clutter_backend_native_get_default_seat;
+  clutter_backend_class->is_display_server = meta_clutter_backend_native_is_display_server;
+}
+
+MetaClutterBackendNative *
+meta_clutter_backend_native_new (MetaBackend *backend)
+{
+  MetaClutterBackendNative *clutter_backend_native;
+
+  clutter_backend_native = g_object_new (META_TYPE_CLUTTER_BACKEND_NATIVE,
+                                         NULL);
+  clutter_backend_native->backend = backend;
+
+  return clutter_backend_native;
 }

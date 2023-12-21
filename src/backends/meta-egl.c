@@ -1,7 +1,8 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*- */
 
 /*
- * Copyright (C) 2016 Red Hat Inc.
+ * Copyright (C) 2016, 2017 Red Hat Inc.
+ * Copyright (C) 2018, 2019 DisplayLink (UK) Ltd.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -14,9 +15,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jonas Ådahl <jadahl@gmail.com>
@@ -24,16 +23,17 @@
 
 #include "config.h"
 
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <EGL/eglmesaext.h>
+#include <gio/gio.h>
+#include <glib.h>
+#include <glib-object.h>
+
 #include "backends/meta-backend-private.h"
 #include "backends/meta-egl.h"
 #include "backends/meta-egl-ext.h"
 #include "meta/util.h"
-
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
-#include <gio/gio.h>
-#include <glib.h>
-#include <glib-object.h>
 
 struct _MetaEgl
 {
@@ -44,6 +44,7 @@ struct _MetaEgl
   PFNEGLCREATEIMAGEKHRPROC eglCreateImageKHR;
   PFNEGLDESTROYIMAGEKHRPROC eglDestroyImageKHR;
 
+  PFNEGLBINDWAYLANDDISPLAYWL eglBindWaylandDisplayWL;
   PFNEGLQUERYWAYLANDBUFFERWL eglQueryWaylandBufferWL;
 
   PFNEGLQUERYDEVICESEXTPROC eglQueryDevicesEXT;
@@ -69,6 +70,8 @@ struct _MetaEgl
 
   PFNEGLQUERYDMABUFFORMATSEXTPROC eglQueryDmaBufFormatsEXT;
   PFNEGLQUERYDMABUFMODIFIERSEXTPROC eglQueryDmaBufModifiersEXT;
+
+  PFNEGLQUERYDISPLAYATTRIBEXTPROC eglQueryDisplayAttribEXT;
 };
 
 G_DEFINE_TYPE (MetaEgl, meta_egl, G_TYPE_OBJECT)
@@ -154,6 +157,9 @@ set_egl_error (GError **error)
     return;
 
   error_number = eglGetError ();
+  if (error_number == EGL_SUCCESS)
+    return;
+
   error_str = get_egl_error_str (error_number);
   g_set_error_literal (error, META_EGL_ERROR,
                        error_number,
@@ -161,13 +167,13 @@ set_egl_error (GError **error)
 }
 
 gboolean
-meta_extensions_string_has_extensions_valist (const char *extensions_str,
-                                              char     ***missing_extensions,
-                                              char       *first_extension,
-                                              va_list     var_args)
+meta_extensions_string_has_extensions_valist (const char   *extensions_str,
+                                              const char ***missing_extensions,
+                                              const char   *first_extension,
+                                              va_list       var_args)
 {
   char **extensions;
-  char *extension;
+  const char *extension;
   size_t num_missing_extensions = 0;
 
   if (missing_extensions)
@@ -203,10 +209,10 @@ meta_extensions_string_has_extensions_valist (const char *extensions_str,
 }
 
 gboolean
-meta_egl_has_extensions (MetaEgl   *egl,
-                         EGLDisplay display,
-                         char    ***missing_extensions,
-                         char      *first_extension,
+meta_egl_has_extensions (MetaEgl      *egl,
+                         EGLDisplay    display,
+                         const char ***missing_extensions,
+                         const char   *first_extension,
                          ...)
 {
   va_list var_args;
@@ -246,6 +252,20 @@ meta_egl_initialize (MetaEgl   *egl,
   return TRUE;
 }
 
+gboolean
+meta_egl_bind_api (MetaEgl  *egl,
+                   EGLenum   api,
+                   GError  **error)
+{
+  if (!eglBindAPI (api))
+    {
+      set_egl_error (error);
+      return FALSE;
+    }
+
+  return TRUE;
+}
+
 gpointer
 meta_egl_get_proc_address (MetaEgl    *egl,
                            const char *procname,
@@ -266,11 +286,31 @@ meta_egl_get_proc_address (MetaEgl    *egl,
 }
 
 gboolean
-meta_egl_choose_config (MetaEgl      *egl,
-                        EGLDisplay    display,
-                        const EGLint *attrib_list,
-                        EGLConfig    *chosen_config,
-                        GError      **error)
+meta_egl_get_config_attrib (MetaEgl     *egl,
+                            EGLDisplay   display,
+                            EGLConfig    config,
+                            EGLint       attribute,
+                            EGLint      *value,
+                            GError     **error)
+{
+  if (!eglGetConfigAttrib (display,
+                           config,
+                           attribute,
+                           value))
+    {
+      set_egl_error (error);
+      return FALSE;
+    }
+
+  return TRUE;
+}
+
+EGLConfig *
+meta_egl_choose_all_configs (MetaEgl       *egl,
+                             EGLDisplay     display,
+                             const EGLint  *attrib_list,
+                             EGLint        *out_num_configs,
+                             GError       **error)
 {
   EGLint num_configs;
   EGLConfig *configs;
@@ -296,6 +336,60 @@ meta_egl_choose_config (MetaEgl      *egl,
     {
       g_free (configs);
       set_egl_error (error);
+      return FALSE;
+    }
+
+  if (num_matches == 0)
+    {
+      g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED,
+                   "No matching EGL configs");
+      g_free (configs);
+      return NULL;
+    }
+
+  *out_num_configs = num_matches;
+  return configs;
+}
+
+gboolean
+meta_egl_choose_first_config (MetaEgl       *egl,
+                              EGLDisplay     display,
+                              const EGLint  *attrib_list,
+                              EGLConfig     *chosen_config,
+                              GError       **error)
+{
+  EGLint num_configs;
+  EGLConfig *configs;
+  EGLint num_matches;
+
+  if (!eglGetConfigs (display, NULL, 0, &num_configs))
+    {
+      set_egl_error (error);
+      return FALSE;
+    }
+
+  if (num_configs < 1)
+    {
+      g_set_error (error, G_IO_ERROR,
+                   G_IO_ERROR_FAILED,
+                   "No EGL configurations available");
+      return FALSE;
+    }
+
+  configs = g_new0 (EGLConfig, num_configs);
+
+  if (!eglChooseConfig (display, attrib_list, configs, num_configs, &num_matches))
+    {
+      g_free (configs);
+      set_egl_error (error);
+      return FALSE;
+    }
+
+  if (num_matches == 0)
+    {
+      g_free (configs);
+      g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED,
+                   "No matching EGLConfig found");
       return FALSE;
     }
 
@@ -500,6 +594,99 @@ meta_egl_destroy_image (MetaEgl    *egl,
   return TRUE;
 }
 
+EGLImageKHR
+meta_egl_create_dmabuf_image (MetaEgl         *egl,
+                              EGLDisplay       egl_display,
+                              unsigned int     width,
+                              unsigned int     height,
+                              uint32_t         drm_format,
+                              uint32_t         n_planes,
+                              const int       *fds,
+                              const uint32_t  *strides,
+                              const uint32_t  *offsets,
+                              const uint64_t  *modifiers,
+                              GError         **error)
+{
+  EGLint attribs[39];
+  int atti = 0;
+
+  /* This requires the Mesa commit in
+   * Mesa 10.3 (08264e5dad4df448e7718e782ad9077902089a07) or
+   * Mesa 10.2.7 (55d28925e6109a4afd61f109e845a8a51bd17652).
+   * Otherwise Mesa closes the fd behind our back and re-importing
+   * will fail.
+   * https://bugs.freedesktop.org/show_bug.cgi?id=76188
+   */
+
+  attribs[atti++] = EGL_WIDTH;
+  attribs[atti++] = width;
+  attribs[atti++] = EGL_HEIGHT;
+  attribs[atti++] = height;
+  attribs[atti++] = EGL_LINUX_DRM_FOURCC_EXT;
+  attribs[atti++] = drm_format;
+  attribs[atti++] = EGL_IMAGE_PRESERVED_KHR;
+  attribs[atti++] = EGL_TRUE;
+
+  if (n_planes > 0)
+    {
+      attribs[atti++] = EGL_DMA_BUF_PLANE0_FD_EXT;
+      attribs[atti++] = fds[0];
+      attribs[atti++] = EGL_DMA_BUF_PLANE0_OFFSET_EXT;
+      attribs[atti++] = offsets[0];
+      attribs[atti++] = EGL_DMA_BUF_PLANE0_PITCH_EXT;
+      attribs[atti++] = strides[0];
+      if (modifiers)
+        {
+          attribs[atti++] = EGL_DMA_BUF_PLANE0_MODIFIER_LO_EXT;
+          attribs[atti++] = modifiers[0] & 0xFFFFFFFF;
+          attribs[atti++] = EGL_DMA_BUF_PLANE0_MODIFIER_HI_EXT;
+          attribs[atti++] = modifiers[0] >> 32;
+        }
+    }
+
+  if (n_planes > 1)
+    {
+      attribs[atti++] = EGL_DMA_BUF_PLANE1_FD_EXT;
+      attribs[atti++] = fds[1];
+      attribs[atti++] = EGL_DMA_BUF_PLANE1_OFFSET_EXT;
+      attribs[atti++] = offsets[1];
+      attribs[atti++] = EGL_DMA_BUF_PLANE1_PITCH_EXT;
+      attribs[atti++] = strides[1];
+      if (modifiers)
+        {
+          attribs[atti++] = EGL_DMA_BUF_PLANE1_MODIFIER_LO_EXT;
+          attribs[atti++] = modifiers[1] & 0xFFFFFFFF;
+          attribs[atti++] = EGL_DMA_BUF_PLANE1_MODIFIER_HI_EXT;
+          attribs[atti++] = modifiers[1] >> 32;
+        }
+    }
+
+  if (n_planes > 2)
+    {
+      attribs[atti++] = EGL_DMA_BUF_PLANE2_FD_EXT;
+      attribs[atti++] = fds[2];
+      attribs[atti++] = EGL_DMA_BUF_PLANE2_OFFSET_EXT;
+      attribs[atti++] = offsets[2];
+      attribs[atti++] = EGL_DMA_BUF_PLANE2_PITCH_EXT;
+      attribs[atti++] = strides[2];
+      if (modifiers)
+        {
+          attribs[atti++] = EGL_DMA_BUF_PLANE2_MODIFIER_LO_EXT;
+          attribs[atti++] = modifiers[2] & 0xFFFFFFFF;
+          attribs[atti++] = EGL_DMA_BUF_PLANE2_MODIFIER_HI_EXT;
+          attribs[atti++] = modifiers[2] >> 32;
+        }
+    }
+
+  attribs[atti++] = EGL_NONE;
+  g_assert (atti <= G_N_ELEMENTS (attribs));
+
+  return meta_egl_create_image (egl, egl_display, EGL_NO_CONTEXT,
+                                EGL_LINUX_DMA_BUF_EXT, NULL,
+                                attribs,
+                                error);
+}
+
 gboolean
 meta_egl_make_current (MetaEgl   *egl,
                        EGLDisplay display,
@@ -533,6 +720,24 @@ meta_egl_swap_buffers (MetaEgl   *egl,
 }
 
 gboolean
+meta_egl_bind_wayland_display (MetaEgl            *egl,
+                               EGLDisplay          display,
+                               struct wl_display  *wayland_display,
+                               GError            **error)
+{
+  if (!is_egl_proc_valid (egl->eglBindWaylandDisplayWL, error))
+    return FALSE;
+
+  if (!egl->eglBindWaylandDisplayWL (display, wayland_display))
+    {
+      set_egl_error (error);
+      return FALSE;
+    }
+
+  return TRUE;
+}
+
+gboolean
 meta_egl_query_wayland_buffer (MetaEgl            *egl,
                                EGLDisplay          display,
                                struct wl_resource *buffer,
@@ -541,7 +746,7 @@ meta_egl_query_wayland_buffer (MetaEgl            *egl,
                                GError            **error)
 {
   if (!is_egl_proc_valid (egl->eglQueryWaylandBufferWL, error))
-   return FALSE;
+    return FALSE;
 
   if (!egl->eglQueryWaylandBufferWL (display, buffer, attribute, value))
     {
@@ -595,10 +800,10 @@ meta_egl_query_device_string (MetaEgl     *egl,
 }
 
 gboolean
-meta_egl_egl_device_has_extensions (MetaEgl     *egl,
-                                    EGLDeviceEXT device,
-                                    char      ***missing_extensions,
-                                    char        *first_extension,
+meta_egl_egl_device_has_extensions (MetaEgl        *egl,
+                                    EGLDeviceEXT    device,
+                                    const char   ***missing_extensions,
+                                    const char     *first_extension,
                                     ...)
 {
   va_list var_args;
@@ -894,7 +1099,26 @@ meta_egl_query_dma_buf_modifiers (MetaEgl      *egl,
       return FALSE;
     }
 
-    return TRUE;
+  return TRUE;
+}
+
+gboolean
+meta_egl_query_display_attrib (MetaEgl     *egl,
+                               EGLDisplay   display,
+                               EGLint       attribute,
+                               EGLAttrib   *value,
+                               GError     **error)
+{
+  if (!is_egl_proc_valid (egl->eglQueryDisplayAttribEXT, error))
+    return FALSE;
+
+  if (!egl->eglQueryDisplayAttribEXT (display, attribute, value))
+    {
+      set_egl_error (error);
+      return FALSE;
+    }
+
+  return TRUE;
 }
 
 #define GET_EGL_PROC_ADDR(proc) \
@@ -910,6 +1134,7 @@ meta_egl_constructed (GObject *object)
   GET_EGL_PROC_ADDR (eglCreateImageKHR);
   GET_EGL_PROC_ADDR (eglDestroyImageKHR);
 
+  GET_EGL_PROC_ADDR (eglBindWaylandDisplayWL);
   GET_EGL_PROC_ADDR (eglQueryWaylandBufferWL);
 
   GET_EGL_PROC_ADDR (eglQueryDevicesEXT);
@@ -935,6 +1160,8 @@ meta_egl_constructed (GObject *object)
 
   GET_EGL_PROC_ADDR (eglQueryDmaBufFormatsEXT);
   GET_EGL_PROC_ADDR (eglQueryDmaBufModifiersEXT);
+
+  GET_EGL_PROC_ADDR (eglQueryDisplayAttribEXT);
 }
 
 #undef GET_EGL_PROC_ADDR

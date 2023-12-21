@@ -15,29 +15,26 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
 /**
- * SECTION:cally-stage
- * @Title: CallyStage
- * @short_description: Implementation of the ATK interfaces for a #ClutterStage
- * @see_also: #ClutterStage
+ * CallyStage:
+ * 
+ * Implementation of the ATK interfaces for a #ClutterStage
  *
- * #CallyStage implements the required ATK interfaces for #ClutterStage
+ * #CallyStage implements the required ATK interfaces for [class@Clutter.Stage]
  *
  * Some implementation details: at this moment #CallyStage is used as
  * the most similar Window object in this toolkit (ie: emitting window
- * related signals), although the real purpose of #ClutterStage is
+ * related signals), although the real purpose of [class@Clutter.Stage] is
  * being a canvas. Anyway, this is required for applications using
- * just clutter, or directly #ClutterStage
+ * just clutter, or directly [class@Clutter.Stage]
  */
-#include "clutter-build-config.h"
+#include "clutter/clutter-build-config.h"
 
-#include "cally-stage.h"
-#include "cally-actor-private.h"
+#include "cally/cally-stage.h"
+#include "cally/cally-actor-private.h"
 
 /* AtkObject.h */
 static void                  cally_stage_real_initialize (AtkObject *obj,
@@ -47,7 +44,7 @@ static AtkStateSet*          cally_stage_ref_state_set   (AtkObject *obj);
 /* AtkWindow */
 static void                  cally_stage_window_interface_init (AtkWindowIface *iface);
 
-/* Auxiliar */
+/* Auxiliary */
 static void                  cally_stage_activate_cb     (ClutterStage *stage,
                                                           gpointer      data);
 static void                  cally_stage_deactivate_cb   (ClutterStage *stage,
@@ -63,7 +60,7 @@ struct _CallyStagePrivate
 
 G_DEFINE_TYPE_WITH_CODE (CallyStage,
                          cally_stage,
-                         CALLY_TYPE_GROUP,
+                         CALLY_TYPE_ACTOR,
                          G_ADD_PRIVATE (CallyStage)
                          G_IMPLEMENT_INTERFACE (ATK_TYPE_WINDOW,
                                                 cally_stage_window_interface_init));
@@ -93,11 +90,9 @@ cally_stage_init (CallyStage *cally_stage)
  * @actor: a #ClutterActor
  *
  * Creates a new #CallyStage for the given @actor. @actor should be a
- * #ClutterStage.
+ * [class@Clutter.Stage].
  *
  * Return value: the newly created #AtkObject
- *
- * Since: 1.4
  */
 AtkObject*
 cally_stage_new (ClutterActor *actor)
@@ -134,8 +129,11 @@ cally_stage_notify_key_focus_cb (ClutterStage *stage,
 
       if (self->priv->key_focus != NULL)
         {
-          g_object_remove_weak_pointer (G_OBJECT (self->priv->key_focus),
-                                        (gpointer *) &self->priv->key_focus);
+          if (self->priv->key_focus != CLUTTER_ACTOR (stage))
+            {
+              g_object_remove_weak_pointer (G_OBJECT (self->priv->key_focus),
+                                            (gpointer *) &self->priv->key_focus);
+            }
           old = clutter_actor_get_accessible (self->priv->key_focus);
         }
       else
@@ -160,8 +158,11 @@ cally_stage_notify_key_focus_cb (ClutterStage *stage,
        *
        * we remove the weak pointer above.
        */
-      g_object_add_weak_pointer (G_OBJECT (self->priv->key_focus),
-                                 (gpointer *) &self->priv->key_focus);
+      if (key_focus != CLUTTER_ACTOR (stage))
+        {
+          g_object_add_weak_pointer (G_OBJECT (self->priv->key_focus),
+                                     (gpointer *) &self->priv->key_focus);
+        }
 
       new = clutter_actor_get_accessible (key_focus);
     }
@@ -222,7 +223,7 @@ cally_stage_window_interface_init (AtkWindowIface *iface)
   /* At this moment AtkWindow is just about signals */
 }
 
-/* Auxiliar */
+/* Auxiliary */
 static void
 cally_stage_activate_cb     (ClutterStage *stage,
                              gpointer      data)

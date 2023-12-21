@@ -25,25 +25,51 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/**
- * SECTION:clutter-child-meta
- * @short_description: Wrapper for actors inside a container
- *
- * #ClutterChildMeta is a wrapper object created by #ClutterContainer
- * implementations in order to store child-specific data and properties.
- *
- * A #ClutterChildMeta wraps a #ClutterActor inside a #ClutterContainer.
- *
- * #ClutterChildMeta is available since Clutter 0.8
- */
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
 
-#include "clutter-child-meta.h"
-#include "clutter-container.h"
-#include "clutter-debug.h"
-#include "clutter-private.h"
+/**
+ * ClutterChildMeta:
+ * 
+ * Base interface for container specific state for child actors.
+ * 
+ * A child data is meant to be used when you need to keep track 
+ * of information about each individual child added to a container.
+ *
+ * In order to use it you should create your own subclass of
+ * #ClutterChildMeta and set the #ClutterContainerIface child_meta_type
+ * interface member to your subclass type, like:
+ *
+ * ```c
+ * static void
+ * my_container_iface_init (ClutterContainerIface *iface)
+ * {
+ *   // set the rest of the #ClutterContainer vtable
+ *
+ *   container_iface->child_meta_type  = MY_TYPE_CHILD_META;
+ * }
+ * ```
+ *
+ * This will automatically create a #ClutterChildMeta of type
+ * `MY_TYPE_CHILD_META` for every actor that is added to the container.
+ *
+ * The child data for an actor can be retrieved using the
+ * clutter_container_get_child_meta() function.
+ * 
+ * The properties of the data and your subclass can be manipulated with
+ * clutter_container_child_set() and clutter_container_child_get() which
+ * act like g_object_set() and g_object_get().
+ *
+ * You can provide hooks for your own storage as well as control the
+ * instantiation by overriding the #ClutterContainerIface virtual functions
+ * #ClutterContainerIface.create_child_meta(), #ClutterContainerIface.destroy_child_meta(),
+ * and #ClutterContainerIface.get_child_meta().
+ */
+
+#include "clutter/clutter-build-config.h"
+
+#include "clutter/clutter-child-meta.h"
+#include "clutter/clutter-container.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-private.h"
 
 G_DEFINE_ABSTRACT_TYPE (ClutterChildMeta, clutter_child_meta, G_TYPE_OBJECT);
 
@@ -119,13 +145,9 @@ clutter_child_meta_class_init (ClutterChildMetaClass *klass)
    * ClutterChildMeta:container:
    *
    * The #ClutterContainer that created this #ClutterChildMeta.
-   *
-   * Since: 0.8
    */
   obj_props[PROP_CONTAINER] =
-    g_param_spec_object ("container",
-                         P_("Container"),
-                         P_("The container that created this data"),
+    g_param_spec_object ("container", NULL, NULL,
                          CLUTTER_TYPE_CONTAINER,
                          G_PARAM_CONSTRUCT_ONLY |
                          CLUTTER_PARAM_READWRITE);
@@ -134,13 +156,9 @@ clutter_child_meta_class_init (ClutterChildMetaClass *klass)
    * ClutterChildMeta:actor:
    *
    * The #ClutterActor being wrapped by this #ClutterChildMeta
-   *
-   * Since: 0.8
    */
   obj_props[PROP_ACTOR] =
-    g_param_spec_object ("actor",
-                         P_("Actor"),
-                         P_("The actor wrapped by this data"),
+    g_param_spec_object ("actor", NULL, NULL,
                          CLUTTER_TYPE_ACTOR,
                          G_PARAM_CONSTRUCT_ONLY |
                          CLUTTER_PARAM_READWRITE);
@@ -162,8 +180,6 @@ clutter_child_meta_init (ClutterChildMeta *self)
  * Retrieves the container using @data
  *
  * Return value: (transfer none): a #ClutterContainer
- *
- * Since: 0.8
  */
 ClutterContainer *
 clutter_child_meta_get_container (ClutterChildMeta *data)
@@ -180,8 +196,6 @@ clutter_child_meta_get_container (ClutterChildMeta *data)
  * Retrieves the actor wrapped by @data
  *
  * Return value: (transfer none): a #ClutterActor
- *
- * Since: 0.8
  */
 ClutterActor *
 clutter_child_meta_get_actor (ClutterChildMeta *data)

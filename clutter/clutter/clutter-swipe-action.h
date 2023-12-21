@@ -26,14 +26,13 @@
  *   Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
+#pragma once
+
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#ifndef __CLUTTER_SWIPE_ACTION_H__
-#define __CLUTTER_SWIPE_ACTION_H__
-
-#include <clutter/clutter-gesture-action.h>
+#include "clutter/clutter-gesture-action.h"
 
 G_BEGIN_DECLS
 
@@ -48,14 +47,6 @@ typedef struct _ClutterSwipeAction              ClutterSwipeAction;
 typedef struct _ClutterSwipeActionPrivate       ClutterSwipeActionPrivate;
 typedef struct _ClutterSwipeActionClass         ClutterSwipeActionClass;
 
-/**
- * ClutterSwipeAction:
- *
- * The #ClutterSwipeAction structure contains
- * only private data and should be accessed using the provided API
- *
- * Since: 1.8
- */
 struct _ClutterSwipeAction
 {
   /*< private >*/
@@ -72,8 +63,6 @@ struct _ClutterSwipeAction
  *
  * The #ClutterSwipeActionClass structure contains
  * only private data.
- *
- * Since: 1.8
  */
 struct _ClutterSwipeActionClass
 {
@@ -84,26 +73,12 @@ struct _ClutterSwipeActionClass
   void (* swept)  (ClutterSwipeAction    *action,
                    ClutterActor          *actor,
                    ClutterSwipeDirection  direction);
-
-  gboolean (* swipe) (ClutterSwipeAction    *action,
-                      ClutterActor          *actor,
-                      ClutterSwipeDirection  direction);
-
-  /*< private >*/
-  void (* _clutter_swipe_action1) (void);
-  void (* _clutter_swipe_action2) (void);
-  void (* _clutter_swipe_action3) (void);
-  void (* _clutter_swipe_action4) (void);
-  void (* _clutter_swipe_action5) (void);
-  void (* _clutter_swipe_action6) (void);
 };
 
-CLUTTER_AVAILABLE_IN_1_8
+CLUTTER_EXPORT
 GType clutter_swipe_action_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_8
+CLUTTER_EXPORT
 ClutterAction * clutter_swipe_action_new        (void);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_SWIPE_ACTION_H__ */

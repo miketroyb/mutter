@@ -22,8 +22,9 @@
  */
 
 /**
- * SECTION:clutter-binding-pool
- * @short_description: Pool for key bindings
+ * ClutterBindingPool
+ * 
+ * Pool for key bindings
  *
  * #ClutterBindingPool is a data structure holding a set of key bindings.
  * Each key binding associates a key symbol (eventually with modifiers)
@@ -38,7 +39,7 @@
  * inside their class initialization function and then install actions
  * like this:
  *
- * |[<!-- language="C" -->
+ * ```c
  * static void
  * foo_class_init (FooClass *klass)
  * {
@@ -55,23 +56,23 @@
  *                                        G_CALLBACK (foo_action_move_up),
  *                                        NULL, NULL);
  * }
- * ]|
+ * ```
  *
  * The callback has a signature of:
  *
- * |[<!-- language="C" -->
+ * ```c
  *    gboolean (* callback) (GObject             *instance,
  *                           const gchar         *action_name,
  *                           guint                key_val,
  *                           ClutterModifierType  modifiers,
  *                           gpointer             user_data);
- * ]|
+ * ```
  *
- * The actor should then override the #ClutterActor::key-press-event and
- * use clutter_binding_pool_activate() to match a #ClutterKeyEvent structure
- * to one of the actions:
+ * The actor should then override the [signal@Actor::key-press-event] and
+ * use [method@BindingPool.activate] to match a [struct@Event] key event
+ * structure to one of the actions:
  *
- * |[<!-- language="C" -->
+ * ```c
  *   ClutterBindingPool *pool;
  *
  *   // retrieve the binding pool for the type of the actor
@@ -84,25 +85,21 @@
  *                                         key_event->keyval,
  *                                         key_event->modifier_state,
  *                                         G_OBJECT (actor));
- * ]|
+ * ```
  *
- * The clutter_binding_pool_activate() function will return %FALSE if
+ * The [method@BindingPool.activate] function will return %FALSE if
  * no action for the given key binding was found, if the action was
- * blocked (using clutter_binding_pool_block_action()) or if the
+ * blocked (using [method@BindingPool.block_action]) or if the
  * key binding handler returned %FALSE.
- *
- * #ClutterBindingPool is available since Clutter 1.0
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
-#include "clutter-binding-pool.h"
-#include "clutter-debug.h"
-#include "clutter-enum-types.h"
-#include "clutter-marshal.h"
-#include "clutter-private.h"
+#include "clutter/clutter-binding-pool.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-enum-types.h"
+#include "clutter/clutter-marshal.h"
+#include "clutter/clutter-private.h"
 
 #define CLUTTER_BINDING_POOL_CLASS(k)     (G_TYPE_CHECK_CLASS_CAST ((k), CLUTTER_TYPE_BINDING_POOL, ClutterBindingPoolClass))
 #define CLUTTER_IS_BINDING_POOL_CLASS(k)  (G_TYPE_CHECK_CLASS_TYPE ((k), CLUTTER_TYPE_BINDING_POOL))
@@ -191,7 +188,7 @@ binding_entry_new (const gchar         *name,
 
   modifiers = modifiers & BINDING_MOD_MASK;
 
-  entry = g_slice_new (ClutterBindingEntry);
+  entry = g_new0 (ClutterBindingEntry, 1);
   entry->key_val = key_val;
   entry->modifiers = modifiers;
   entry->name = (gchar *) g_intern_string (name);
@@ -223,7 +220,7 @@ binding_entry_free (gpointer data)
 
       g_closure_unref (entry->closure);
 
-      g_slice_free (ClutterBindingEntry, entry);
+      g_free (entry);
     }
 }
 
@@ -237,8 +234,7 @@ clutter_binding_pool_finalize (GObject *gobject)
 
   g_hash_table_destroy (pool->entries_hash);
 
-  g_slist_foreach (pool->entries, (GFunc) binding_entry_free, NULL);
-  g_slist_free (pool->entries);
+  g_slist_free_full (pool->entries, (GDestroyNotify) binding_entry_free);
 
   G_OBJECT_CLASS (clutter_binding_pool_parent_class)->finalize (gobject);
 }
@@ -310,13 +306,9 @@ clutter_binding_pool_class_init (ClutterBindingPoolClass *klass)
    * ClutterBindingPool:name:
    *
    * The unique name of the #ClutterBindingPool.
-   *
-   * Since: 1.0
    */
   obj_props[PROP_NAME] =
-    g_param_spec_string ("name",
-                         P_("Name"),
-                         P_("The unique name of the binding pool"),
+    g_param_spec_string ("name", NULL, NULL,
                          NULL,
                          CLUTTER_PARAM_READWRITE |
                          G_PARAM_CONSTRUCT_ONLY);
@@ -348,8 +340,6 @@ clutter_binding_pool_init (ClutterBindingPool *pool)
  *
  * Return value: the newly created binding pool with the given
  *   name. Use g_object_unref() when done.
- *
- * Since: 1.0
  */
 ClutterBindingPool *
 clutter_binding_pool_new (const gchar *name)
@@ -385,15 +375,13 @@ clutter_binding_pool_new (const gchar *name)
  * A binding pool for a class can also be retrieved using
  * clutter_binding_pool_find() with the class type name:
  *
- * |[
+ * ```
  *   pool = clutter_binding_pool_find (G_OBJECT_TYPE_NAME (instance));
- * ]|
+ * ```
  *
  * Return value: (transfer none): the binding pool for the given class.
  *   The returned #ClutterBindingPool is owned by Clutter and should not
  *   be freed directly
- *
- * Since: 1.0
  */
 ClutterBindingPool *
 clutter_binding_pool_get_for_class (gpointer klass)
@@ -424,8 +412,6 @@ clutter_binding_pool_get_for_class (gpointer klass)
  * Finds the #ClutterBindingPool with @name.
  *
  * Return value: (transfer none): a pointer to the #ClutterBindingPool, or %NULL
- *
- * Since: 1.0
  */
 ClutterBindingPool *
 clutter_binding_pool_find (const gchar *name)
@@ -468,8 +454,6 @@ clutter_binding_pool_find (const gchar *name)
  *
  * Actions can be blocked with clutter_binding_pool_block_action()
  * and then unblocked using clutter_binding_pool_unblock_action().
- *
- * Since: 1.0
  */
 void
 clutter_binding_pool_install_action (ClutterBindingPool  *pool,
@@ -538,8 +522,6 @@ clutter_binding_pool_install_action (ClutterBindingPool  *pool,
  *
  * Actions can be blocked with clutter_binding_pool_block_action()
  * and then unblocked using clutter_binding_pool_unblock_action().
- *
- * Since: 1.0
  */
 void
 clutter_binding_pool_install_closure (ClutterBindingPool  *pool,
@@ -601,8 +583,6 @@ clutter_binding_pool_install_closure (ClutterBindingPool  *pool,
  *
  * Actions can be blocked with clutter_binding_pool_block_action()
  * and then unblocked using clutter_binding_pool_unblock_action().
- *
- * Since: 1.0
  */
 void
 clutter_binding_pool_override_action (ClutterBindingPool  *pool,
@@ -665,8 +645,6 @@ clutter_binding_pool_override_action (ClutterBindingPool  *pool,
  *
  * Actions can be blocked with clutter_binding_pool_block_action()
  * and then unblocked using clutter_binding_pool_unblock_action().
- *
- * Since: 1.0
  */
 void
 clutter_binding_pool_override_closure (ClutterBindingPool  *pool,
@@ -720,8 +698,6 @@ clutter_binding_pool_override_closure (ClutterBindingPool  *pool,
  * Return value: the name of the action, if found, or %NULL. The
  *   returned string is owned by the binding pool and should never
  *   be modified or freed
- *
- * Since: 1.0
  */
 const gchar *
 clutter_binding_pool_find_action (ClutterBindingPool  *pool,
@@ -748,8 +724,6 @@ clutter_binding_pool_find_action (ClutterBindingPool  *pool,
  *
  * Removes the action matching the given @key_val, @modifiers pair,
  * if any exists.
- *
- * Since: 1.0
  */
 void
 clutter_binding_pool_remove_action (ClutterBindingPool  *pool,
@@ -835,13 +809,13 @@ clutter_binding_entry_invoke (ClutterBindingEntry *entry,
  *
  * The callback has the following signature:
  *
- * |[
+ * ```
  *   void (* callback) (GObject             *gobject,
  *                      const gchar         *action_name,
  *                      guint                key_val,
  *                      ClutterModifierType  modifiers,
  *                      gpointer             user_data);
- * ]|
+ * ```
  *
  * Where the #GObject instance is @gobject and the user data
  * is the one passed when installing the action with
@@ -852,8 +826,6 @@ clutter_binding_entry_invoke (ClutterBindingEntry *entry,
  * will not be invoked, and this function will return %FALSE.
  *
  * Return value: %TRUE if an action was found and was activated
- *
- * Since: 1.0
  */
 gboolean
 clutter_binding_pool_activate (ClutterBindingPool  *pool,
@@ -885,8 +857,6 @@ clutter_binding_pool_activate (ClutterBindingPool  *pool,
  * @action_name: an action name
  *
  * Blocks all the actions with name @action_name inside @pool.
- *
- * Since: 1.0
  */
 void
 clutter_binding_pool_block_action (ClutterBindingPool *pool,
@@ -916,8 +886,6 @@ clutter_binding_pool_block_action (ClutterBindingPool *pool,
  * Unblocking an action does not cause the callback bound to it to
  * be invoked in case clutter_binding_pool_activate() was called on
  * an action previously blocked with clutter_binding_pool_block_action().
- *
- * Since: 1.0
  */
 void
 clutter_binding_pool_unblock_action (ClutterBindingPool *pool,

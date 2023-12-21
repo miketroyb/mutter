@@ -31,23 +31,22 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
-
-#ifndef __COGL_ATTRIBUTE_BUFFER_H__
-#define __COGL_ATTRIBUTE_BUFFER_H__
 
 /* We forward declare the CoglAttributeBuffer type here to avoid some circular
  * dependency issues with the following headers.
  */
 typedef struct _CoglAttributeBuffer CoglAttributeBuffer;
 
-#include <cogl/cogl-context.h>
+#include "cogl/cogl-context.h"
 
 #include <glib-object.h>
 
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 /**
  * SECTION:cogl-attribute-buffer
@@ -64,6 +63,7 @@ COGL_BEGIN_DECLS
  *
  * Returns: a #GType that can be used with the GLib type system.
  */
+COGL_EXPORT
 GType cogl_attribute_buffer_get_gtype (void);
 
 /**
@@ -86,10 +86,8 @@ GType cogl_attribute_buffer_get_gtype (void);
  * %NULL
  *
  * Return value: (transfer full): A newly allocated #CoglAttributeBuffer. Never %NULL.
- *
- * Stability: Unstable
  */
-CoglAttributeBuffer *
+COGL_EXPORT CoglAttributeBuffer *
 cogl_attribute_buffer_new_with_size (CoglContext *context,
                                      size_t bytes);
 
@@ -118,11 +116,8 @@ cogl_attribute_buffer_new_with_size (CoglContext *context,
  * cogl_buffer_map().</note>
  *
  * Return value: (transfer full): A newly allocated #CoglAttributeBuffer (never %NULL)
- *
- * Since: 1.4
- * Stability: Unstable
  */
-CoglAttributeBuffer *
+COGL_EXPORT CoglAttributeBuffer *
 cogl_attribute_buffer_new (CoglContext *context,
                            size_t bytes,
                            const void *data);
@@ -135,14 +130,9 @@ cogl_attribute_buffer_new (CoglContext *context,
  *
  * Returns: %TRUE if @object references a #CoglAttributeBuffer,
  *   %FALSE otherwise
- *
- * Since: 1.4
- * Stability: Unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_is_attribute_buffer (void *object);
 
-COGL_END_DECLS
-
-#endif /* __COGL_ATTRIBUTE_BUFFER_H__ */
+G_END_DECLS
 

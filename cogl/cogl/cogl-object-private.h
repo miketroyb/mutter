@@ -29,18 +29,13 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifndef __COGL_OBJECT_PRIVATE_H
-#define __COGL_OBJECT_PRIVATE_H
+#pragma once
 
 #include <glib.h>
 
-#include "cogl-types.h"
-#include "cogl-object.h"
-#include "cogl-debug.h"
-
-/* For compatability until all components have been converted */
-typedef struct _CoglObjectClass CoglHandleClass;
-typedef struct _CoglObject      CoglHandleObject;
+#include "cogl/cogl-types.h"
+#include "cogl/cogl-object.h"
+#include "cogl/cogl-debug.h"
 
 /* XXX: sadly we didn't fully consider when we copied the cairo API
  * for _set_user_data that the callback doesn't get a pointer to the
@@ -202,7 +197,7 @@ COGL_OBJECT_COMMON_DEFINE_WITH_CODE(TypeName,                           \
                                     do { code; } while (0);             \
                                     _COGL_GTYPE_INIT_CLASS (type_name)) \
                                                                         \
-CoglBool                                                                \
+gboolean                                                                \
 cogl_is_##type_name (void *object)                                      \
 {                                                                       \
   CoglObject *obj = object;                                             \
@@ -217,7 +212,7 @@ cogl_is_##type_name (void *object)                                      \
                                                                         \
 COGL_OBJECT_COMMON_DEFINE_WITH_CODE(TypeName, type_name, code)          \
                                                                         \
-CoglBool                                                                \
+gboolean                                                                \
 cogl_is_##type_name (void *object)                                      \
 {                                                                       \
   CoglObject *obj = object;                                             \
@@ -232,7 +227,7 @@ cogl_is_##type_name (void *object)                                      \
                                                                         \
 COGL_OBJECT_COMMON_DEFINE_WITH_CODE(TypeName, type_name, code)          \
                                                                         \
-CoglBool                                                                \
+gboolean                                                                \
 _cogl_is_##type_name (void *object)                                     \
 {                                                                       \
   CoglObject *obj = object;                                             \
@@ -243,44 +238,13 @@ _cogl_is_##type_name (void *object)                                     \
   return obj->klass == &_cogl_##type_name##_class;                      \
 }
 
-#define COGL_OBJECT_DEFINE_DEPRECATED_REF_COUNTING(type_name)   \
-                                                                \
-void * G_GNUC_DEPRECATED                                        \
-cogl_##type_name##_ref (void *object)                           \
-{                                                               \
-  if (!cogl_is_##type_name (object))                            \
-    return NULL;                                                \
-                                                                \
-  _COGL_OBJECT_DEBUG_REF (TypeName, object);                    \
-                                                                \
-  cogl_handle_ref (object);                                     \
-                                                                \
-  return object;                                                \
-}                                                               \
-                                                                \
-void G_GNUC_DEPRECATED                                          \
-cogl_##type_name##_unref (void *object)                         \
-{                                                               \
-  if (!cogl_is_##type_name (object))                            \
-    {                                                           \
-      g_warning (G_STRINGIFY (cogl_##type_name##_unref)         \
-                 ": Ignoring unref of Cogl handle "             \
-                 "due to type mismatch");                       \
-      return;                                                   \
-    }                                                           \
-                                                                \
-  _COGL_OBJECT_DEBUG_UNREF (TypeName, object);                  \
-                                                                \
-  cogl_handle_unref (object);                                   \
-}
-
 #define COGL_OBJECT_DEFINE(TypeName, type_name)                 \
   COGL_OBJECT_DEFINE_WITH_CODE_GTYPE (TypeName, type_name, (void) 0)
 
 #define COGL_OBJECT_INTERNAL_DEFINE(TypeName, type_name)         \
   COGL_OBJECT_INTERNAL_DEFINE_WITH_CODE (TypeName, type_name, (void) 0)
 
-/* For temporary compatability */
+/* For temporary compatibility */
 #define COGL_HANDLE_INTERNAL_DEFINE_WITH_CODE(TypeName, type_name, code) \
                                                                          \
 COGL_OBJECT_INTERNAL_DEFINE_WITH_CODE (TypeName, type_name, code)        \
@@ -310,8 +274,5 @@ _cogl_object_set_user_data (CoglObject *object,
                             void *user_data,
                             CoglUserDataDestroyInternalCallback destroy);
 
-void
+COGL_EXPORT void
 _cogl_object_default_unref (void *obj);
-
-#endif /* __COGL_OBJECT_PRIVATE_H */
-

@@ -31,18 +31,17 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
 
-#ifndef __COGL_INDEX_BUFFER_H__
-#define __COGL_INDEX_BUFFER_H__
-
-#include <cogl/cogl-context.h>
+#include "cogl/cogl-context.h"
 
 #include <glib-object.h>
 
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 /**
  * SECTION:cogl-index-buffer
@@ -61,7 +60,7 @@ typedef struct _CoglIndexBuffer	      CoglIndexBuffer;
  *
  * Returns: a #GType that can be used with the GLib type system.
  */
-GType cogl_index_buffer_get_gtype (void);
+COGL_EXPORT GType cogl_index_buffer_get_gtype (void);
 
 /**
  * cogl_index_buffer_new:
@@ -74,11 +73,8 @@ GType cogl_index_buffer_get_gtype (void);
  * address space using cogl_buffer_map().
  *
  * Return value: (transfer full): A newly allocated #CoglIndexBuffer
- *
- * Since: 1.4
- * Stability: Unstable
  */
-CoglIndexBuffer *
+COGL_EXPORT CoglIndexBuffer *
 cogl_index_buffer_new (CoglContext *context,
                        size_t bytes);
 
@@ -90,14 +86,8 @@ cogl_index_buffer_new (CoglContext *context,
  *
  * Returns: %TRUE if the @object references a #CoglIndexBuffer,
  *   %FALSE otherwise
- *
- * Since: 1.4
- * Stability: Unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_is_index_buffer (void *object);
 
-COGL_END_DECLS
-
-#endif /* __COGL_INDEX_BUFFER_H__ */
-
+G_END_DECLS

@@ -67,7 +67,7 @@ typedef struct
 typedef struct
 {
   gboolean enabled;
-  MetaRectangle rect;
+  MtkRectangle rect;
   float refresh_rate;
   MetaMonitorTransform transform;
 
@@ -720,7 +720,7 @@ try_derive_tiled_monitor_config (MetaLegacyMonitorsConfig *config,
                                  MetaOutputKey            *output_key,
                                  MetaOutputConfig         *output_config,
                                  MetaMonitorConfigStore   *config_store,
-                                 MetaRectangle            *out_layout,
+                                 MtkRectangle             *out_layout,
                                  GError                  **error)
 {
   MonitorTile top_left_tile = { 0 };
@@ -752,7 +752,7 @@ try_derive_tiled_monitor_config (MetaLegacyMonitorsConfig *config,
     {
       MetaOutputKey *other_output_key = &config->keys[i];
       MetaOutputConfig *other_output_config = &config->outputs[i];
-      MetaRectangle *rect;
+      MtkRectangle *rect;
 
       if (strcmp (output_key->vendor, other_output_key->vendor) != 0 ||
           strcmp (output_key->product, other_output_key->product) != 0 ||
@@ -871,7 +871,7 @@ try_derive_tiled_monitor_config (MetaLegacyMonitorsConfig *config,
   if (!monitor_config)
     return NULL;
 
-  *out_layout = (MetaRectangle) {
+  *out_layout = (MtkRectangle) {
     .x = min_x,
     .y = min_y,
     .width = max_x - min_x,
@@ -884,7 +884,7 @@ try_derive_tiled_monitor_config (MetaLegacyMonitorsConfig *config,
 static MetaMonitorConfig *
 derive_monitor_config (MetaOutputKey    *output_key,
                        MetaOutputConfig *output_config,
-                       MetaRectangle    *out_layout,
+                       MtkRectangle     *out_layout,
                        GError          **error)
 {
   int mode_width;
@@ -916,7 +916,7 @@ derive_monitor_config (MetaOutputKey    *output_key,
 static MetaLogicalMonitorConfig *
 ensure_logical_monitor (GList           **logical_monitor_configs,
                         MetaOutputConfig *output_config,
-                        MetaRectangle    *layout)
+                        MtkRectangle     *layout)
 {
   MetaLogicalMonitorConfig *new_logical_monitor_config;
   GList *l;
@@ -925,7 +925,7 @@ ensure_logical_monitor (GList           **logical_monitor_configs,
     {
       MetaLogicalMonitorConfig *logical_monitor_config = l->data;
 
-      if (meta_rectangle_equal (&logical_monitor_config->layout, layout))
+      if (mtk_rectangle_equal (&logical_monitor_config->layout, layout))
         return logical_monitor_config;
     }
 
@@ -957,7 +957,7 @@ derive_logical_monitor_configs (MetaLegacyMonitorsConfig *config,
       MetaOutputKey *output_key = &config->keys[i];
       MetaOutputConfig *output_config = &config->outputs[i];
       MetaMonitorConfig *monitor_config = NULL;
-      MetaRectangle layout;
+      MtkRectangle layout;
       MetaLogicalMonitorConfig *logical_monitor_config;
 
       if (!output_config->enabled)
@@ -1190,6 +1190,9 @@ meta_finish_monitors_config_migration (MetaMonitorManager *monitor_manager,
   MetaMonitorConfigStore *config_store =
     meta_monitor_config_manager_get_store (config_manager);
   GList *l;
+  MetaLogicalMonitorLayoutMode layout_mode;
+
+  layout_mode = meta_monitor_manager_get_default_layout_mode (monitor_manager);
 
   for (l = config->logical_monitor_configs; l; l = l->next)
     {
@@ -1199,7 +1202,6 @@ meta_finish_monitors_config_migration (MetaMonitorManager *monitor_manager,
       MetaMonitor *monitor;
       MetaMonitorModeSpec *monitor_mode_spec;
       MetaMonitorMode *monitor_mode;
-      float scale;
 
       monitor_config = logical_monitor_config->monitor_configs->data;
       monitor_spec = monitor_config->monitor_spec;
@@ -1215,13 +1217,14 @@ meta_finish_monitors_config_migration (MetaMonitorManager *monitor_manager,
           return FALSE;
         }
 
-      scale = meta_monitor_calculate_mode_scale (monitor, monitor_mode);
-
-      logical_monitor_config->scale = scale;
+      logical_monitor_config->scale =
+        meta_monitor_manager_calculate_monitor_mode_scale (monitor_manager,
+                                                           layout_mode,
+                                                           monitor,
+                                                           monitor_mode);
     }
 
-  config->layout_mode =
-    meta_monitor_manager_get_default_layout_mode (monitor_manager);
+  config->layout_mode = layout_mode;
   config->flags &= ~META_MONITORS_CONFIG_FLAG_MIGRATED;
 
   if (!meta_verify_monitors_config (config, monitor_manager, error))

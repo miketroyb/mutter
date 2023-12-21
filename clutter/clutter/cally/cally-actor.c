@@ -23,12 +23,11 @@
  */
 
 /**
- * SECTION:cally-actor
- * @Title: CallyActor
- * @short_description: Implementation of the ATK interfaces for #ClutterActor
- * @see_also: #ClutterActor
+ * CallyActor:
+ * 
+ * Implementation of the ATK interfaces for [class@Clutter.Actor]
  *
- * #CallyActor implements the required ATK interfaces of #ClutterActor
+ * #CallyActor implements the required ATK interfaces of [class@Clutter.Actor]
  * exposing the common elements on each actor (position, extents, etc).
  */
 
@@ -42,7 +41,7 @@
  * has a key focus managed by the stage. Basically any actor can be focused using
  * clutter_stage_set_key_focus. So, we will use this approach: all actors are
  * focusable, and we get the currently focused using clutter_stage_get_key_focus
- * This affects focus related stateset and some atk_componenet focus methods (like
+ * This affects focus related stateset and some atk_component focus methods (like
  * grab focus).
  *
  * In the same way, we will manage the focus state change management
@@ -67,21 +66,17 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
 #include <glib.h>
-#include <clutter/clutter.h>
 
-#ifdef CLUTTER_WINDOWING_X11
-#include <clutter/x11/clutter-x11.h>
-#endif
+#include "clutter/clutter.h"
+#include "clutter/clutter-actor-private.h"
 
 #include <math.h>
 
-#include "cally-actor.h"
-#include "cally-actor-private.h"
+#include "cally/cally-actor.h"
+#include "cally/cally-actor-private.h"
 
 typedef struct _CallyActorActionInfo CallyActorActionInfo;
 
@@ -198,8 +193,6 @@ G_DEFINE_TYPE_WITH_CODE (CallyActor,
  * Creates a new #CallyActor for the given @actor
  *
  * Return value: the newly created #AtkObject
- *
- * Since: 1.4
  */
 AtkObject *
 cally_actor_new (ClutterActor *actor)
@@ -312,11 +305,7 @@ cally_actor_finalize (GObject *obj)
 
   _cally_actor_clean_action_list (cally_actor);
 
-  if (priv->action_idle_handler)
-    {
-      g_source_remove (priv->action_idle_handler);
-      priv->action_idle_handler = 0;
-    }
+  g_clear_handle_id (&priv->action_idle_handler, g_source_remove);
 
   if (priv->action_queue)
     {
@@ -606,10 +595,11 @@ cally_actor_real_remove_actor (ClutterActor *container,
   g_return_val_if_fail (CLUTTER_IS_ACTOR (actor), 0);
 
   atk_parent = ATK_OBJECT (data);
-  atk_child = clutter_actor_get_accessible (actor);
 
-  if (atk_child)
+  if (clutter_actor_has_accessible (actor))
     {
+      atk_child = clutter_actor_get_accessible (actor);
+
       g_value_init (&values.old_value, G_TYPE_POINTER);
       g_value_set_pointer (&values.old_value, atk_parent);
 
@@ -659,7 +649,7 @@ cally_actor_get_extents (AtkComponent *component,
   ClutterActor *actor      = NULL;
   gint          top_level_x, top_level_y;
   gfloat        f_width, f_height;
-  ClutterVertex verts[4];
+  graphene_point3d_t verts[4];
   ClutterActor  *stage = NULL;
 
   g_return_if_fail (CALLY_IS_ACTOR (component));
@@ -739,11 +729,7 @@ cally_actor_grab_focus (AtkComponent    *component)
  *
  * This gets the top level origin, it is, the position of the stage in
  * the global screen. You can see it as the absolute display position
- * of the stage.
- *
- * FIXME: only the case with x11 is implemented, other backends are
- * required
- *
+ * of the stage. This is 0,0 for a compositor.
  */
 void
 _cally_actor_get_top_level_origin (ClutterActor *actor,
@@ -751,54 +737,11 @@ _cally_actor_get_top_level_origin (ClutterActor *actor,
                                    gint         *yp)
 {
   /* default values */
-  gint x = 0;
-  gint y = 0;
-
-#ifdef CLUTTER_WINDOWING_X11
-  if (clutter_check_windowing_backend (CLUTTER_WINDOWING_X11))
-    {
-      ClutterActor *stage      = NULL;
-      Display *display    = NULL;
-      Window root_window;
-      Window stage_window;
-      Window child;
-      gint return_val = 0;
-
-      stage = clutter_actor_get_stage (actor);
-
-      /* FIXME: what happens if you use another display with
-         clutter_backend_x11_set_display ?*/
-      display = clutter_x11_get_default_display ();
-      root_window = clutter_x11_get_root_window ();
-      stage_window = clutter_x11_get_stage_window (CLUTTER_STAGE (stage));
-
-      return_val = XTranslateCoordinates (display, stage_window, root_window,
-                                          0, 0, &x, &y,
-                                          &child);
-
-      if (!return_val)
-        g_warning ("[x11] We were not able to get proper absolute "
-                   "position of the stage");
-    }
-  else
-#endif
-    {
-      static gboolean yet_warned = FALSE;
-
-      if (!yet_warned)
-        {
-          yet_warned = TRUE;
-
-          g_warning ("The current Clutter backend does not support using "
-                     "atk_component_get_extents() with ATK_XY_SCREEN.");
-        }
-    }
-
   if (xp)
-    *xp = x;
+    *xp = 0;
 
   if (yp)
-    *yp = y;
+    *yp = 0;
 }
 
 /* AtkAction implementation */
@@ -819,10 +762,11 @@ static gboolean
 cally_actor_action_do_action (AtkAction *action,
                              gint       index)
 {
-  CallyActor           *cally_actor = NULL;
-  AtkStateSet          *set         = NULL;
-  CallyActorPrivate    *priv        = NULL;
-  CallyActorActionInfo *info        = NULL;
+  CallyActor *cally_actor = NULL;
+  AtkStateSet *set = NULL;
+  CallyActorPrivate *priv = NULL;
+  CallyActorActionInfo *info = NULL;
+  gboolean did_action = FALSE;
 
   cally_actor = CALLY_ACTOR (action);
   priv = cally_actor->priv;
@@ -830,21 +774,19 @@ cally_actor_action_do_action (AtkAction *action,
   set = atk_object_ref_state_set (ATK_OBJECT (cally_actor));
 
   if (atk_state_set_contains_state (set, ATK_STATE_DEFUNCT))
-    return FALSE;
+    goto out;
 
   if (!atk_state_set_contains_state (set, ATK_STATE_SENSITIVE) ||
       !atk_state_set_contains_state (set, ATK_STATE_SHOWING))
-    return FALSE;
-
-  g_object_unref (set);
+    goto out;
 
   info = _cally_actor_get_action_info (cally_actor, index);
 
   if (info == NULL)
-    return FALSE;
+    goto out;
 
   if (info->do_action_func == NULL)
-    return FALSE;
+    goto out;
 
   if (!priv->action_queue)
     priv->action_queue = g_queue_new ();
@@ -854,7 +796,12 @@ cally_actor_action_do_action (AtkAction *action,
   if (!priv->action_idle_handler)
     priv->action_idle_handler = g_idle_add (idle_do_action, cally_actor);
 
-  return TRUE;
+  did_action = TRUE;
+
+out:
+  g_clear_object (&set);
+
+  return did_action;
 }
 
 static gboolean
@@ -1020,7 +967,7 @@ cally_actor_real_notify_clutter (GObject    *obj,
        * paint it; we don't want this to generate an ATK
        * state change
        */
-      if (clutter_actor_is_in_clone_paint (actor))
+      if (clutter_actor_is_painting_unmapped (actor))
         return;
 
       state = ATK_STATE_SHOWING;
@@ -1046,10 +993,8 @@ _cally_actor_clean_action_list (CallyActor *cally_actor)
 
   if (priv->action_list)
     {
-      g_list_foreach (priv->action_list,
-                      (GFunc) _cally_actor_destroy_action_info,
-                      NULL);
-      g_list_free (priv->action_list);
+      g_list_free_full (priv->action_list,
+                        (GDestroyNotify) _cally_actor_destroy_action_info);
       priv->action_list = NULL;
     }
 }
@@ -1087,8 +1032,6 @@ _cally_actor_get_action_info (CallyActor *cally_actor,
  * Adds a new action to be accessed with the #AtkAction interface.
  *
  * Return value: added action id, or -1 if failure
- *
- * Since: 1.4
  */
 guint
 cally_actor_add_action (CallyActor      *cally_actor,
@@ -1118,8 +1061,6 @@ cally_actor_add_action (CallyActor      *cally_actor,
  * Adds a new action to be accessed with the #AtkAction interface.
  *
  * Return value: added action id, or -1 if failure
- *
- * Since: 1.6
  */
 guint
 cally_actor_add_action_full (CallyActor          *cally_actor,
@@ -1138,7 +1079,7 @@ cally_actor_add_action_full (CallyActor          *cally_actor,
 
   priv = cally_actor->priv;
 
-  info = g_slice_new (CallyActorActionInfo);
+  info = g_new0 (CallyActorActionInfo, 1);
   info->name = g_strdup (action_name);
   info->description = g_strdup (action_description);
   info->keybinding = g_strdup (action_keybinding);
@@ -1156,11 +1097,9 @@ cally_actor_add_action_full (CallyActor          *cally_actor,
  * @cally_actor: a #CallyActor
  * @action_id: the action id
  *
- * Removes a action, using the @action_id returned by cally_actor_add_action()
+ * Removes a action, using the @action_id returned by [method@Actor.add_action]
  *
- * Return value: %TRUE if the operation was succesful, %FALSE otherwise
- *
- * Since: 1.4
+ * Return value: %TRUE if the operation was successful, %FALSE otherwise
  */
 gboolean
 cally_actor_remove_action (CallyActor *cally_actor,
@@ -1190,11 +1129,9 @@ cally_actor_remove_action (CallyActor *cally_actor,
  * @action_name: the name of the action to remove
  *
  * Removes an action, using the @action_name used when the action was added
- * with cally_actor_add_action()
+ * with [method@Actor.add_action]
  *
- * Return value: %TRUE if the operation was succesful, %FALSE otherwise
- *
- * Since: 1.4
+ * Return value: %TRUE if the operation was successful, %FALSE otherwise
  */
 gboolean
 cally_actor_remove_action_by_name (CallyActor  *cally_actor,
@@ -1243,5 +1180,5 @@ _cally_actor_destroy_action_info (gpointer action_info,
   if (info->notify)
     info->notify (info->user_data);
 
-  g_slice_free (CallyActorActionInfo, info);
+  g_free (info);
 }

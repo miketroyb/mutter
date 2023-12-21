@@ -18,13 +18,14 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __META_REGION_UTILS_H__
-#define __META_REGION_UTILS_H__
-
-#include <clutter/clutter.h>
+#pragma once
 
 #include <cairo.h>
 #include <glib.h>
+
+#include "backends/meta-backend-types.h"
+#include "clutter/clutter.h"
+#include "core/boxes-private.h"
 
 /**
  * MetaRegionIterator:
@@ -51,14 +52,14 @@ typedef struct _MetaRegionIterator MetaRegionIterator;
 
 struct _MetaRegionIterator {
   cairo_region_t *region;
-  cairo_rectangle_int_t rectangle;
+  MtkRectangle rectangle;
   gboolean line_start;
   gboolean line_end;
   int i;
 
   /*< private >*/
   int n_rectangles;
-  cairo_rectangle_int_t next_rectangle;
+  MtkRectangle next_rectangle;
 };
 
 typedef struct _MetaRegionBuilder MetaRegionBuilder;
@@ -92,11 +93,27 @@ void     meta_region_iterator_init      (MetaRegionIterator *iter,
 gboolean meta_region_iterator_at_end    (MetaRegionIterator *iter);
 void     meta_region_iterator_next      (MetaRegionIterator *iter);
 
-cairo_region_t *meta_region_scale (cairo_region_t *region, int scale);
+cairo_region_t * meta_region_scale (cairo_region_t *region,
+                                    int             scale);
 
-cairo_region_t *meta_make_border_region (cairo_region_t *region,
-                                         int             x_amount,
-                                         int             y_amount,
-                                         gboolean        flip);
+cairo_region_t * meta_make_border_region (cairo_region_t *region,
+                                          int             x_amount,
+                                          int             y_amount,
+                                          gboolean        flip);
 
-#endif /* __META_REGION_UTILS_H__ */
+cairo_region_t * meta_region_transform (const cairo_region_t *region,
+                                        MetaMonitorTransform  transform,
+                                        int                   width,
+                                        int                   height);
+
+cairo_region_t * meta_region_crop_and_scale (cairo_region_t  *region,
+                                             graphene_rect_t *src_rect,
+                                             int              dst_width,
+                                             int              dst_height);
+
+void meta_region_to_cairo_path (cairo_region_t *region,
+                                cairo_t        *cr);
+
+cairo_region_t *
+meta_region_apply_matrix_transform_expand (const cairo_region_t *region,
+                                           graphene_matrix_t    *transform);

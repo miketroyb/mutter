@@ -31,23 +31,22 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
-
-#ifndef __COGL_INDICES_H__
-#define __COGL_INDICES_H__
 
 /* We forward declare the CoglIndices type here to avoid some circular
  * dependency issues with the following headers.
  */
 typedef struct _CoglIndices CoglIndices;
 
-#include <cogl/cogl-index-buffer.h>
+#include "cogl/cogl-index-buffer.h"
 
 #include <glib-object.h>
 
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 /**
  * SECTION:cogl-indices
@@ -72,11 +71,11 @@ COGL_BEGIN_DECLS
  * For example, to describe a quadrilateral as 2 triangles for the GPU
  * you could either provide data with 6 vertices or instead with
  * indices you can provide vertex data for just 4 vertices and an
- * index buffer that specfies the 6 vertices by indexing the shared
+ * index buffer that specifies the 6 vertices by indexing the shared
  * vertices multiple times.
  *
  * |[
- *   CoglVertex2f quad_vertices[] = {
+ *   CoglVertexP2 quad_vertices[] = {
  *     {x0, y0}, //0 = top left
  *     {x1, y1}, //1 = bottom left
  *     {x2, y2}, //2 = bottom right
@@ -94,7 +93,7 @@ COGL_BEGIN_DECLS
  * Something else to consider is that often indices can be defined
  * once and remain static while the vertex data may change for
  * animations perhaps. That means you may be able to ignore the
- * negligable cost of mapping your indices into the GPU if they don't
+ * negligible cost of mapping your indices into the GPU if they don't
  * ever change.
  *
  * The above illustration is actually a good example of static indices
@@ -112,33 +111,34 @@ COGL_BEGIN_DECLS
  *
  * Returns: a #GType that can be used with the GLib type system.
  */
+COGL_EXPORT
 GType cogl_indices_get_gtype (void);
 
-CoglIndices *
+COGL_EXPORT CoglIndices *
 cogl_indices_new (CoglContext *context,
                   CoglIndicesType type,
                   const void *indices_data,
                   int n_indices);
 
-CoglIndices *
+COGL_EXPORT CoglIndices *
 cogl_indices_new_for_buffer (CoglIndicesType type,
                              CoglIndexBuffer *buffer,
                              size_t offset);
 
-CoglIndexBuffer *
+COGL_EXPORT CoglIndexBuffer *
 cogl_indices_get_buffer (CoglIndices *indices);
 
-CoglIndicesType
+COGL_EXPORT CoglIndicesType
 cogl_indices_get_type (CoglIndices *indices);
 
-size_t
+COGL_EXPORT size_t
 cogl_indices_get_offset (CoglIndices *indices);
 
-void
+COGL_EXPORT void
 cogl_indices_set_offset (CoglIndices *indices,
                          size_t offset);
 
-CoglIndices *
+COGL_EXPORT CoglIndices *
 cogl_get_rectangle_indices (CoglContext *context, int n_rectangles);
 
 /**
@@ -149,13 +149,8 @@ cogl_get_rectangle_indices (CoglContext *context, int n_rectangles);
  *
  * Return value: %TRUE if the object references a #CoglIndices
  *   and %FALSE otherwise.
- * Since: 1.10
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_is_indices (void *object);
 
-COGL_END_DECLS
-
-#endif /* __COGL_INDICES_H__ */
-
+G_END_DECLS

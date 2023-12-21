@@ -19,36 +19,38 @@
  */
 
 /**
- * SECTION:meta-dnd-actor
- * @title: MetaDnDActor
- * @short_description: Actor for painting the drag and drop surface
+ * MetaDnDActor:
+ *
+ * Actor for painting the drag and drop surface
  *
  */
 
-#include <config.h>
+#include "config.h"
 
-#include <clutter/clutter.h>
+#include "compositor/meta-dnd-actor-private.h"
+#include "compositor/meta-window-actor-private.h"
 
-#include "meta-dnd-actor-private.h"
+#include "clutter/clutter.h"
 
 #define DRAG_FAILED_DURATION 500
 
-enum {
+enum
+{
   PROP_DRAG_ORIGIN = 1,
   PROP_DRAG_START_X,
   PROP_DRAG_START_Y
 };
 
-typedef struct _MetaDnDActorPrivate MetaDnDActorPrivate;
-
-struct _MetaDnDActorPrivate
+struct _MetaDnDActor
 {
+  MetaFeedbackActor parent;
+
   ClutterActor *drag_origin;
   int drag_start_x;
   int drag_start_y;
 };
 
-G_DEFINE_TYPE_WITH_PRIVATE (MetaDnDActor, meta_dnd_actor, META_TYPE_FEEDBACK_ACTOR)
+G_DEFINE_TYPE (MetaDnDActor, meta_dnd_actor, META_TYPE_FEEDBACK_ACTOR)
 
 static void
 meta_dnd_actor_set_property (GObject      *object,
@@ -57,18 +59,17 @@ meta_dnd_actor_set_property (GObject      *object,
                              GParamSpec   *pspec)
 {
   MetaDnDActor *self = META_DND_ACTOR (object);
-  MetaDnDActorPrivate *priv = meta_dnd_actor_get_instance_private (self);
 
   switch (prop_id)
     {
     case PROP_DRAG_ORIGIN:
-      priv->drag_origin = g_value_get_object (value);
+      self->drag_origin = g_value_get_object (value);
       break;
     case PROP_DRAG_START_X:
-      priv->drag_start_x = g_value_get_int (value);
+      self->drag_start_x = g_value_get_int (value);
       break;
     case PROP_DRAG_START_Y:
-      priv->drag_start_y = g_value_get_int (value);
+      self->drag_start_y = g_value_get_int (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -83,18 +84,17 @@ meta_dnd_actor_get_property (GObject      *object,
                              GParamSpec   *pspec)
 {
   MetaDnDActor *self = META_DND_ACTOR (object);
-  MetaDnDActorPrivate *priv = meta_dnd_actor_get_instance_private (self);
 
   switch (prop_id)
     {
     case PROP_DRAG_ORIGIN:
-      g_value_set_object (value, priv->drag_origin);
+      g_value_set_object (value, self->drag_origin);
       break;
     case PROP_DRAG_START_X:
-      g_value_set_int (value, priv->drag_start_x);
+      g_value_set_int (value, self->drag_start_x);
       break;
     case PROP_DRAG_START_Y:
-      g_value_set_int (value, priv->drag_start_y);
+      g_value_set_int (value, self->drag_start_y);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -111,9 +111,7 @@ meta_dnd_actor_class_init (MetaDnDActorClass *klass)
   object_class->set_property = meta_dnd_actor_set_property;
   object_class->get_property = meta_dnd_actor_get_property;
 
-  pspec = g_param_spec_object ("drag-origin",
-                               "Drag origin",
-                               "The origin of the DnD operation",
+  pspec = g_param_spec_object ("drag-origin", NULL, NULL,
                                CLUTTER_TYPE_ACTOR,
                                G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 
@@ -121,9 +119,7 @@ meta_dnd_actor_class_init (MetaDnDActorClass *klass)
                                    PROP_DRAG_ORIGIN,
                                    pspec);
 
-  pspec = g_param_spec_int ("drag-start-x",
-                            "Drag start X",
-                            "The X axis of the drag start point",
+  pspec = g_param_spec_int ("drag-start-x", NULL, NULL,
                             0, G_MAXINT, 0,
                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 
@@ -131,9 +127,7 @@ meta_dnd_actor_class_init (MetaDnDActorClass *klass)
                                    PROP_DRAG_START_X,
                                    pspec);
 
-  pspec = g_param_spec_int ("drag-start-y",
-                            "Drag start Y",
-                            "The Y axis of the drag start point",
+  pspec = g_param_spec_int ("drag-start-y", NULL, NULL,
                             0, G_MAXINT, 0,
                             G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 
@@ -155,13 +149,15 @@ meta_dnd_actor_init (MetaDnDActor *self)
  * Return value: the newly created background actor
  */
 ClutterActor *
-meta_dnd_actor_new (ClutterActor *drag_origin,
-                    int           drag_start_x,
-                    int           drag_start_y)
+meta_dnd_actor_new (MetaCompositor *compositor,
+                    ClutterActor   *drag_origin,
+                    int             drag_start_x,
+                    int             drag_start_y)
 {
   MetaDnDActor *self;
 
   self = g_object_new (META_TYPE_DND_ACTOR,
+                       "compositor", compositor,
                        "drag-origin", drag_origin,
                        "drag-start-x", drag_start_x,
                        "drag-start-y", drag_start_y,
@@ -185,13 +181,11 @@ void
 meta_dnd_actor_drag_finish (MetaDnDActor *self,
                             gboolean      success)
 {
-  MetaDnDActorPrivate *priv;
   ClutterActor *actor;
 
   g_return_if_fail (META_IS_DND_ACTOR (self));
 
   actor = CLUTTER_ACTOR (self);
-  priv = meta_dnd_actor_get_instance_private (self);
 
   if (success)
     {
@@ -207,18 +201,31 @@ meta_dnd_actor_drag_finish (MetaDnDActor *self,
       clutter_actor_set_easing_duration (actor, DRAG_FAILED_DURATION);
       clutter_actor_set_opacity (actor, 0);
 
-      if (CLUTTER_ACTOR_IS_VISIBLE (priv->drag_origin))
+      if (clutter_actor_is_visible (self->drag_origin))
         {
-          int anchor_x, anchor_y;
-          ClutterPoint dest;
+          MetaWindowActor *origin_actor;
+          float anchor_x, anchor_y;
+          graphene_point_t dest;
+          int origin_geometry_scale;
+          int feedback_geometry_scale;
 
-          clutter_actor_get_transformed_position (priv->drag_origin,
+          clutter_actor_get_transformed_position (self->drag_origin,
                                                   &dest.x, &dest.y);
+
+          origin_actor = meta_window_actor_from_actor (self->drag_origin);
+          g_return_if_fail (origin_actor);
+          origin_geometry_scale =
+            meta_window_actor_get_geometry_scale (origin_actor);
+
           meta_feedback_actor_get_anchor (META_FEEDBACK_ACTOR (self),
                                           &anchor_x, &anchor_y);
+          feedback_geometry_scale =
+            meta_feedback_actor_get_geometry_scale (META_FEEDBACK_ACTOR (self));
 
-          dest.x += priv->drag_start_x - anchor_x;
-          dest.y += priv->drag_start_y - anchor_y;
+          dest.x += ((self->drag_start_x * origin_geometry_scale) -
+                     (anchor_x * feedback_geometry_scale));
+          dest.y += ((self->drag_start_y * origin_geometry_scale) -
+                     (anchor_y * feedback_geometry_scale));
           clutter_actor_set_position (actor, dest.x, dest.y);
         }
 

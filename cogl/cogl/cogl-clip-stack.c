@@ -28,39 +28,33 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
 #include <string.h>
 #include <math.h>
 
 #include <glib.h>
 
-#include "cogl-clip-stack.h"
-#include "cogl-primitives.h"
-#include "cogl-context-private.h"
-#include "cogl-framebuffer-private.h"
-#include "cogl-journal-private.h"
-#include "cogl-util.h"
-#include "cogl-matrix-private.h"
-#include "cogl-primitives-private.h"
-#include "cogl-private.h"
-#include "cogl-pipeline-opengl-private.h"
-#include "cogl-attribute-private.h"
-#include "cogl-primitive-private.h"
-#include "cogl1-context.h"
-#include "cogl-offscreen.h"
-#include "cogl-matrix-stack.h"
-
-
+#include "cogl/cogl-clip-stack.h"
+#include "cogl/cogl-context-private.h"
+#include "cogl/cogl-framebuffer-private.h"
+#include "cogl/cogl-journal-private.h"
+#include "cogl/cogl-util.h"
+#include "cogl/cogl-primitives-private.h"
+#include "cogl/cogl-private.h"
+#include "cogl/cogl-attribute-private.h"
+#include "cogl/cogl-primitive-private.h"
+#include "cogl/cogl1-context.h"
+#include "cogl/cogl-offscreen.h"
+#include "cogl/cogl-matrix-stack.h"
+#include "mtk/mtk.h"
 
 static void *
 _cogl_clip_stack_push_entry (CoglClipStack *clip_stack,
                              size_t size,
                              CoglClipStackType type)
 {
-  CoglClipStack *entry = g_slice_alloc (size);
+  CoglClipStack *entry = g_malloc0 (size);
 
   /* The new entry starts with a ref count of 1 because the stack
      holds a reference to it as it is the top entry */
@@ -75,14 +69,14 @@ _cogl_clip_stack_push_entry (CoglClipStack *clip_stack,
 }
 
 static void
-get_transformed_corners (float x_1,
-                         float y_1,
-                         float x_2,
-                         float y_2,
-                         CoglMatrix *modelview,
-                         CoglMatrix *projection,
-                         const float *viewport,
-                         float *transformed_corners)
+get_transformed_corners (float              x_1,
+                         float              y_1,
+                         float              x_2,
+                         float              y_2,
+                         graphene_matrix_t *modelview,
+                         graphene_matrix_t *projection,
+                         const float       *viewport,
+                         float             *transformed_corners)
 {
   int i;
 
@@ -135,27 +129,6 @@ _cogl_clip_stack_entry_set_bounds (CoglClipStack *entry,
 }
 
 CoglClipStack *
-_cogl_clip_stack_push_window_rectangle (CoglClipStack *stack,
-                                        int x_offset,
-                                        int y_offset,
-                                        int width,
-                                        int height)
-{
-  CoglClipStack *entry;
-
-  entry = _cogl_clip_stack_push_entry (stack,
-                                       sizeof (CoglClipStackWindowRect),
-                                       COGL_CLIP_STACK_WINDOW_RECT);
-
-  entry->bounds_x0 = x_offset;
-  entry->bounds_x1 = x_offset + width;
-  entry->bounds_y0 = y_offset;
-  entry->bounds_y1 = y_offset + height;
-
-  return entry;
-}
-
-CoglClipStack *
 _cogl_clip_stack_push_rectangle (CoglClipStack *stack,
                                  float x_1,
                                  float y_1,
@@ -166,9 +139,9 @@ _cogl_clip_stack_push_rectangle (CoglClipStack *stack,
                                  const float *viewport)
 {
   CoglClipStackRect *entry;
-  CoglMatrix modelview;
-  CoglMatrix projection;
-  CoglMatrix modelview_projection;
+  graphene_matrix_t modelview;
+  graphene_matrix_t projection;
+  graphene_matrix_t modelview_projection;
 
   /* Corners of the given rectangle in an clockwise order:
    *  (0, 1)     (2, 3)
@@ -199,9 +172,7 @@ _cogl_clip_stack_push_rectangle (CoglClipStack *stack,
   cogl_matrix_entry_get (modelview_entry, &modelview);
   cogl_matrix_entry_get (projection_entry, &projection);
 
-  cogl_matrix_multiply (&modelview_projection,
-                        &projection,
-                        &modelview);
+  graphene_matrix_multiply (&modelview, &projection, &modelview_projection);
 
   /* Technically we could avoid the viewport transform at this point
    * if we want to make this a bit faster. */
@@ -266,8 +237,8 @@ _cogl_clip_stack_push_primitive (CoglClipStack *stack,
                                  const float *viewport)
 {
   CoglClipStackPrimitive *entry;
-  CoglMatrix modelview;
-  CoglMatrix projection;
+  graphene_matrix_t modelview;
+  graphene_matrix_t projection;
   float transformed_corners[8];
 
   entry = _cogl_clip_stack_push_entry (stack,
@@ -301,6 +272,30 @@ _cogl_clip_stack_push_primitive (CoglClipStack *stack,
 }
 
 CoglClipStack *
+cogl_clip_stack_push_region (CoglClipStack   *stack,
+                             cairo_region_t  *region)
+{
+  CoglClipStack *entry;
+  CoglClipStackRegion *entry_region;
+  MtkRectangle bounds;
+
+  entry_region = _cogl_clip_stack_push_entry (stack,
+                                              sizeof (CoglClipStackRegion),
+                                              COGL_CLIP_STACK_REGION);
+  entry = (CoglClipStack *) entry_region;
+
+  cairo_region_get_extents (region, &bounds);
+  entry->bounds_x0 = bounds.x;
+  entry->bounds_x1 = bounds.x + bounds.width;
+  entry->bounds_y0 = bounds.y;
+  entry->bounds_y1 = bounds.y + bounds.height;
+
+  entry_region->region = cairo_region_reference (region);
+
+  return entry;
+}
+
+CoglClipStack *
 _cogl_clip_stack_ref (CoglClipStack *entry)
 {
   /* A NULL pointer is considered a valid stack so we should accept
@@ -326,19 +321,23 @@ _cogl_clip_stack_unref (CoglClipStack *entry)
           {
             CoglClipStackRect *rect = (CoglClipStackRect *) entry;
             cogl_matrix_entry_unref (rect->matrix_entry);
-            g_slice_free1 (sizeof (CoglClipStackRect), entry);
+            g_free (entry);
             break;
           }
-        case COGL_CLIP_STACK_WINDOW_RECT:
-          g_slice_free1 (sizeof (CoglClipStackWindowRect), entry);
-          break;
         case COGL_CLIP_STACK_PRIMITIVE:
           {
             CoglClipStackPrimitive *primitive_entry =
               (CoglClipStackPrimitive *) entry;
             cogl_matrix_entry_unref (primitive_entry->matrix_entry);
             cogl_object_unref (primitive_entry->primitive);
-            g_slice_free1 (sizeof (CoglClipStackPrimitive), entry);
+            g_free (entry);
+            break;
+          }
+        case COGL_CLIP_STACK_REGION:
+          {
+            CoglClipStackRegion *region = (CoglClipStackRegion *) entry;
+            cairo_region_destroy (region->region);
+            g_free (entry);
             break;
           }
         default:
@@ -354,7 +353,7 @@ _cogl_clip_stack_pop (CoglClipStack *stack)
 {
   CoglClipStack *new_top;
 
-  _COGL_RETURN_VAL_IF_FAIL (stack != NULL, NULL);
+  g_return_val_if_fail (stack != NULL, NULL);
 
   /* To pop we are moving the top of the stack to the old top's parent
      node. The stack always needs to have a reference to the top entry
@@ -406,7 +405,7 @@ void
 _cogl_clip_stack_flush (CoglClipStack *stack,
                         CoglFramebuffer *framebuffer)
 {
-  CoglContext *ctx = framebuffer->context;
+  CoglContext *ctx = cogl_framebuffer_get_context (framebuffer);
 
   ctx->driver_vtable->clip_stack_flush (stack, framebuffer);
 }

@@ -28,16 +28,16 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_WORKSPACE_PRIVATE_H
-#define META_WORKSPACE_PRIVATE_H
+#pragma once
 
-#include <meta/workspace.h>
-#include "window-private.h"
+#include "core/window-private.h"
+#include "meta/workspace.h"
 
 struct _MetaWorkspace
 {
   GObject parent_instance;
-  MetaScreen *screen;
+  MetaDisplay *display;
+  MetaWorkspaceManager *manager;
 
   GList *windows;
 
@@ -56,7 +56,7 @@ struct _MetaWorkspace
 
   GHashTable *logical_monitor_data;
 
-  MetaRectangle work_area_screen;
+  MtkRectangle work_area_screen;
   GList  *screen_region;
   GList  *screen_edges;
   GList  *monitor_edges;
@@ -72,7 +72,7 @@ struct _MetaWorkspaceClass
   GObjectClass parent_class;
 };
 
-MetaWorkspace* meta_workspace_new           (MetaScreen    *screen);
+MetaWorkspace* meta_workspace_new           (MetaWorkspaceManager *workspace_manager);
 void           meta_workspace_remove        (MetaWorkspace *workspace);
 void           meta_workspace_add_window    (MetaWorkspace *workspace,
                                              MetaWindow    *window);
@@ -83,7 +83,7 @@ void           meta_workspace_relocate_windows (MetaWorkspace *workspace,
 
 void meta_workspace_get_work_area_for_logical_monitor (MetaWorkspace      *workspace,
                                                        MetaLogicalMonitor *logical_monitor,
-                                                       MetaRectangle      *area);
+                                                       MtkRectangle       *area);
 
 void meta_workspace_invalidate_work_area (MetaWorkspace *workspace);
 
@@ -94,9 +94,14 @@ GList * meta_workspace_get_onmonitor_region (MetaWorkspace      *workspace,
 void meta_workspace_focus_default_window (MetaWorkspace *workspace,
                                           MetaWindow    *not_this_one,
                                           guint32        timestamp);
+MetaWindow * meta_workspace_get_default_focus_window (MetaWorkspace *workspace,
+                                                      MetaWindow    *not_this_one);
+MetaWindow * meta_workspace_get_default_focus_window_at_point (MetaWorkspace *workspace,
+                                                               MetaWindow    *not_this_one,
+                                                               int            root_x,
+                                                               int            root_y);
+GList * meta_workspace_get_default_focus_candidates (MetaWorkspace *workspace);
 
 const char* meta_workspace_get_name (MetaWorkspace *workspace);
 
 void meta_workspace_index_changed (MetaWorkspace *workspace);
-
-#endif

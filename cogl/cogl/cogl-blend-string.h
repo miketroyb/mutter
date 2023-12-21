@@ -31,8 +31,7 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifndef COGL_BLEND_STRING_H
-#define COGL_BLEND_STRING_H
+#pragma once
 
 #include <stdlib.h>
 #include <glib.h>
@@ -77,18 +76,18 @@ typedef struct _CoglBlendStringColorSourceInfo
 
 typedef struct _CoglBlendStringColorSource
 {
-  CoglBool is_zero;
+  gboolean is_zero;
   const CoglBlendStringColorSourceInfo *info;
   int texture; /* for the TEXTURE_N color source */
-  CoglBool one_minus;
+  gboolean one_minus;
   CoglBlendStringChannelMask mask;
 } CoglBlendStringColorSource;
 
 typedef struct _CoglBlendStringFactor
 {
-  CoglBool is_one;
-  CoglBool is_src_alpha_saturate;
-  CoglBool is_color;
+  gboolean is_one;
+  gboolean is_src_alpha_saturate;
+  gboolean is_color;
   CoglBlendStringColorSource source;
 } CoglBlendStringFactor;
 
@@ -129,16 +128,13 @@ typedef struct _CoglBlendStringStatement
 } CoglBlendStringStatement;
 
 
-CoglBool
+gboolean
 _cogl_blend_string_compile (const char *string,
                             CoglBlendStringContext context,
                             CoglBlendStringStatement *statements,
-                            CoglError **error);
+                            GError **error);
 
 void
 _cogl_blend_string_split_rgba_statement (CoglBlendStringStatement *statement,
                                          CoglBlendStringStatement *rgb,
                                          CoglBlendStringStatement *a);
-
-#endif /* COGL_BLEND_STRING_H */
-

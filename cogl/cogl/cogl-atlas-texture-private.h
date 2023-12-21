@@ -28,14 +28,13 @@
  *
  */
 
-#ifndef _COGL_ATLAS_TEXTURE_PRIVATE_H_
-#define _COGL_ATLAS_TEXTURE_PRIVATE_H_
+#pragma once
 
-#include "cogl-object-private.h"
-#include "cogl-texture-private.h"
-#include "cogl-rectangle-map.h"
-#include "cogl-atlas.h"
-#include "cogl-atlas-texture.h"
+#include "cogl/cogl-object-private.h"
+#include "cogl/cogl-texture-private.h"
+#include "cogl/cogl-rectangle-map.h"
+#include "cogl/cogl-atlas.h"
+#include "cogl/cogl-atlas-texture.h"
 
 struct _CoglAtlasTexture
 {
@@ -63,19 +62,17 @@ struct _CoglAtlasTexture
 
 CoglAtlasTexture *
 _cogl_atlas_texture_new_from_bitmap (CoglBitmap *bmp,
-                                     CoglBool can_convert_in_place);
+                                     gboolean can_convert_in_place);
 
-void
+COGL_EXPORT void
 _cogl_atlas_texture_add_reorganize_callback (CoglContext *ctx,
                                              GHookFunc callback,
                                              void *user_data);
 
-void
+COGL_EXPORT void
 _cogl_atlas_texture_remove_reorganize_callback (CoglContext *ctx,
                                                 GHookFunc callback,
                                                 void *user_data);
 
-CoglBool
+gboolean
 _cogl_is_atlas_texture (void *object);
-
-#endif /* _COGL_ATLAS_TEXTURE_PRIVATE_H_ */

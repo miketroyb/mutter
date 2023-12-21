@@ -22,32 +22,26 @@
  */
 
 /**
- * SECTION:clutter-stage-manager
- * @short_description: Maintains the list of stages
+ * ClutterStageManager:
+ * 
+ * Maintains the list of stages
  *
  * #ClutterStageManager is a singleton object, owned by Clutter, which
  * maintains the list of currently active stages
  *
- * Every newly-created #ClutterStage will cause the emission of the
- * #ClutterStageManager::stage-added signal; once a #ClutterStage has
- * been destroyed, the #ClutterStageManager::stage-removed signal will
+ * Every newly-created [class@Stage] will cause the emission of the
+ * [signal@StageManager::stage-added] signal; once a [class@Stage] has
+ * been destroyed, the [signal@StageManager::stage-removed] signal will
  * be emitted
- *
- * #ClutterStageManager is available since Clutter 0.8
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
-#include "clutter-stage-manager-private.h"
+#include "clutter/clutter-stage-manager-private.h"
 
-#include "clutter-marshal.h"
-#include "clutter-debug.h"
-#include "clutter-private.h"
-#include "clutter-version.h"  
-
-#include "deprecated/clutter-stage-manager.h"
+#include "clutter/clutter-marshal.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-private.h"
 
 enum
 {
@@ -92,8 +86,8 @@ clutter_stage_manager_dispose (GObject *gobject)
 
   stage_manager = CLUTTER_STAGE_MANAGER (gobject);
 
-  g_slist_foreach (stage_manager->stages, (GFunc) clutter_actor_destroy, NULL);
-  g_slist_free (stage_manager->stages);
+  g_slist_free_full (stage_manager->stages,
+                     (GDestroyNotify) clutter_actor_destroy);
   stage_manager->stages = NULL;
 
   G_OBJECT_CLASS (clutter_stage_manager_parent_class)->dispose (gobject);
@@ -111,14 +105,10 @@ clutter_stage_manager_class_init (ClutterStageManagerClass *klass)
    * ClutterStageManager:default-stage:
    *
    * The default stage used by Clutter.
-   *
-   * Since: 0.8
    */
   g_object_class_install_property (gobject_class,
                                    PROP_DEFAULT_STAGE,
-                                   g_param_spec_object ("default-stage",
-                                                        "Default Stage",
-                                                        "The default stage",
+                                   g_param_spec_object ("default-stage", NULL, NULL,
                                                         CLUTTER_TYPE_STAGE,
                                                         CLUTTER_PARAM_READABLE));
 
@@ -127,18 +117,15 @@ clutter_stage_manager_class_init (ClutterStageManagerClass *klass)
    * @stage_manager: the object which received the signal
    * @stage: the added stage
    *
-   * The ::stage-added signal is emitted each time a new #ClutterStage
+   * The signal is emitted each time a new #ClutterStage
    * has been added to the stage manager.
-   *
-   * Since: 0.8
    */
   manager_signals[STAGE_ADDED] =
     g_signal_new ("stage-added",
                   G_OBJECT_CLASS_TYPE (gobject_class),
                   G_SIGNAL_RUN_LAST,
                   G_STRUCT_OFFSET (ClutterStageManagerClass, stage_added),
-                  NULL, NULL,
-                  _clutter_marshal_VOID__OBJECT,
+                  NULL, NULL, NULL,
                   G_TYPE_NONE, 1,
                   CLUTTER_TYPE_STAGE);
   /**
@@ -146,18 +133,15 @@ clutter_stage_manager_class_init (ClutterStageManagerClass *klass)
    * @stage_manager: the object which received the signal
    * @stage: the removed stage
    *
-   * The ::stage-removed signal is emitted each time a #ClutterStage
+   * The signal is emitted each time a #ClutterStage
    * has been removed from the stage manager.
-   *
-   * Since: 0.8
    */
   manager_signals[STAGE_REMOVED] =
     g_signal_new ("stage-removed",
                   G_OBJECT_CLASS_TYPE (gobject_class),
                   G_SIGNAL_RUN_LAST,
                   G_STRUCT_OFFSET (ClutterStageManagerClass, stage_removed),
-                  NULL, NULL,
-                  _clutter_marshal_VOID__OBJECT,
+                  NULL, NULL, NULL,
                   G_TYPE_NONE, 1,
                   CLUTTER_TYPE_STAGE);
 }
@@ -174,8 +158,6 @@ clutter_stage_manager_init (ClutterStageManager *stage_manager)
  *
  * Return value: (transfer none): the default stage manager instance. The returned
  *   object is owned by Clutter and you should not reference or unreference it.
- *
- * Since: 0.8
  */
 ClutterStageManager *
 clutter_stage_manager_get_default (void)
@@ -186,23 +168,6 @@ clutter_stage_manager_get_default (void)
     context->stage_manager = g_object_new (CLUTTER_TYPE_STAGE_MANAGER, NULL);
 
   return context->stage_manager;
-}
-
-/**
- * clutter_stage_manager_set_default_stage:
- * @stage_manager: a #ClutterStageManager
- * @stage: a #ClutterStage
- *
- * Sets @stage as the default stage.
- *
- * Since: 0.8
- *
- * Deprecated: 1.2: Calling this function has no effect
- */
-void
-clutter_stage_manager_set_default_stage (ClutterStageManager *stage_manager,
-                                         ClutterStage        *stage)
-{
 }
 
 /*< private >
@@ -237,8 +202,6 @@ _clutter_stage_manager_set_default_stage (ClutterStageManager *stage_manager,
  *
  * Return value: (transfer none): the default stage. The returned object
  *   is owned by Clutter and you should never reference or unreference it
- *
- * Since: 0.8
  */
 ClutterStage *
 clutter_stage_manager_get_default_stage (ClutterStageManager *stage_manager)
@@ -255,8 +218,6 @@ clutter_stage_manager_get_default_stage (ClutterStageManager *stage_manager)
  * Return value: (transfer container) (element-type Clutter.Stage): a newly
  *   allocated list of #ClutterStage objects. Use g_slist_free() to
  *   deallocate it when done.
- *
- * Since: 0.8
  */
 GSList *
 clutter_stage_manager_list_stages (ClutterStageManager *stage_manager)
@@ -274,8 +235,6 @@ clutter_stage_manager_list_stages (ClutterStageManager *stage_manager)
  *   to the internal list of #ClutterStage objects. The returned list
  *   is owned by the #ClutterStageManager and should never be modified
  *   or freed
- *
- * Since: 1.0
  */
 const GSList *
 clutter_stage_manager_peek_stages (ClutterStageManager *stage_manager)

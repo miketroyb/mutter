@@ -18,15 +18,14 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __CALLY_TEXT_H__
-#define __CALLY_TEXT_H__
+#pragma once
 
 #if !defined(__CALLY_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <cally/cally.h> can be included directly."
 #endif
 
-#include <clutter/clutter.h>
-#include <cally/cally-actor.h>
+#include "clutter/clutter.h"
+#include "cally/cally-actor.h"
 
 G_BEGIN_DECLS
 
@@ -41,14 +40,6 @@ typedef struct _CallyText               CallyText;
 typedef struct _CallyTextClass          CallyTextClass;
 typedef struct _CallyTextPrivate        CallyTextPrivate;
 
-/**
- * CallyText:
- *
- * The <structname>CallyText</structname> structure contains only private
- * data and should be accessed using the provided API
- *
- * Since: 1.4
- */
 struct _CallyText
 {
   /*< private >*/
@@ -62,23 +53,16 @@ struct _CallyText
  *
  * The <structname>CallyTextClass</structname> structure contains only
  * private data
- *
- * Since: 1.4
  */
 struct _CallyTextClass
 {
   /*< private >*/
   CallyActorClass parent_class;
-
-  /* padding for future expansion */
-  gpointer _padding_dummy[8];
 };
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 GType      cally_text_get_type (void) G_GNUC_CONST;
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 AtkObject* cally_text_new      (ClutterActor *actor);
 
 G_END_DECLS
-
-#endif /* __CALLY_TEXT_H__ */

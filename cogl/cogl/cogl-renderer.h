@@ -26,21 +26,20 @@
  * SOFTWARE.
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
 
-#ifndef __COGL_RENDERER_H__
-#define __COGL_RENDERER_H__
-
-#include <cogl/cogl-types.h>
-#include <cogl/cogl-onscreen-template.h>
-#include <cogl/cogl-error.h>
-#include <cogl/cogl-output.h>
+#include "cogl/cogl-types.h"
+#include "cogl/cogl-onscreen-template.h"
+#include "cogl/cogl-output.h"
+#include "cogl/cogl-pixel-format.h"
 
 #include <glib-object.h>
 
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 /**
  * SECTION:cogl-renderer
@@ -81,7 +80,7 @@ COGL_BEGIN_DECLS
  */
 #define COGL_RENDERER_ERROR cogl_renderer_error_quark ()
 
-uint32_t
+COGL_EXPORT uint32_t
 cogl_renderer_error_quark (void);
 
 typedef struct _CoglRenderer CoglRenderer;
@@ -91,6 +90,7 @@ typedef struct _CoglRenderer CoglRenderer;
  *
  * Returns: a #GType that can be used with the GLib type system.
  */
+COGL_EXPORT
 GType cogl_renderer_get_gtype (void);
 
 /**
@@ -100,10 +100,8 @@ GType cogl_renderer_get_gtype (void);
  * Determines if the given @object is a #CoglRenderer
  *
  * Return value: %TRUE if @object is a #CoglRenderer, else %FALSE.
- * Since: 1.10
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_is_renderer (void *object);
 
 /**
@@ -142,11 +140,8 @@ cogl_is_renderer (void *object);
  * display.</note>
  *
  * Return value: (transfer full): A newly created #CoglRenderer.
- *
- * Since: 1.10
- * Stability: unstable
  */
-CoglRenderer *
+COGL_EXPORT CoglRenderer *
 cogl_renderer_new (void);
 
 /* optional configuration APIs */
@@ -185,7 +180,7 @@ typedef enum
  *
  * This may only be called on an un-connected #CoglRenderer.
  */
-void
+COGL_EXPORT void
 cogl_renderer_set_winsys_id (CoglRenderer *renderer,
                              CoglWinsysID winsys_id);
 
@@ -200,48 +195,32 @@ cogl_renderer_set_winsys_id (CoglRenderer *renderer,
  * Returns: The #CoglWinsysID corresponding to the chosen window
  *          system backend.
  */
-CoglWinsysID
+COGL_EXPORT CoglWinsysID
 cogl_renderer_get_winsys_id (CoglRenderer *renderer);
-
-/**
- * cogl_renderer_get_n_fragment_texture_units:
- * @renderer: A #CoglRenderer
- *
- * Queries how many texture units can be used from fragment programs
- *
- * Returns: the number of texture image units.
- *
- * Since: 1.8
- * Stability: Unstable
- */
-int
-cogl_renderer_get_n_fragment_texture_units (CoglRenderer *renderer);
 
 /**
  * cogl_renderer_check_onscreen_template: (skip)
  * @renderer: A #CoglRenderer
  * @onscreen_template: A #CoglOnscreenTemplate
- * @error: A pointer to a #CoglError for reporting exceptions
+ * @error: A pointer to a #GError for reporting exceptions
  *
  * Tests if a given @onscreen_template can be supported with the given
  * @renderer.
  *
  * Return value: %TRUE if the @onscreen_template can be supported,
  *               else %FALSE.
- * Since: 1.10
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_renderer_check_onscreen_template (CoglRenderer *renderer,
                                        CoglOnscreenTemplate *onscreen_template,
-                                       CoglError **error);
+                                       GError **error);
 
 /* Final connection API */
 
 /**
  * cogl_renderer_connect:
  * @renderer: An unconnected #CoglRenderer
- * @error: a pointer to a #CoglError for reporting exceptions
+ * @error: a pointer to a #GError for reporting exceptions
  *
  * Connects the configured @renderer. Renderer connection isn't a
  * very active process, it basically just means validating that
@@ -250,11 +229,9 @@ cogl_renderer_check_onscreen_template (CoglRenderer *renderer,
  *
  * Return value: %TRUE if there was no error while connecting the
  *               given @renderer. %FALSE if there was an error.
- * Since: 1.10
- * Stability: unstable
  */
-CoglBool
-cogl_renderer_connect (CoglRenderer *renderer, CoglError **error);
+COGL_EXPORT gboolean
+cogl_renderer_connect (CoglRenderer *renderer, GError **error);
 
 /**
  * CoglRendererConstraint:
@@ -262,10 +239,6 @@ cogl_renderer_connect (CoglRenderer *renderer, CoglError **error);
  * @COGL_RENDERER_CONSTRAINT_USES_XLIB: Require the renderer to be X11
  *                                      based and use Xlib
  * @COGL_RENDERER_CONSTRAINT_USES_EGL: Require the renderer to be EGL based
- * @COGL_RENDERER_CONSTRAINT_SUPPORTS_COGL_GLES2: Require that the
- *    renderer supports creating a #CoglGLES2Context via
- *    cogl_gles2_context_new(). This can be used to integrate GLES 2.0
- *    code into Cogl based applications.
  *
  * These constraint flags are hard-coded features of the different renderer
  * backends. Sometimes a platform may support multiple rendering options which
@@ -278,16 +251,12 @@ cogl_renderer_connect (CoglRenderer *renderer, CoglError **error);
  *
  * Applications should ideally minimize how many of these constraints
  * they depend on to ensure maximum portability.
- *
- * Since: 1.10
- * Stability: unstable
  */
 typedef enum
 {
   COGL_RENDERER_CONSTRAINT_USES_X11 = (1 << 0),
   COGL_RENDERER_CONSTRAINT_USES_XLIB = (1 << 1),
   COGL_RENDERER_CONSTRAINT_USES_EGL = (1 << 2),
-  COGL_RENDERER_CONSTRAINT_SUPPORTS_COGL_GLES2 = (1 << 3)
 } CoglRendererConstraint;
 
 
@@ -300,11 +269,8 @@ typedef enum
  *
  * Applications should ideally minimize how many of these constraints they
  * depend on to ensure maximum portability.
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_renderer_add_constraint (CoglRenderer *renderer,
                               CoglRendererConstraint constraint);
 
@@ -317,11 +283,8 @@ cogl_renderer_add_constraint (CoglRenderer *renderer,
  *
  * Applications should ideally minimize how many of these constraints they
  * depend on to ensure maximum portability.
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_renderer_remove_constraint (CoglRenderer *renderer,
                                  CoglRendererConstraint constraint);
 
@@ -329,27 +292,18 @@ cogl_renderer_remove_constraint (CoglRenderer *renderer,
  * CoglDriver:
  * @COGL_DRIVER_ANY: Implies no preference for which driver is used
  * @COGL_DRIVER_NOP: A No-Op driver.
- * @COGL_DRIVER_GL: An OpenGL driver.
  * @COGL_DRIVER_GL3: An OpenGL driver using the core GL 3.1 profile
- * @COGL_DRIVER_GLES1: An OpenGL ES 1.1 driver.
  * @COGL_DRIVER_GLES2: An OpenGL ES 2.0 driver.
- * @COGL_DRIVER_WEBGL: A WebGL driver.
  *
  * Identifiers for underlying hardware drivers that may be used by
  * Cogl for rendering.
- *
- * Since: 1.10
- * Stability: unstable
  */
 typedef enum
 {
   COGL_DRIVER_ANY,
   COGL_DRIVER_NOP,
-  COGL_DRIVER_GL,
   COGL_DRIVER_GL3,
-  COGL_DRIVER_GLES1,
   COGL_DRIVER_GLES2,
-  COGL_DRIVER_WEBGL
 } CoglDriver;
 
 /**
@@ -365,11 +319,8 @@ typedef enum
  * choosing the driver.
  *
  * This may only be called on an un-connected #CoglRenderer.
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_renderer_set_driver (CoglRenderer *renderer,
                           CoglDriver driver);
 
@@ -380,11 +331,8 @@ cogl_renderer_set_driver (CoglRenderer *renderer,
  * Queries what underlying driver is being used by Cogl.
  *
  * This may only be called on a connected #CoglRenderer.
- *
- * Since: 1.10
- * Stability: unstable
  */
-CoglDriver
+COGL_EXPORT CoglDriver
 cogl_renderer_get_driver (CoglRenderer *renderer);
 
 /**
@@ -396,9 +344,6 @@ cogl_renderer_get_driver (CoglRenderer *renderer);
  * A callback type that can be passed to
  * cogl_renderer_foreach_output() for iterating display outputs for a
  * given renderer.
- *
- * Since: 1.14
- * Stability: Unstable
  */
 typedef void (*CoglOutputCallback) (CoglOutput *output, void *user_data);
 
@@ -412,16 +357,49 @@ typedef void (*CoglOutputCallback) (CoglOutput *output, void *user_data);
  * Iterates all known display outputs for the given @renderer and
  * passes a corresponding #CoglOutput pointer to the given @callback
  * for each one, along with the given @user_data.
- *
- * Since: 1.14
- * Stability: Unstable
  */
-void
+COGL_EXPORT void
 cogl_renderer_foreach_output (CoglRenderer *renderer,
                               CoglOutputCallback callback,
                               void *user_data);
 
-COGL_END_DECLS
+/**
+ * cogl_renderer_create_dma_buf: (skip)
+ * @renderer: A #CoglRenderer
+ * @format: A #CoglPixelFormat
+ * @width: width of the new
+ * @height: height of the new
+ * @error: (nullable): return location for a #GError
+ *
+ * Creates a new #CoglFramebuffer with @width x @height, with pixel
+ * format @format, and exports the new framebuffer's DMA buffer
+ * handle.
+ *
+ * Returns: (nullable)(transfer full): a #CoglDmaBufHandle. The
+ * return result must be released with cogl_dma_buf_handle_free()
+ * after use.
+ */
+COGL_EXPORT CoglDmaBufHandle *
+cogl_renderer_create_dma_buf (CoglRenderer     *renderer,
+                              CoglPixelFormat   format,
+                              int               width,
+                              int               height,
+                              GError          **error);
 
-#endif /* __COGL_RENDERER_H__ */
 
+/**
+ * cogl_renderer_is_dma_buf_supported: (skip)
+ * @renderer: A #CoglRenderer
+ *
+ * Returns: %TRUE if DMA buffers can be allocated
+ */
+COGL_EXPORT gboolean
+cogl_renderer_is_dma_buf_supported (CoglRenderer *renderer);
+
+/**
+ * cogl_renderer_bind_api: (skip)
+ */
+COGL_EXPORT void
+cogl_renderer_bind_api (CoglRenderer *renderer);
+
+G_END_DECLS

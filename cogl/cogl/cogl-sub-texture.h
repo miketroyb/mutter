@@ -29,14 +29,13 @@
  *   Neil Roberts <neil@linux.intel.com>
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
 
-#ifndef __COGL_SUB_TEXTURE_H
-#define __COGL_SUB_TEXTURE_H
-
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 /**
  * SECTION:cogl-sub-texture
@@ -86,11 +85,8 @@ GType cogl_sub_texture_get_gtype (void);
  *
  * Return value: (transfer full): A newly allocated #CoglSubTexture
  *          representing a sub-region of @parent_texture.
- *
- * Since: 1.10
- * Stability: unstable
  */
-CoglSubTexture *
+COGL_EXPORT CoglSubTexture *
 cogl_sub_texture_new (CoglContext *ctx,
                       CoglTexture *parent_texture,
                       int sub_x,
@@ -108,10 +104,8 @@ cogl_sub_texture_new (CoglContext *ctx,
  *
  * Return value: (transfer none): The parent texture that @sub_texture
  *               derives its content from.
- * Since: 1.10
- * Stability: unstable
  */
-CoglTexture *
+COGL_EXPORT CoglTexture *
 cogl_sub_texture_get_parent (CoglSubTexture *sub_texture);
 
 /**
@@ -122,13 +116,8 @@ cogl_sub_texture_get_parent (CoglSubTexture *sub_texture);
  *
  * Return value: %TRUE if the passed @object represents a
  *               #CoglSubTexture and %FALSE otherwise.
- *
- * Since: 1.10
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_is_sub_texture (void *object);
 
-COGL_END_DECLS
-
-#endif /* __COGL_SUB_TEXTURE_H */
+G_END_DECLS

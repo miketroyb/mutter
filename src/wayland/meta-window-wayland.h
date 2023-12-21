@@ -14,52 +14,44 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jasper St. Pierre <jstpierre@mecheye.net>
  */
 
-#ifndef META_WINDOW_WAYLAND_H
-#define META_WINDOW_WAYLAND_H
+#pragma once
 
 #include "core/window-private.h"
-#include <meta/window.h>
+#include "meta/window.h"
 #include "wayland/meta-wayland-types.h"
 
 G_BEGIN_DECLS
 
-#define META_TYPE_WINDOW_WAYLAND            (meta_window_wayland_get_type())
-#define META_WINDOW_WAYLAND(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), META_TYPE_WINDOW_WAYLAND, MetaWindowWayland))
-#define META_WINDOW_WAYLAND_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  META_TYPE_WINDOW_WAYLAND, MetaWindowWaylandClass))
-#define META_IS_WINDOW_WAYLAND(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), META_TYPE_WINDOW_WAYLAND))
-#define META_IS_WINDOW_WAYLAND_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  META_TYPE_WINDOW_WAYLAND))
-#define META_WINDOW_WAYLAND_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  META_TYPE_WINDOW_WAYLAND, MetaWindowWaylandClass))
-
-GType meta_window_wayland_get_type (void);
-
-typedef struct _MetaWindowWayland      MetaWindowWayland;
-typedef struct _MetaWindowWaylandClass MetaWindowWaylandClass;
+#define META_TYPE_WINDOW_WAYLAND (meta_window_wayland_get_type())
+META_EXPORT_TEST
+G_DECLARE_FINAL_TYPE (MetaWindowWayland, meta_window_wayland,
+                      META, WINDOW_WAYLAND,
+                      MetaWindow)
 
 MetaWindow * meta_window_wayland_new       (MetaDisplay        *display,
                                             MetaWaylandSurface *surface);
 
-void meta_window_wayland_move_resize (MetaWindow        *window,
-                                      MetaWaylandSerial *acked_configure_serial,
-                                      MetaRectangle      new_geom,
-                                      int                dx,
-                                      int                dy);
-int meta_window_wayland_get_geometry_scale (MetaWindow *window);
+void meta_window_wayland_finish_move_resize (MetaWindow              *window,
+                                             MtkRectangle             new_geom,
+                                             MetaWaylandSurfaceState *pending);
 
-void meta_window_wayland_place_relative_to (MetaWindow *window,
-                                            MetaWindow *other,
-                                            int         x,
-                                            int         y);
+int meta_window_wayland_get_geometry_scale (MetaWindow *window);
 
 void meta_window_place_with_placement_rule (MetaWindow        *window,
                                             MetaPlacementRule *placement_rule);
+
+void meta_window_update_placement_rule (MetaWindow        *window,
+                                        MetaPlacementRule *placement_rule);
+
+MetaWaylandWindowConfiguration *
+  meta_window_wayland_peek_configuration (MetaWindowWayland *wl_window,
+                                          uint32_t           serial);
 
 void meta_window_wayland_set_min_size (MetaWindow *window,
                                        int         width,
@@ -78,5 +70,9 @@ void meta_window_wayland_get_max_size (MetaWindow *window,
                                        int        *width,
                                        int        *height);
 
+gboolean meta_window_wayland_is_resize (MetaWindowWayland *wl_window,
+                                        int                width,
+                                        int                height);
 
-#endif
+META_EXPORT_TEST
+gboolean meta_window_wayland_is_acked_fullscreen (MetaWindowWayland *wl_window);

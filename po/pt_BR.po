@@ -1,5 +1,5 @@
 # Brazilian Portuguese translation of mutter.
-# Copyright (C) 2002-2017 Free Software Foundation, Inc.
+# Copyright (C) 2022 Free Software Foundation, Inc.
 # This file is distributed under the same license as the mutter package.
 # Sun G11n <gnome_int_l10n@ireland.sun.com>, 2002.
 # Evandro Fernandes Giovanini <evandrofg@ig.com.br>, 2002, 2003, 2006.
@@ -14,24 +14,32 @@
 # Antonio Fernandes C. Neto <fernandes@pelivre.org>, 2010.
 # Rodrigo Padula de Oliveira <contato@rodrigopadula.com>, 2011.
 # Artur de Aquino Morais <artur.morais93@outlook.com>, 2016.
-# Enrico Nicoletto <liverig@gmail.com>, 2012, 2014, 2016.
-# Rafael Fontenelle <rafaelff@gnome.org>, 2013, 2014, 2016, 2017.
+# Enrico Nicoletto <liverig@gmail.com>, 2012-2016, 2021.
+# Matheus Barbosa <mdpb.matheus@gmail.com>, 2022.
+# Leônidas Araújo <leorusvellt@hotmail.com>, 2022-2023.
+# 
+# Rafael Fontenelle <rafaelff@gnome.org>, 2013-2023.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: mutter\n"
-"Report-Msgid-Bugs-To: https://bugzilla.gnome.org/enter_bug.cgi?product=mutter"
-"&keywords=I18N+L10N&component=general\n"
-"POT-Creation-Date: 2017-11-10 18:18+0000\n"
-"PO-Revision-Date: 2017-11-11 16:55-0200\n"
+"Report-Msgid-Bugs-To: https://gitlab.gnome.org/GNOME/mutter/issues\n"
+"POT-Creation-Date: 2023-08-23 16:49+0000\n"
+"PO-Revision-Date: 2023-09-25 13:20-0300\n"
 "Last-Translator: Rafael Fontenelle <rafaelff@gnome.org>\n"
-"Language-Team: Brazilian Portuguese <gnome-pt_br-list@gnome.org>\n"
+"Language-Team: Brazilian Portuguese <https://br.gnome.org/traducao>\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"X-Generator: Virtaal 1.0.0-beta1\n"
+"Plural-Forms: nplurals=2; plural=(n > 1)\n"
+"X-Generator: Gtranslator 45.alpha0\n"
 "X-Project-Style: gnome\n"
+"X-DL-Team: pt_BR\n"
+"X-DL-Module: mutter\n"
+"X-DL-Branch: main\n"
+"X-DL-Domain: po\n"
+"X-DL-State: Translating\n"
 
 #: data/50-mutter-navigation.xml:6
 msgid "Navigation"
@@ -65,129 +73,129 @@ msgstr "Mover a janela um espaço de trabalho à esquerda"
 msgid "Move window one workspace to the right"
 msgstr "Mover a janela um espaço de trabalho à direita"
 
-#: data/50-mutter-navigation.xml:30
+#: data/50-mutter-navigation.xml:31
 msgid "Move window one workspace up"
-msgstr "Mover a janela um espaço de trabalho acima"
+msgstr "Mover a janela para um espaço de trabalho acima"
 
-#: data/50-mutter-navigation.xml:33
+#: data/50-mutter-navigation.xml:35
 msgid "Move window one workspace down"
-msgstr "Mover a janela um espaço de trabalho abaixo"
+msgstr "Mover a janela para um espaço de trabalho abaixo"
 
 # Em conformidade com a tradução do gsettings-desktop-schemas --Enrico
-#: data/50-mutter-navigation.xml:36
+#: data/50-mutter-navigation.xml:38
 msgid "Move window one monitor to the left"
-msgstr "Mover janela para o monitor da esquerda"
+msgstr "Mover a janela para o monitor da esquerda"
 
 # Em conformidade com a tradução do gsettings-desktop-schemas --Enrico
-#: data/50-mutter-navigation.xml:39
+#: data/50-mutter-navigation.xml:41
 msgid "Move window one monitor to the right"
-msgstr "Mover janela para o monitor da direita"
+msgstr "Mover a janela para o monitor da direita"
 
 # Em conformidade com a tradução do gsettings-desktop-schemas --Enrico
-#: data/50-mutter-navigation.xml:42
+#: data/50-mutter-navigation.xml:44
 msgid "Move window one monitor up"
-msgstr "Mover janela para o monitor acima"
+msgstr "Mover a janela para o monitor acima"
 
 # Em conformidade com a tradução do gsettings-desktop-schemas --Enrico
-#: data/50-mutter-navigation.xml:45
+#: data/50-mutter-navigation.xml:47
 msgid "Move window one monitor down"
-msgstr "Mover janela para o monitor abaixo"
+msgstr "Mover a janela para o monitor abaixo"
 
-#: data/50-mutter-navigation.xml:49
+#: data/50-mutter-navigation.xml:51
 msgid "Switch applications"
-msgstr "Alternar aplicativos"
+msgstr "Alternar entre aplicativos"
 
-#: data/50-mutter-navigation.xml:54
+#: data/50-mutter-navigation.xml:56
 msgid "Switch to previous application"
 msgstr "Alternar para o aplicativo anterior"
 
-#: data/50-mutter-navigation.xml:58
+#: data/50-mutter-navigation.xml:60
 msgid "Switch windows"
-msgstr "Alternar janelas"
+msgstr "Alternar entre janelas"
 
-#: data/50-mutter-navigation.xml:63
+#: data/50-mutter-navigation.xml:65
 msgid "Switch to previous window"
 msgstr "Alternar para a janela anterior"
 
-#: data/50-mutter-navigation.xml:67
+#: data/50-mutter-navigation.xml:69
 msgid "Switch windows of an application"
 msgstr "Alternar as janelas de um aplicativo"
 
-#: data/50-mutter-navigation.xml:72
+#: data/50-mutter-navigation.xml:74
 msgid "Switch to previous window of an application"
 msgstr "Alternar para a janela anterior de um aplicativo"
 
-#: data/50-mutter-navigation.xml:76
+#: data/50-mutter-navigation.xml:78
 msgid "Switch system controls"
-msgstr "Alternar controles do sistema"
+msgstr "Alternar os controles do sistema"
 
-#: data/50-mutter-navigation.xml:81
+#: data/50-mutter-navigation.xml:83
 msgid "Switch to previous system control"
 msgstr "Alternar para o controle de sistema anterior"
 
-#: data/50-mutter-navigation.xml:85
+#: data/50-mutter-navigation.xml:87
 msgid "Switch windows directly"
 msgstr "Alternar as janelas diretamente"
 
-#: data/50-mutter-navigation.xml:90
+#: data/50-mutter-navigation.xml:92
 msgid "Switch directly to previous window"
 msgstr "Alternar diretamente para a janela anterior"
 
-#: data/50-mutter-navigation.xml:94
+#: data/50-mutter-navigation.xml:96
 msgid "Switch windows of an app directly"
 msgstr "Alternar as janelas de um aplicativo diretamente"
 
-#: data/50-mutter-navigation.xml:99
+#: data/50-mutter-navigation.xml:101
 msgid "Switch directly to previous window of an app"
 msgstr "Alternar diretamente para a janela anterior de um aplicativo"
 
-#: data/50-mutter-navigation.xml:103
+#: data/50-mutter-navigation.xml:105
 msgid "Switch system controls directly"
 msgstr "Alternar os controles de sistema diretamente"
 
-#: data/50-mutter-navigation.xml:108
+#: data/50-mutter-navigation.xml:110
 msgid "Switch directly to previous system control"
 msgstr "Alternar diretamente para o controle de sistema anterior"
 
-#: data/50-mutter-navigation.xml:111
+#: data/50-mutter-navigation.xml:113
 msgid "Hide all normal windows"
 msgstr "Ocultar todas as janelas normais"
 
-#: data/50-mutter-navigation.xml:114
+#: data/50-mutter-navigation.xml:116
 msgid "Switch to workspace 1"
 msgstr "Trocar para o espaço de trabalho 1"
 
-#: data/50-mutter-navigation.xml:117
+#: data/50-mutter-navigation.xml:119
 msgid "Switch to workspace 2"
 msgstr "Trocar para o espaço de trabalho 2"
 
-#: data/50-mutter-navigation.xml:120
+#: data/50-mutter-navigation.xml:122
 msgid "Switch to workspace 3"
 msgstr "Trocar para o espaço de trabalho 3"
 
-#: data/50-mutter-navigation.xml:123
+#: data/50-mutter-navigation.xml:125
 msgid "Switch to workspace 4"
 msgstr "Trocar para o espaço de trabalho 4"
 
-#: data/50-mutter-navigation.xml:126
+#: data/50-mutter-navigation.xml:128
 msgid "Switch to last workspace"
 msgstr "Trocar para o último espaço de trabalho"
 
-#: data/50-mutter-navigation.xml:129
-msgid "Move to workspace left"
-msgstr "Move para o espaço de trabalho à esquerda"
+#: data/50-mutter-navigation.xml:131
+msgid "Switch to workspace on the left"
+msgstr "Trocar para o espaço de trabalho à esquerda"
 
-#: data/50-mutter-navigation.xml:132
-msgid "Move to workspace right"
-msgstr "Move para o espaço de trabalho à direita"
-
-#: data/50-mutter-navigation.xml:135
-msgid "Move to workspace above"
-msgstr "Mover para o espaço de trabalho acima"
+#: data/50-mutter-navigation.xml:134
+msgid "Switch to workspace on the right"
+msgstr "Trocar para o espaço de trabalho à direita"
 
 #: data/50-mutter-navigation.xml:138
-msgid "Move to workspace below"
-msgstr "Mover para o espaço de trabalho abaixo"
+msgid "Switch to workspace above"
+msgstr "Trocar para o espaço de trabalho acima"
+
+#: data/50-mutter-navigation.xml:142
+msgid "Switch to workspace below"
+msgstr "Trocar para o espaço de trabalho abaixo"
 
 #: data/50-mutter-system.xml:6 data/50-mutter-wayland.xml:6
 msgid "System"
@@ -196,10 +204,6 @@ msgstr "Sistema"
 #: data/50-mutter-system.xml:8
 msgid "Show the run command prompt"
 msgstr "Mostrar o prompt de comando de execução"
-
-#: data/50-mutter-system.xml:10
-msgid "Show the activities overview"
-msgstr "Mostrar o panorama de atividades"
 
 #: data/50-mutter-wayland.xml:8
 msgid "Restore the keyboard shortcuts"
@@ -215,11 +219,11 @@ msgstr "Ativar o menu da janela"
 
 #: data/50-mutter-windows.xml:10
 msgid "Toggle fullscreen mode"
-msgstr "Alternar modo de tela inteira"
+msgstr "Alternar o modo de tela inteira"
 
 #: data/50-mutter-windows.xml:12
 msgid "Toggle maximization state"
-msgstr "Alternar estado de maximização"
+msgstr "Alternar o estado de maximização"
 
 #: data/50-mutter-windows.xml:14
 msgid "Maximize window"
@@ -227,70 +231,62 @@ msgstr "Maximizar a janela"
 
 #: data/50-mutter-windows.xml:16
 msgid "Restore window"
-msgstr "Restaurar janela"
+msgstr "Restaurar a janela"
 
 #: data/50-mutter-windows.xml:18
-msgid "Toggle shaded state"
-msgstr "Alternar estado sombreado"
+msgid "Close window"
+msgstr "Fechar a janela"
 
 #: data/50-mutter-windows.xml:20
-msgid "Close window"
-msgstr "Fechar janela"
+msgid "Hide window"
+msgstr "Ocultar a janela"
 
 #: data/50-mutter-windows.xml:22
-msgid "Hide window"
-msgstr "Ocultar janela"
+msgid "Move window"
+msgstr "Mover a janela"
 
 #: data/50-mutter-windows.xml:24
-msgid "Move window"
-msgstr "Mover janela"
-
-#: data/50-mutter-windows.xml:26
 msgid "Resize window"
-msgstr "Redimensionar janela"
+msgstr "Redimensionar a janela"
+
+#: data/50-mutter-windows.xml:27
+msgid "Toggle window on all workspaces or one"
+msgstr "Alternar a janela em todos os espaços de trabalho ou apenas em um"
 
 #: data/50-mutter-windows.xml:29
-msgid "Toggle window on all workspaces or one"
-msgstr "Alternar a janela em todos os espaços de trabalho ou em apenas um"
+msgid "Raise window if covered, otherwise lower it"
+msgstr "Trazer a janela se estiver coberta; caso contrário, coloca atrás"
 
 #: data/50-mutter-windows.xml:31
-msgid "Raise window if covered, otherwise lower it"
-msgstr "Elevar a janela se estiver coberta; caso contrário, a abaixa"
+msgid "Raise window above other windows"
+msgstr "Trazer a janela para frente das outras"
 
 #: data/50-mutter-windows.xml:33
-msgid "Raise window above other windows"
-msgstr "Elevar a janela para frente das outras"
-
-#: data/50-mutter-windows.xml:35
 msgid "Lower window below other windows"
 msgstr "Colocar a janela atrás das outras"
 
-#: data/50-mutter-windows.xml:37
+#: data/50-mutter-windows.xml:35
 msgid "Maximize window vertically"
 msgstr "Maximizar a janela verticalmente"
 
-#: data/50-mutter-windows.xml:39
+#: data/50-mutter-windows.xml:37
 msgid "Maximize window horizontally"
 msgstr "Maximizar a janela horizontalmente"
 
-#: data/50-mutter-windows.xml:43
+#: data/50-mutter-windows.xml:41 data/org.gnome.mutter.gschema.xml.in:164
 msgid "View split on left"
-msgstr "Visualizar divisão à esquerda"
+msgstr "Visualizar a divisão à esquerda"
 
-#: data/50-mutter-windows.xml:47
+#: data/50-mutter-windows.xml:45 data/org.gnome.mutter.gschema.xml.in:169
 msgid "View split on right"
-msgstr "Visualizar divisão à direita"
+msgstr "Visualizar a divisão à direita"
 
-#: data/mutter.desktop.in:4
-msgid "Mutter"
-msgstr "Mutter"
-
-#: data/org.gnome.mutter.gschema.xml.in:7
+#: data/org.gnome.mutter.gschema.xml.in:15
 msgid "Modifier to use for extended window management operations"
 msgstr ""
 "Modificador a ser usado para operações de gerenciamento de janelas estendido"
 
-#: data/org.gnome.mutter.gschema.xml.in:8
+#: data/org.gnome.mutter.gschema.xml.in:16
 msgid ""
 "This key will initiate the “overlay”, which is a combination window overview "
 "and application launching system. The default is intended to be the “Windows "
@@ -302,11 +298,11 @@ msgstr ""
 "“tecla Windows” no hardware do computador. É esperada para esta associação "
 "tanto o padrão quanto a definição de uma string vazia."
 
-#: data/org.gnome.mutter.gschema.xml.in:20
+#: data/org.gnome.mutter.gschema.xml.in:28
 msgid "Attach modal dialogs"
 msgstr "Anexar diálogos modais"
 
-#: data/org.gnome.mutter.gschema.xml.in:21
+#: data/org.gnome.mutter.gschema.xml.in:29
 msgid ""
 "When true, instead of having independent titlebars, modal dialogs appear "
 "attached to the titlebar of the parent window and are moved together with "
@@ -316,12 +312,12 @@ msgstr ""
 "diálogos modais surgem anexados à barra de título da janela pai e são "
 "movidos juntamente com a janela pai."
 
-#: data/org.gnome.mutter.gschema.xml.in:30
+#: data/org.gnome.mutter.gschema.xml.in:38
 msgid "Enable edge tiling when dropping windows on screen edges"
 msgstr ""
 "Habilitar contorno ladrilhado ao arrastar janelas sobre as bordas da tela"
 
-#: data/org.gnome.mutter.gschema.xml.in:31
+#: data/org.gnome.mutter.gschema.xml.in:39
 msgid ""
 "If enabled, dropping windows on vertical screen edges maximizes them "
 "vertically and resizes them horizontally to cover half of the available "
@@ -332,11 +328,11 @@ msgstr ""
 "metade da área disponível. Arrastar janelas no topo da borda da tela as "
 "maximiza completamente."
 
-#: data/org.gnome.mutter.gschema.xml.in:40
+#: data/org.gnome.mutter.gschema.xml.in:48
 msgid "Workspaces are managed dynamically"
 msgstr "Áreas de trabalho são gerenciadas dinamicamente"
 
-#: data/org.gnome.mutter.gschema.xml.in:41
+#: data/org.gnome.mutter.gschema.xml.in:49
 msgid ""
 "Determines whether workspaces are managed dynamically or whether there’s a "
 "static number of workspaces (determined by the num-workspaces key in org."
@@ -346,11 +342,11 @@ msgstr ""
 "um número estático de áreas de trabalho (determinado pela chave num-"
 "workspaces em org.gnome.desktop.wm.preferences)."
 
-#: data/org.gnome.mutter.gschema.xml.in:50
+#: data/org.gnome.mutter.gschema.xml.in:58
 msgid "Workspaces only on primary"
 msgstr "Áreas de trabalho apenas para a principal"
 
-#: data/org.gnome.mutter.gschema.xml.in:51
+#: data/org.gnome.mutter.gschema.xml.in:59
 msgid ""
 "Determines whether workspace switching should happen for windows on all "
 "monitors or only for windows on the primary monitor."
@@ -358,23 +354,11 @@ msgstr ""
 "Determina se a troca de área de trabalho deve ocorrer para janelas em todos "
 "os monitores ou apenas para janelas no monitor principal."
 
-#: data/org.gnome.mutter.gschema.xml.in:59
-msgid "No tab popup"
-msgstr "Nenhuma aba instantânea"
-
-#: data/org.gnome.mutter.gschema.xml.in:60
-msgid ""
-"Determines whether the use of popup and highlight frame should be disabled "
-"for window cycling."
-msgstr ""
-"Determina se a utilização de quadros instantâneos e destacados devem ser "
-"desabilitados na alternância de janelas."
-
-#: data/org.gnome.mutter.gschema.xml.in:68
+#: data/org.gnome.mutter.gschema.xml.in:67
 msgid "Delay focus changes until the pointer stops moving"
 msgstr "Atrasar alterações de foco até que o ponteiro pare de mover"
 
-#: data/org.gnome.mutter.gschema.xml.in:69
+#: data/org.gnome.mutter.gschema.xml.in:68
 msgid ""
 "If set to true, and the focus mode is either “sloppy” or “mouse” then the "
 "focus will not be changed immediately when entering a window, but only after "
@@ -384,11 +368,11 @@ msgstr ""
 "alterado imediatamente quando o ponteiro do mouse entrar na janela, e sim "
 "quando parar de mover."
 
-#: data/org.gnome.mutter.gschema.xml.in:79
+#: data/org.gnome.mutter.gschema.xml.in:78
 msgid "Draggable border width"
 msgstr "Largura da borda arrastável"
 
-#: data/org.gnome.mutter.gschema.xml.in:80
+#: data/org.gnome.mutter.gschema.xml.in:79
 msgid ""
 "The amount of total draggable borders. If the theme’s visible borders are "
 "not enough, invisible borders will be added to meet this value."
@@ -397,11 +381,11 @@ msgstr ""
 "não são suficientes, as bordas invisíveis serão adicionadas para encontrar "
 "este valor."
 
-#: data/org.gnome.mutter.gschema.xml.in:89
+#: data/org.gnome.mutter.gschema.xml.in:88
 msgid "Auto maximize nearly monitor sized windows"
 msgstr "Maximizar automaticamente janelas com tamanho próximo ao do monitor"
 
-#: data/org.gnome.mutter.gschema.xml.in:90
+#: data/org.gnome.mutter.gschema.xml.in:89
 msgid ""
 "If enabled, new windows that are initially the size of the monitor "
 "automatically get maximized."
@@ -409,11 +393,11 @@ msgstr ""
 "Se habilitado, novas janelas que, ao iniciar, possuírem o tamanho do monitor "
 "serão maximizadas automaticamente."
 
-#: data/org.gnome.mutter.gschema.xml.in:98
+#: data/org.gnome.mutter.gschema.xml.in:97
 msgid "Place new windows in the center"
 msgstr "Posicionar novas janelas ao centro"
 
-#: data/org.gnome.mutter.gschema.xml.in:99
+#: data/org.gnome.mutter.gschema.xml.in:98
 msgid ""
 "When true, the new windows will always be put in the center of the active "
 "screen of the monitor."
@@ -434,96 +418,315 @@ msgid ""
 "proof. Currently possible keywords: • “scale-monitor-framebuffer” — makes "
 "mutter default to layout logical monitors in a logical pixel coordinate "
 "space, while scaling monitor framebuffers instead of window content, to "
-"manage HiDPI monitors. Does not require a restart. • “remote-desktop” — "
-"enables remote desktop support. To support remote desktop with screen "
-"sharing, “screen-cast” must also be enabled. • “screen-cast” — enables "
-"screen cast support."
+"manage HiDPI monitors. Does not require a restart. • “kms-modifiers” — makes "
+"mutter always allocate scanout buffers with explicit modifiers, if supported "
+"by the driver. Requires a restart. • “rt-scheduler” — makes mutter request a "
+"low priority real-time scheduling. Requires a restart. • “autoclose-"
+"xwayland” — automatically terminates Xwayland if all relevant X11 clients "
+"are gone. Requires a restart."
 msgstr ""
-"Para habilitar recursos experimentais, adicione a palavra-chave do recurso à "
-"lista. Se o recurso exige ou não reiniciar o compositor, depende do recurso "
-"dado. Qualquer recurso experimental não precisa estar disponível ou ser "
-"configurável. Não espere que adicionar alguma coisa nesta configuração seja "
-"a prova de futuro. Atualmente, palavras-chaves possíveis: • “scale-monitor-"
-"framebuffer” — torna o mutter padrão para a disposição de monitores lógicos "
-"em um espaço lógico coordenado por pixels, ao dimensionar buffers de quadros "
-"de monitor em vez de conteúdo de janela, para gerenciar monitores HiDPI. Não "
-"exige uma reinicialização. • “remote-desktop” — habilita suporte remoto. "
-"Para oferecer suporte a desktop remoto com compartilhamento de tela, “screen-"
-"cast” também deve estar habilitado. • “screen-cast” — habilita suporte a "
-"gravação de tela."
+"Para ativar recursos experimentais, adicione a palavra-chave do recurso à "
+"lista. Se o recurso requer a reinicialização do compositor depende do "
+"recurso fornecido. Nenhum recurso experimental precisa estar disponível ou "
+"configurável. Não espere que adicionar nada nessa configuração seja à prova "
+"de futuro. Palavras-chave atualmente possíveis: • “scale-monitor-"
+"framebuffer” — torna o mutter padrão para o layout de monitores lógicos em "
+"um espaço de coordenadas de pixel lógico, enquanto dimensiona os "
+"framebuffers do monitor em vez do conteúdo da janela, para gerenciar "
+"monitores HiDPI. Não requer uma reinicialização. • “kms-modifiers” — faz com "
+"que o mutter sempre aloque buffers de varredura com modificadores "
+"explícitos, se suportado pelo driver. Requer uma reinicialização. • “rt-"
+"scheduler” — torna a solicitação de mutter um agendamento em tempo real de "
+"baixa prioridade. Requer uma reinicialização. • “autoclose-xwayland” — "
+"encerra automaticamente o Xwayland se todos os clientes X11 relevantes "
+"desaparecerem. Requer uma reinicialização."
 
-#: data/org.gnome.mutter.gschema.xml.in:145
-msgid "Select window from tab popup"
-msgstr "Selecione a janela a partir da aba instantânea"
+#: data/org.gnome.mutter.gschema.xml.in:141
+msgid "Modifier to use to locate the pointer"
+msgstr "Modificador para usar ao localizar o ponteiro"
+
+#: data/org.gnome.mutter.gschema.xml.in:142
+msgid "This key will initiate the “locate pointer” action."
+msgstr "Essa chave vai iniciar a ação de “localizar ponteiro”."
+
+#: data/org.gnome.mutter.gschema.xml.in:149
+msgid "Timeout for check-alive ping"
+msgstr "Tempo limite para o ping de verificação ativa"
 
 #: data/org.gnome.mutter.gschema.xml.in:150
-msgid "Cancel tab popup"
-msgstr "Cancelar aba instantânea"
+msgid ""
+"Number of milliseconds a client has to respond to a ping request in order to "
+"not be detected as frozen. Using 0 will disable the alive check completely."
+msgstr ""
+"Número de milissegundos limite dentro do qual um cliente precisa responder a "
+"uma solicitação de ping para não ser detectado como congelado. Usar 0 "
+"desativará completamente a verificação ativa."
 
-#: data/org.gnome.mutter.gschema.xml.in:155
+#: data/org.gnome.mutter.gschema.xml.in:174
 msgid "Switch monitor configurations"
 msgstr "Trocar configurações de monitor"
 
-#: data/org.gnome.mutter.gschema.xml.in:160
+#: data/org.gnome.mutter.gschema.xml.in:179
 msgid "Rotates the built-in monitor configuration"
 msgstr "Gira a configuração de monitor embutido"
 
-#: data/org.gnome.mutter.wayland.gschema.xml.in:6
+#: data/org.gnome.mutter.gschema.xml.in:184
+msgid "Cancel any active input capture session"
+msgstr "Cancelar qualquer sessão ativa de captura de entrada"
+
+#: data/org.gnome.mutter.wayland.gschema.xml.in:12
 msgid "Switch to VT 1"
 msgstr "Trocar para o VT 1"
 
-#: data/org.gnome.mutter.wayland.gschema.xml.in:10
+#: data/org.gnome.mutter.wayland.gschema.xml.in:16
 msgid "Switch to VT 2"
 msgstr "Trocar para o VT 2"
 
-#: data/org.gnome.mutter.wayland.gschema.xml.in:14
+#: data/org.gnome.mutter.wayland.gschema.xml.in:20
 msgid "Switch to VT 3"
 msgstr "Trocar para o VT 3"
 
-#: data/org.gnome.mutter.wayland.gschema.xml.in:18
+#: data/org.gnome.mutter.wayland.gschema.xml.in:24
 msgid "Switch to VT 4"
 msgstr "Trocar para o VT 4"
 
-#: data/org.gnome.mutter.wayland.gschema.xml.in:22
+#: data/org.gnome.mutter.wayland.gschema.xml.in:28
 msgid "Switch to VT 5"
 msgstr "Trocar para o VT 5"
 
-#: data/org.gnome.mutter.wayland.gschema.xml.in:26
+#: data/org.gnome.mutter.wayland.gschema.xml.in:32
 msgid "Switch to VT 6"
 msgstr "Trocar para o VT 6"
 
-#: data/org.gnome.mutter.wayland.gschema.xml.in:30
+#: data/org.gnome.mutter.wayland.gschema.xml.in:36
 msgid "Switch to VT 7"
 msgstr "Trocar para o VT 7"
 
-#: data/org.gnome.mutter.wayland.gschema.xml.in:34
+#: data/org.gnome.mutter.wayland.gschema.xml.in:40
 msgid "Switch to VT 8"
 msgstr "Trocar para o VT 8"
 
-#: data/org.gnome.mutter.wayland.gschema.xml.in:38
+#: data/org.gnome.mutter.wayland.gschema.xml.in:44
 msgid "Switch to VT 9"
 msgstr "Trocar para o VT 9"
 
-#: data/org.gnome.mutter.wayland.gschema.xml.in:42
+#: data/org.gnome.mutter.wayland.gschema.xml.in:48
 msgid "Switch to VT 10"
 msgstr "Trocar para o VT 10"
 
-#: data/org.gnome.mutter.wayland.gschema.xml.in:46
+#: data/org.gnome.mutter.wayland.gschema.xml.in:52
 msgid "Switch to VT 11"
 msgstr "Trocar para o VT 11"
 
-#: data/org.gnome.mutter.wayland.gschema.xml.in:50
+#: data/org.gnome.mutter.wayland.gschema.xml.in:56
 msgid "Switch to VT 12"
 msgstr "Trocar para o VT 12"
 
-#: data/org.gnome.mutter.wayland.gschema.xml.in:54
+#: data/org.gnome.mutter.wayland.gschema.xml.in:60
 msgid "Re-enable shortcuts"
 msgstr "Reabilita atalhos"
+
+#: data/org.gnome.mutter.wayland.gschema.xml.in:70
+msgid "Allow X11 grabs to lock keyboard focus with Xwayland"
+msgstr "Permitir as capturas do X11 travar o foco do teclado com Xwayland"
+
+#: data/org.gnome.mutter.wayland.gschema.xml.in:71
+msgid ""
+"Allow all keyboard events to be routed to X11 “override redirect” windows "
+"with a grab when running in Xwayland. This option is to support X11 clients "
+"which map an “override redirect” window (which do not receive keyboard "
+"focus) and issue a keyboard grab to force all keyboard events to that "
+"window. This option is seldom used and has no effect on regular X11 windows "
+"which can receive keyboard focus under normal circumstances. For a X11 grab "
+"to be taken into account under Wayland, the client must also either send a "
+"specific X11 ClientMessage to the root window or be among the applications "
+"allowed in key “xwayland-grab-access-rules”."
+msgstr ""
+"Permita que todos os eventos do teclado sejam roteados para as janelas "
+"“override redirect” do X11 com uma captura ao executar no Xwayland. Esta "
+"opção é para ter suporte a clientes X11 que mapeiam uma janela “override "
+"redirect” (que não recebe o foco do teclado) e emitem uma captura de teclado "
+"para forçar todos os eventos do teclado para aquela janela. Esta opção é "
+"raramente usada e não tem efeito nas janelas comuns do X11, que podem "
+"receber o foco do teclado em circunstâncias normais. Para que uma captura de "
+"X11 seja levada em conta no Wayland, o cliente também deve enviar uma "
+"ClientMessage específica do X11 para a janela raiz ou estar entre os "
+"aplicativos permitidos na chave “xwayland-grab-access-rules”."
+
+#: data/org.gnome.mutter.wayland.gschema.xml.in:90
+msgid "Xwayland applications allowed to issue keyboard grabs"
+msgstr "Aplicativos Xwayland com permissão para emitir capturas de teclado"
+
+#: data/org.gnome.mutter.wayland.gschema.xml.in:91
+msgid ""
+"List the resource names or resource class of X11 windows either allowed or "
+"not allowed to issue X11 keyboard grabs under Xwayland. The resource name or "
+"resource class of a given X11 window can be obtained using the command "
+"“xprop WM_CLASS”. Wildcards “*” and jokers “?” in the values are supported. "
+"Values starting with “!” are denied, which has precedence over the list of "
+"values allowed, to revoke applications from the default system list. The "
+"default system list includes the following applications: "
+"“@XWAYLAND_GRAB_DEFAULT_ACCESS_RULES@” Users can break an existing grab by "
+"using the specific keyboard shortcut defined by the keybinding key “restore-"
+"shortcuts”."
+msgstr ""
+"Lista os nomes dos recursos ou classe de recursos do janelas X11 com ou sem "
+"permissão para emitir capturas de teclado X11 no Xwayland. O nome do recurso "
+"ou a classe de recurso de uma determinada janela X11 podem ser obtidos "
+"usando o comando “xprop WM_CLASS”. Há suporte a curingas “*” e “?” nos "
+"valores. Os valores que começam com “!” são negados, que tem precedência "
+"sobre a lista de valores permitidos, para revogar aplicativos da lista "
+"padrão do sistema. A lista de sistema padrão inclui os seguintes "
+"aplicativos: “@XWAYLAND_GRAB_DEFAULT_ACCESS_RULES@”. Os usuários podem "
+"quebrar uma captura existente usando o atalho de teclado específico definido "
+"pela chave de associação de tecla “restore-shortcuts”."
+
+#: data/org.gnome.mutter.wayland.gschema.xml.in:116
+msgid "Disable selected X extensions in Xwayland"
+msgstr "Desabilitar extensões X selecionadas no Xwayland"
+
+#: data/org.gnome.mutter.wayland.gschema.xml.in:117
+msgid ""
+"This option disables the selected X extensions in Xwayland if Xwayland was "
+"built with support for those X extensions. This option has no effect if "
+"Xwayland was built without support for the selected extensions. Xwayland "
+"needs to be restarted for this setting to take effect."
+msgstr ""
+"Esta opção desabilita as extensões X selecionadas no Xwayland se o Xwayland "
+"foi compilado com suporte para essas extensões X. Esta opção não tem efeito "
+"se o Xwayland foi compilado sem suporte para as extensões selecionadas. O "
+"Xwayland precisa ser reiniciado para que essa configuração tenha efeito."
+
+#: data/org.gnome.mutter.wayland.gschema.xml.in:130
+msgid "Allow X11 clients with a different endianness to connect to Xwayland"
+msgstr ""
+"Permitir que clientes X11 com endianness diferente se conectem ao Xwayland"
+
+#: data/org.gnome.mutter.wayland.gschema.xml.in:131
+msgid ""
+"Allow connections from clients with an endianness different to that of "
+"Xwayland. The X server byte-swapping code is a huge attack surface, much of "
+"that code in Xwayland is prone to security issues. The use-case of byte-"
+"swapped clients is very niche, and disabled by default in Xwayland. Enable "
+"this option to instruct Xwayland to accept connections from X11 clients with "
+"a different endianness. This option has no effect if Xwayland does not "
+"support the command line option +byteswappedclients/-byteswappedclients to "
+"control that setting. Xwayland needs to be restarted for this setting to "
+"take effect."
+msgstr ""
+"Permitir conexões de clientes com endianness diferente do Xwayland. O código "
+"de troca de bytes do servidor X é uma enorme superfície de ataque; muito "
+"desse código em Xwayland está sujeito a problemas de segurança. O caso de "
+"uso de clientes trocados por byte é muito específico e desativado por padrão "
+"no Xwayland. Ative esta opção para instruir o Xwayland a aceitar conexões de "
+"clientes X11 com um endianness diferente. Esta opção não tem efeito se o "
+"Xwayland não suportar a opção de linha de comando +byteswappedclients/-"
+"byteswappedclients para controlar essa configuração. O Xwayland precisa ser "
+"reiniciado para que essa configuração entre em vigor."
+
+#: src/backends/meta-monitor.c:253
+msgid "Built-in display"
+msgstr "Tela embutida"
+
+#: src/backends/meta-monitor.c:280
+msgid "Unknown"
+msgstr "Desconhecido"
+
+#: src/backends/meta-monitor.c:282
+msgid "Unknown Display"
+msgstr "Monitor desconhecido"
+
+#: src/backends/meta-monitor.c:290
+#, c-format
+msgctxt ""
+"This is a monitor vendor name, followed by a size in inches, like 'Dell 15\"'"
+msgid "%s %s"
+msgstr "%s %s"
+
+#: src/backends/meta-monitor.c:298
+#, c-format
+msgctxt ""
+"This is a monitor vendor name followed by product/model name where size in "
+"inches could not be calculated, e.g. Dell U2414H"
+msgid "%s %s"
+msgstr "%s %s"
+
+#: src/core/bell.c:193
+msgid "Bell event"
+msgstr "Evento de som"
+
+#: src/core/display.c:723
+msgid "Privacy Screen Enabled"
+msgstr "Tela de privacidade habilitada"
+
+#: src/core/display.c:724
+msgid "Privacy Screen Disabled"
+msgstr "Tela de privacidade desabilitada"
+
+#: src/core/meta-context-main.c:581
+msgid "Replace the running window manager"
+msgstr "Substitui o gerenciador de janelas em execução"
+
+#: src/core/meta-context-main.c:587
+msgid "X Display to use"
+msgstr "Tela X para usar"
+
+#: src/core/meta-context-main.c:593
+msgid "Disable connection to session manager"
+msgstr "Desabilita a conexão com o gerenciador de sessões"
+
+#: src/core/meta-context-main.c:599
+msgid "Specify session management ID"
+msgstr "Especifica o ID do gerenciador de sessões"
+
+#: src/core/meta-context-main.c:605
+msgid "Initialize session from savefile"
+msgstr "Inicializa a sessão a partir do arquivo salvo"
+
+#: src/core/meta-context-main.c:611
+msgid "Make X calls synchronous"
+msgstr "Faz X chamadas síncronas"
+
+#: src/core/meta-context-main.c:619
+msgid "Run as a wayland compositor"
+msgstr "Executa como um compositor wayland"
+
+#: src/core/meta-context-main.c:625
+msgid "Run as a nested compositor"
+msgstr "Executa como um compositor aninhado"
+
+#: src/core/meta-context-main.c:631
+msgid "Run wayland compositor without starting Xwayland"
+msgstr "Executa o compositor wayland sem iniciar o Xwayland"
+
+#: src/core/meta-context-main.c:637
+msgid "Specify Wayland display name to use"
+msgstr "Especifica o nome da tela Wayland para usar"
+
+#: src/core/meta-context-main.c:645
+msgid "Run as a full display server, rather than nested"
+msgstr "Executa como um servidor de tela cheia, ao invés de aninhado"
+
+#: src/core/meta-context-main.c:650
+msgid "Run as a headless display server"
+msgstr "Executa como um servidor de tela sem periféricos"
+
+#: src/core/meta-context-main.c:655
+msgid "Add persistent virtual monitor (WxH or WxH@R)"
+msgstr "Adicionar monitor virtual persistente (WxH ou WxH@R)"
+
+#: src/core/meta-context-main.c:667
+msgid "Run with X11 backend"
+msgstr "Executa com backend X11"
+
+#: src/core/meta-context-main.c:673
+msgid "Profile performance using trace instrumentation"
+msgstr "Perfila o desempenho usando instrumentação de rastreamento"
 
 #. TRANSLATORS: This string refers to a button that switches between
 #. * different modes.
 #.
-#: src/backends/meta-input-settings.c:2167
+#: src/core/meta-pad-action-mapper.c:807
 #, c-format
 msgid "Mode Switch (Group %d)"
 msgstr "Alternador de modo (Grupo %d)"
@@ -531,143 +734,46 @@ msgstr "Alternador de modo (Grupo %d)"
 #. TRANSLATORS: This string refers to an action, cycles drawing tablets'
 #. * mapping through the available outputs.
 #.
-#: src/backends/meta-input-settings.c:2190
+#: src/core/meta-pad-action-mapper.c:829
 msgid "Switch monitor"
 msgstr "Trocar monitor"
 
-#: src/backends/meta-input-settings.c:2192
+#: src/core/meta-pad-action-mapper.c:831
 msgid "Show on-screen help"
 msgstr "Mostrar ajuda na tela"
 
-#: src/backends/meta-monitor-manager.c:908
-msgid "Built-in display"
-msgstr "Tela embutida"
+#. Translators: this string will appear in Sysprof
+#: src/core/meta-profiler.c:111 src/core/meta-profiler.c:301
+msgid "Compositor"
+msgstr "Compositor"
 
-#: src/backends/meta-monitor-manager.c:931
-msgid "Unknown"
-msgstr "Desconhecido"
-
-#: src/backends/meta-monitor-manager.c:933
-msgid "Unknown Display"
-msgstr "Monitor desconhecido"
-
-#. TRANSLATORS: this is a monitor vendor name, followed by a
-#. * size in inches, like 'Dell 15"'
-#.
-#: src/backends/meta-monitor-manager.c:941
-#, c-format
-msgid "%s %s"
-msgstr "%s de %s"
-
-#. This probably means that a non-WM compositor like xcompmgr is running;
-#. * we have no way to get it to exit
-#: src/compositor/compositor.c:476
-#, c-format
-msgid ""
-"Another compositing manager is already running on screen %i on display “%s”."
-msgstr "Outro compositor de janelas está em execução na tela %i na área “%s”."
-
-#: src/core/bell.c:194
-msgid "Bell event"
-msgstr "Evento de som"
-
-#: src/core/display.c:608
-#, c-format
-msgid "Failed to open X Window System display “%s”\n"
-msgstr "Falha ao abrir a exibição “%s” do sistema de janelas X\n"
-
-#: src/core/main.c:189
-msgid "Disable connection to session manager"
-msgstr "Desabilitar a conexão com o gerenciador de sessões"
-
-#: src/core/main.c:195
-msgid "Replace the running window manager"
-msgstr "Substituir o gerenciador de janelas em execução"
-
-#: src/core/main.c:201
-msgid "Specify session management ID"
-msgstr "Especificar o ID do gerenciador de sessões"
-
-#: src/core/main.c:206
-msgid "X Display to use"
-msgstr "Exibição do X a ser utilizada"
-
-#: src/core/main.c:212
-msgid "Initialize session from savefile"
-msgstr "Inicializar a sessão a partir do arquivo salvo"
-
-#: src/core/main.c:218
-msgid "Make X calls synchronous"
-msgstr "Fazer X chamadas síncronas"
-
-#: src/core/main.c:225
-msgid "Run as a wayland compositor"
-msgstr "Executar como um compositor wayland"
-
-#: src/core/main.c:231
-msgid "Run as a nested compositor"
-msgstr "Executar como um compositor aninhado"
-
-#: src/core/main.c:239
-msgid "Run as a full display server, rather than nested"
-msgstr "Executar como um servidor de tela cheia, ao invés de aninhado"
-
-#. Translators: %s is a window title
-#: src/core/meta-close-dialog-default.c:147
-#, c-format
-msgid "“%s” is not responding."
-msgstr "“%s” não está respondendo."
-
-#: src/core/meta-close-dialog-default.c:149
-msgid "Application is not responding."
-msgstr "O aplicativo não está respondendo."
-
-#: src/core/meta-close-dialog-default.c:154
-msgid ""
-"You may choose to wait a short while for it to continue or force the "
-"application to quit entirely."
-msgstr ""
-"Você pode escolher aguardar um pouco e continuar ou forçar o aplicativo a "
-"sair completamente."
-
-#: src/core/meta-close-dialog-default.c:161
-msgid "_Force Quit"
-msgstr "_Forçar sair"
-
-#: src/core/meta-close-dialog-default.c:161
-msgid "_Wait"
-msgstr "_Esperar"
-
-#: src/core/mutter.c:39
-#, c-format
-msgid ""
-"mutter %s\n"
-"Copyright © 2001-%d Havoc Pennington, Red Hat, Inc., and others\n"
-"This is free software; see the source for copying conditions.\n"
-"There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A "
-"PARTICULAR PURPOSE.\n"
-msgstr ""
-"mutter %s\n"
-"Copyright © 2001-%d Havoc Pennington, Red Hat, Inc., e outros\n"
-"Esse programa é um software livre; veja o código fonte para obter as "
-"condições de cópia.\n"
-"Não há NENHUMA garantia; nem mesmo para a COMERCIALIZAÇÃO ou ADEQUAÇÃO\n"
-"PARA UM PROPÓSITO PARTICULAR.\n"
-
-#: src/core/mutter.c:53
+#: src/core/mutter.c:74
 msgid "Print version"
 msgstr "Versão impressa"
 
-#: src/core/mutter.c:59
+#: src/core/mutter.c:80
 msgid "Mutter plugin to use"
 msgstr "Plug-in do Mutter para usar"
 
-#: src/core/prefs.c:1997
+#: src/core/prefs.c:1843
 #, c-format
 msgid "Workspace %d"
 msgstr "Espaço de trabalho %d"
 
-#: src/core/screen.c:583
+#: src/core/util.c:139
+msgid "Mutter was compiled without support for verbose mode"
+msgstr "O Mutter foi compilado sem suporte para modo detalhado"
+
+#: src/core/workspace.c:535
+msgid "Workspace switched"
+msgstr "Espaço de trabalho alterado"
+
+#: src/wayland/meta-wayland-tablet-pad.c:534
+#, c-format
+msgid "Mode Switch: Mode %d"
+msgstr "Alternador de modo: Modo %d"
+
+#: src/x11/meta-x11-display.c:708
 #, c-format
 msgid ""
 "Display “%s” already has a window manager; try using the --replace option to "
@@ -676,32 +782,122 @@ msgstr ""
 "A exibição “%s” já possui um gerenciador de janelas; tente usar a opção --"
 "replace para substituir o gerenciador de janelas atual."
 
-#: src/core/screen.c:668
+#: src/x11/meta-x11-display.c:1073
 #, c-format
-msgid "Screen %d on display “%s” is invalid\n"
-msgstr "A tela %d na exibição “%s” é inválida\n"
+msgid "Failed to open X Window System display “%s”"
+msgstr "Falha ao abrir a exibição “%s” do sistema de janelas X"
 
-#: src/core/util.c:120
-msgid "Mutter was compiled without support for verbose mode\n"
-msgstr "O Mutter foi compilado sem suporte para modo detalhado\n"
-
-#: src/wayland/meta-wayland-tablet-pad.c:563
+#: src/x11/meta-x11-display.c:1219
 #, c-format
-msgid "Mode Switch: Mode %d"
-msgstr "Alternador de modo: Modo %d"
+msgid "Screen %d on display “%s” is invalid"
+msgstr "A tela %d na exibição “%s” é inválida"
 
-#: src/x11/session.c:1815
+#. This probably means that a non-WM compositor like xcompmgr is running;
+#. * we have no way to get it to exit
+#: src/x11/meta-x11-display.c:2540
+#, c-format
 msgid ""
-"These windows do not support “save current setup” and will have to be "
-"restarted manually next time you log in."
+"Another compositing manager is already running on screen %i on display “%s”."
 msgstr ""
-"Estas janelas não oferecem suporte para a opção “salvar configuração atual” "
-"e precisarão ser reiniciadas manualmente quando você reiniciar a sessão."
+"Outro gerenciador de composição de janelas está em execução na tela %i na "
+"área “%s”."
 
-#: src/x11/window-props.c:559
+#: src/x11/meta-x11-selection-input-stream.c:475
+#, c-format
+msgid "Format %s not supported"
+msgstr "Sem suporte ao formato %s"
+
+#: src/x11/window-props.c:548
 #, c-format
 msgid "%s (on %s)"
 msgstr "%s (em %s)"
+
+#~ msgid "Move to workspace above"
+#~ msgstr "Mover a visualização para o espaço de trabalho acima"
+
+#~ msgid "Move to workspace below"
+#~ msgstr "Mover a visualização para o espaço de trabalho abaixo"
+
+#~ msgid "Mutter"
+#~ msgstr "Mutter"
+
+#~ msgid "No tab popup"
+#~ msgstr "Nenhuma aba instantânea"
+
+#~ msgid ""
+#~ "Determines whether the use of popup and highlight frame should be "
+#~ "disabled for window cycling."
+#~ msgstr ""
+#~ "Determina se a utilização de quadros instantâneos e destacados devem ser "
+#~ "desabilitados na alternância de janelas."
+
+#~ msgid "Select window from tab popup"
+#~ msgstr "Selecione a janela a partir da aba instantânea"
+
+#~ msgid "Cancel tab popup"
+#~ msgstr "Cancelar aba instantânea"
+
+#~ msgid "Failed to initialize GDK"
+#~ msgstr "Falha ao inicializar GDK"
+
+#, c-format
+#~ msgid "“%s” is not responding."
+#~ msgstr "“%s” não está respondendo."
+
+#~ msgid "Application is not responding."
+#~ msgstr "O aplicativo não está respondendo."
+
+#~ msgid ""
+#~ "You may choose to wait a short while for it to continue or force the "
+#~ "application to quit entirely."
+#~ msgstr ""
+#~ "Você pode escolher aguardar um pouco e continuar ou forçar o aplicativo a "
+#~ "sair completamente."
+
+#~ msgid "_Force Quit"
+#~ msgstr "_Forçar sair"
+
+#~ msgid "_Wait"
+#~ msgstr "_Esperar"
+
+#~ msgid ""
+#~ "These windows do not support “save current setup” and will have to be "
+#~ "restarted manually next time you log in."
+#~ msgstr ""
+#~ "Estas janelas não oferecem suporte para a opção “salvar configuração "
+#~ "atual” e precisarão ser reiniciadas manualmente quando você reiniciar a "
+#~ "sessão."
+
+#~ msgid "Show the activities overview"
+#~ msgstr "Mostrar o panorama de atividades"
+
+#~| msgid "X Display to use"
+#~ msgid "X display to use"
+#~ msgstr "Exibição X para usar"
+
+#~| msgid "X Display to use"
+#~ msgid "X screen to use"
+#~ msgstr "Tela X para usar"
+
+#~ msgid "Disable XInput support"
+#~ msgstr "Desabilita suporte a XInput"
+
+#~ msgid ""
+#~ "mutter %s\n"
+#~ "Copyright © 2001-%d Havoc Pennington, Red Hat, Inc., and others\n"
+#~ "This is free software; see the source for copying conditions.\n"
+#~ "There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A "
+#~ "PARTICULAR PURPOSE.\n"
+#~ msgstr ""
+#~ "mutter %s\n"
+#~ "Copyright © 2001-%d Havoc Pennington, Red Hat, Inc., e outros\n"
+#~ "Esse programa é um software livre; veja o código fonte para obter as "
+#~ "condições de cópia.\n"
+#~ "Não há NENHUMA garantia; nem mesmo para a COMERCIALIZAÇÃO ou ADEQUAÇÃO\n"
+#~ "PARA UM PROPÓSITO PARTICULAR.\n"
+
+#~ msgid "Toggle shaded state"
+#~ msgstr "Alternar estado sombreado"
 
 #~ msgid "background texture could not be created from file"
 #~ msgstr "textura de plano de fundo não pôde ser criado de arquivo"
@@ -929,8 +1125,8 @@ msgstr "%s (em %s)"
 #~ "No frame style set for window type \"%s\" in theme \"%s\", add a <window "
 #~ "type=\"%s\" style_set=\"whatever\"/> element"
 #~ msgstr ""
-#~ "Nenhum estilo de quadro definido para o tipo de janela \"%s\" no tema \"%s"
-#~ "\", adicione um elemento <window type=\"%s\" style_set=\"whatever\"/>"
+#~ "Nenhum estilo de quadro definido para o tipo de janela \"%s\" no tema "
+#~ "\"%s\", adicione um elemento <window type=\"%s\" style_set=\"whatever\"/>"
 
 #~ msgid ""
 #~ "User-defined constants must begin with a capital letter; \"%s\" does not"
@@ -1018,8 +1214,8 @@ msgstr "%s (em %s)"
 #~ msgstr "O elemento <%s> não é permitido abaixo de <%s>"
 
 #~ msgid ""
-#~ "Cannot specify both \"button_width\"/\"button_height\" and \"aspect_ratio"
-#~ "\" for buttons"
+#~ "Cannot specify both \"button_width\"/\"button_height\" and "
+#~ "\"aspect_ratio\" for buttons"
 #~ msgstr ""
 #~ "Não foi possível especificar \"button_width\"/\"button_height\" e "
 #~ "\"aspect_ratio\" para os botões"
@@ -1400,9 +1596,6 @@ msgstr "%s (em %s)"
 
 #~ msgid "Workspace 1_0"
 #~ msgstr "Espaço de trabalho 1_0"
-
-#~ msgid "Workspace %s%d"
-#~ msgstr "Espaço de trabalho %s%d"
 
 #~ msgid "Move to Another _Workspace"
 #~ msgstr "Mover para _outro espaço de trabalho"
@@ -2016,9 +2209,6 @@ msgstr "%s (em %s)"
 #~ msgid "Commands to run in response to keybindings"
 #~ msgstr "Comandos executados em resposta a teclas de atalho"
 
-#~ msgid "Compositing Manager"
-#~ msgstr "Gerenciador de composição"
-
 #~ msgid "Control how new windows get focus"
 #~ msgstr "Controla como novas janelas obtêm foco"
 
@@ -2036,9 +2226,9 @@ msgstr "%s (em %s)"
 #~ "'beeps'; may be used in conjunction with 'visual bell' to allow silent "
 #~ "'beeps'."
 #~ msgstr ""
-#~ "Determina se aplicativos ou o sistema podem gerar alarmes sonoros (\"beeps"
-#~ "\") audíveis; pode ser usado em conjunto com campainha visual (\"visual "
-#~ "bell\") para permitir alarmes sonoros (\"beeps\") silenciosos."
+#~ "Determina se aplicativos ou o sistema podem gerar alarmes sonoros "
+#~ "(\"beeps\") audíveis; pode ser usado em conjunto com campainha visual "
+#~ "(\"visual bell\") para permitir alarmes sonoros (\"beeps\") silenciosos."
 
 #~ msgid "Disable misfeatures that are required by old or broken applications"
 #~ msgstr ""
@@ -2110,8 +2300,9 @@ msgstr "%s (em %s)"
 
 #~ msgid ""
 #~ "Set this to true to resize with the right button and show a menu with the "
-#~ "middle button while holding down the key given in \"mouse_button_modifier"
-#~ "\"; set it to false to make it work the opposite way around."
+#~ "middle button while holding down the key given in "
+#~ "\"mouse_button_modifier\"; set it to false to make it work the opposite "
+#~ "way around."
 #~ msgstr ""
 #~ "Definir isto como verdadeiro para redimensionar com o botão direito e "
 #~ "mostrar um menu com o botão do meio enquanto a tecla dada em "
@@ -2306,10 +2497,10 @@ msgstr "%s (em %s)"
 #~ "sombrear ou não a janela, \"toggle_maximize\", que irá maximizar/"
 #~ "desmaximizar a janela, \"toggle_maximize_horizontally\" e "
 #~ "\"toggle_maximize_vertically\" que irá maximizar/desmaximizar a janela "
-#~ "somente naquela direção, \"minimize\", que irá minimizar a janela, \"shade"
-#~ "\" que irá enrolar a janela, \"menu\" que irá exibir a janela de menu, "
-#~ "\"lower\" que irá colocar a janela atrás de todas as outras e \"none\", "
-#~ "que não faz nada."
+#~ "somente naquela direção, \"minimize\", que irá minimizar a janela, "
+#~ "\"shade\" que irá enrolar a janela, \"menu\" que irá exibir a janela de "
+#~ "menu, \"lower\" que irá colocar a janela atrás de todas as outras e "
+#~ "\"none\", que não faz nada."
 
 #~ msgid ""
 #~ "This option determines the effects of right-clicking on the title bar. "
@@ -2324,10 +2515,10 @@ msgstr "%s (em %s)"
 #~ "Essa opção determina o efeito de clicar com o botão direito do mouse na "
 #~ "barra de título. As opções atualmente válidas são \"toggle_shade\", que "
 #~ "irá sombrear ou não a janela, \"toggle_maximize\", que irá maximizar/"
-#~ "desmaximizar a janela, \"minimize\", que irá minimizar a janela, \"shade"
-#~ "\" que irá enrolar a janela, \"menu\" que irá exibir a janela de menu, "
-#~ "\"lower\" que irá colocar a janela atrás de todas as outras e \"none\", "
-#~ "que não faz nada."
+#~ "desmaximizar a janela, \"minimize\", que irá minimizar a janela, "
+#~ "\"shade\" que irá enrolar a janela, \"menu\" que irá exibir a janela de "
+#~ "menu, \"lower\" que irá colocar a janela atrás de todas as outras e "
+#~ "\"none\", que não faz nada."
 
 #~ msgid ""
 #~ "This option provides additional control over how newly created windows "
@@ -2458,8 +2649,8 @@ msgstr "%s (em %s)"
 #~ "atual. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;"
 #~ "&lt;Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding that switches to the workspace on the right of the current "
@@ -2473,8 +2664,8 @@ msgstr "%s (em %s)"
 #~ "O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding that switches to workspace 1. The format looks like \"&lt;"
@@ -2761,8 +2952,8 @@ msgstr "%s (em %s)"
 #~ "abaixo. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;"
 #~ "&lt;Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to move a window one workspace to the left. The "
@@ -2776,8 +2967,8 @@ msgstr "%s (em %s)"
 #~ "esquerda. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;"
 #~ "&lt;Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to move a window one workspace to the right. The "
@@ -2791,8 +2982,8 @@ msgstr "%s (em %s)"
 #~ "direita. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;"
 #~ "&lt;Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to move a window one workspace up. The format looks "
@@ -2806,8 +2997,8 @@ msgstr "%s (em %s)"
 #~ "acima. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;"
 #~ "&lt;Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to move a window to workspace 1. The format looks "
@@ -2821,8 +3012,8 @@ msgstr "%s (em %s)"
 #~ "1. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to move a window to workspace 10. The format looks "
@@ -2836,8 +3027,8 @@ msgstr "%s (em %s)"
 #~ "10. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to move a window to workspace 11. The format looks "
@@ -2851,8 +3042,8 @@ msgstr "%s (em %s)"
 #~ "11. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to move a window to workspace 12. The format looks "
@@ -2866,8 +3057,8 @@ msgstr "%s (em %s)"
 #~ "12. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to move a window to workspace 2. The format looks "
@@ -2881,8 +3072,8 @@ msgstr "%s (em %s)"
 #~ "2. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to move a window to workspace 3. The format looks "
@@ -2896,8 +3087,8 @@ msgstr "%s (em %s)"
 #~ "3. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to move a window to workspace 4. The format looks "
@@ -2911,8 +3102,8 @@ msgstr "%s (em %s)"
 #~ "4. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to move a window to workspace 5. The format looks "
@@ -2926,8 +3117,8 @@ msgstr "%s (em %s)"
 #~ "5. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to move a window to workspace 6. The format looks "
@@ -2941,8 +3132,8 @@ msgstr "%s (em %s)"
 #~ "6. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to move a window to workspace 7. The format looks "
@@ -2956,8 +3147,8 @@ msgstr "%s (em %s)"
 #~ "7. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to move a window to workspace 8. The format looks "
@@ -2971,8 +3162,8 @@ msgstr "%s (em %s)"
 #~ "8. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to move a window to workspace 9. The format looks "
@@ -2986,8 +3177,8 @@ msgstr "%s (em %s)"
 #~ "9. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to move focus backwards between panels and the "
@@ -3007,8 +3198,8 @@ msgstr "%s (em %s)"
 
 #~ msgid ""
 #~ "The keybinding used to move focus backwards between panels and the "
-#~ "desktop, without a popup window. The format looks like \"&lt;Control&gt;a"
-#~ "\" or \"&lt;Shift&gt;&lt;Alt&gt;F1\". The parser is fairly liberal and "
+#~ "desktop, without a popup window. The format looks like \"&lt;Control&gt;"
+#~ "a\" or \"&lt;Shift&gt;&lt;Alt&gt;F1\". The parser is fairly liberal and "
 #~ "allows lower or upper case, and also abbreviations such as \"&lt;Ctl&gt;"
 #~ "\" and \"&lt;Ctrl&gt;\". If you set the option to the special string "
 #~ "\"disabled\", then there will be no keybinding for this action."
@@ -3051,10 +3242,10 @@ msgstr "%s (em %s)"
 #~ "action."
 #~ msgstr ""
 #~ "A tecla de atalho usada para mover o foco na direção contrária entre "
-#~ "janelas de um aplicativo, usando uma janela instantânea. Segurar o \"shift"
-#~ "\" junto com este atalho deixa o sentido para frente novamente. O formato "
-#~ "é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;Alt&gt;F1\". O "
-#~ "analisador é bastante flexível, permitindo letras minúsculas ou "
+#~ "janelas de um aplicativo, usando uma janela instantânea. Segurar o "
+#~ "\"shift\" junto com este atalho deixa o sentido para frente novamente. O "
+#~ "formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;Alt&gt;"
+#~ "F1\". O analisador é bastante flexível, permitindo letras minúsculas ou "
 #~ "maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;Ctrl&gt;\". Se "
 #~ "você definir a opção como o valor especial \"disabled\" (desabilitada), "
 #~ "não haverá tecla de atalho para essa ação."
@@ -3065,8 +3256,8 @@ msgstr "%s (em %s)"
 #~ "direction go forward again. The format looks like \"&lt;Control&gt;a\" or "
 #~ "\"&lt;Shift&gt;&lt;Alt&gt;F1\". The parser is fairly liberal and allows "
 #~ "lower or upper case, and also abbreviations such as \"&lt;Ctl&gt;\" and "
-#~ "\"&lt;Ctrl&gt;\". If you set the option to the special string \"disabled"
-#~ "\", then there will be no keybinding for this action."
+#~ "\"&lt;Ctrl&gt;\". If you set the option to the special string "
+#~ "\"disabled\", then there will be no keybinding for this action."
 #~ msgstr ""
 #~ "A tecla de atalho usada para mover o foco na direção contrária entre "
 #~ "janelas sem uma janela instantânea. O formato é semelhante a \"&lt;"
@@ -3082,8 +3273,8 @@ msgstr "%s (em %s)"
 #~ "direction go forward again. The format looks like \"&lt;Control&gt;a\" or "
 #~ "\"&lt;Shift&gt;&lt;Alt&gt;F1\". The parser is fairly liberal and allows "
 #~ "lower or upper case, and also abbreviations such as \"&lt;Ctl&gt;\" and "
-#~ "\"&lt;Ctrl&gt;\". If you set the option to the special string \"disabled"
-#~ "\", then there will be no keybinding for this action."
+#~ "\"&lt;Ctrl&gt;\". If you set the option to the special string "
+#~ "\"disabled\", then there will be no keybinding for this action."
 #~ msgstr ""
 #~ "A tecla de atalho usada para mover o foco na direção contrária entre "
 #~ "janelas usando uma janela instantânea. O formato é semelhante a \"&lt;"
@@ -3160,8 +3351,8 @@ msgstr "%s (em %s)"
 #~ "movimento. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;"
 #~ "Shift&gt;&lt;Alt&gt;F1\". O analisador é bastante flexível, permitindo "
 #~ "letras minúsculas ou maiúsculas e abreviações como \"&lt;Ctl&gt;\" e "
-#~ "\"&lt;Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "\"&lt;Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to move focus between windows without a popup window. "
@@ -3174,10 +3365,10 @@ msgstr "%s (em %s)"
 #~ "this action."
 #~ msgstr ""
 #~ "A tecla de atalho usada para mover o foco entre janelas sem uma janela "
-#~ "instantânea. (Tradicionalmente &lt;Alt&gt;Escape.) Segurar a tecla \"shift"
-#~ "\" ao usar essa tecla de atalho inverte a direção do movimento. O formato "
-#~ "é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;Alt&gt;F1\". O "
-#~ "analisador é bastante flexível, permitindo letras minúsculas ou "
+#~ "instantânea. (Tradicionalmente &lt;Alt&gt;Escape.) Segurar a tecla "
+#~ "\"shift\" ao usar essa tecla de atalho inverte a direção do movimento. O "
+#~ "formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;Alt&gt;"
+#~ "F1\". O analisador é bastante flexível, permitindo letras minúsculas ou "
 #~ "maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;Ctrl&gt;\". Se "
 #~ "você definir a opção como o valor especial \"disabled\" (desabilitada), "
 #~ "não haverá tecla de atalho para essa ação."
@@ -3215,8 +3406,8 @@ msgstr "%s (em %s)"
 #~ "O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to toggle fullscreen mode. The format looks like "
@@ -3260,8 +3451,8 @@ msgstr "%s (em %s)"
 #~ "sombreado. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;"
 #~ "Shift&gt;&lt;Alt&gt;F1\". O analisador é bastante flexível, permitindo "
 #~ "letras minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e "
-#~ "\"&lt;Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "\"&lt;Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding used to toggle whether the window is on all workspaces or "
@@ -3306,8 +3497,8 @@ msgstr "%s (em %s)"
 #~ "painel. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;"
 #~ "&lt;Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "The keybinding which invokes a terminal. The format looks like \"&lt;"
@@ -3329,8 +3520,8 @@ msgstr "%s (em %s)"
 #~ "screenshot of a window. The format looks like \"&lt;Control&gt;a\" or "
 #~ "\"&lt;Shift&gt;&lt;Alt&gt;F1\". The parser is fairly liberal and allows "
 #~ "lower or upper case, and also abbreviations such as \"&lt;Ctl&gt;\" and "
-#~ "\"&lt;Ctrl&gt;\". If you set the option to the special string \"disabled"
-#~ "\", then there will be no keybinding for this action."
+#~ "\"&lt;Ctrl&gt;\". If you set the option to the special string "
+#~ "\"disabled\", then there will be no keybinding for this action."
 #~ msgstr ""
 #~ "A tecla de atalho usada para abrir o programa de captura de tela do "
 #~ "painel para capturar a imagem de uma janela. O formato é semelhante a "
@@ -3386,8 +3577,8 @@ msgstr "%s (em %s)"
 #~ "janelas. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;"
 #~ "&lt;Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "This keybinding lowers a window below other windows. The format looks "
@@ -3446,8 +3637,8 @@ msgstr "%s (em %s)"
 #~ "tela. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "This keybinding moves a window into the north-west (top left) corner of "
@@ -3461,8 +3652,8 @@ msgstr "%s (em %s)"
 #~ "tala. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "This keybinding moves a window into the south (bottom) side of the "
@@ -3491,8 +3682,8 @@ msgstr "%s (em %s)"
 #~ "tela. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "This keybinding moves a window into the south-west (bottom left) corner "
@@ -3506,8 +3697,8 @@ msgstr "%s (em %s)"
 #~ "tela. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;Shift&gt;&lt;"
 #~ "Alt&gt;F1\". O analisador é bastante flexível, permitindo letras "
 #~ "minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e \"&lt;"
-#~ "Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "This keybinding moves a window into the west (left) side of the screen. "
@@ -3551,8 +3742,8 @@ msgstr "%s (em %s)"
 #~ "horizontalmente. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;"
 #~ "Shift&gt;&lt;Alt&gt;F1\". O analisador é bastante flexível, permitindo "
 #~ "letras minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e "
-#~ "\"&lt;Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "\"&lt;Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid ""
 #~ "This keybinding resizes a window to fill available vertical space. The "
@@ -3566,8 +3757,8 @@ msgstr "%s (em %s)"
 #~ "verticalmente. O formato é semelhante a \"&lt;Control&gt;a\" ou \"&lt;"
 #~ "Shift&gt;&lt;Alt&gt;F1\". O analisador é bastante flexível, permitindo "
 #~ "letras minúsculas ou maiúsculas e abreviações, como \"&lt;Ctl&gt;\" e "
-#~ "\"&lt;Ctrl&gt;\". Se você definir a opção como o valor especial \"disabled"
-#~ "\" (desabilitada), não haverá tecla de atalho para essa ação."
+#~ "\"&lt;Ctrl&gt;\". Se você definir a opção como o valor especial "
+#~ "\"disabled\" (desabilitada), não haverá tecla de atalho para essa ação."
 
 #~ msgid "Toggle always on top state"
 #~ msgstr "Alternar estado sempre no topo"

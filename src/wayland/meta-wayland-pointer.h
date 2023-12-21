@@ -17,21 +17,19 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_WAYLAND_POINTER_H
-#define META_WAYLAND_POINTER_H
-
-#include <wayland-server.h>
+#pragma once
 
 #include <glib.h>
+#include <wayland-server.h>
 
-#include "meta-wayland-types.h"
-#include "meta-wayland-seat.h"
-#include "meta-wayland-pointer-gesture-swipe.h"
-#include "meta-wayland-pointer-gesture-pinch.h"
-#include "meta-wayland-surface.h"
-#include "meta-wayland-pointer-constraints.h"
-
-#include <meta/meta-cursor-tracker.h>
+#include "meta/meta-cursor-tracker.h"
+#include "wayland/meta-wayland-pointer-constraints.h"
+#include "wayland/meta-wayland-pointer-gesture-hold.h"
+#include "wayland/meta-wayland-pointer-gesture-pinch.h"
+#include "wayland/meta-wayland-pointer-gesture-swipe.h"
+#include "wayland/meta-wayland-seat.h"
+#include "wayland/meta-wayland-surface.h"
+#include "wayland/meta-wayland-types.h"
 
 #define META_TYPE_WAYLAND_POINTER (meta_wayland_pointer_get_type ())
 G_DECLARE_FINAL_TYPE (MetaWaylandPointer, meta_wayland_pointer,
@@ -60,7 +58,9 @@ struct _MetaWaylandPointerClient
   struct wl_list pointer_resources;
   struct wl_list swipe_gesture_resources;
   struct wl_list pinch_gesture_resources;
+  struct wl_list hold_gesture_resources;
   struct wl_list relative_pointer_resources;
+  ClutterEventType active_touchpad_gesture;
 };
 
 struct _MetaWaylandPointer
@@ -72,11 +72,12 @@ struct _MetaWaylandPointer
 
   MetaWaylandSurface *focus_surface;
   gulong focus_surface_destroyed_handler_id;
+  gulong focus_surface_alive_notify_id;
   guint32 focus_serial;
   guint32 click_serial;
 
   MetaWaylandSurface *cursor_surface;
-  guint cursor_surface_destroy_id;
+  gulong cursor_surface_destroy_id;
 
   MetaWaylandPointerGrab *grab;
   MetaWaylandPointerGrab default_grab;
@@ -126,8 +127,6 @@ MetaWaylandPopup *meta_wayland_pointer_start_popup_grab (MetaWaylandPointer     
 
 void meta_wayland_pointer_end_popup_grab (MetaWaylandPointer *pointer);
 
-void meta_wayland_pointer_repick (MetaWaylandPointer *pointer);
-
 void meta_wayland_pointer_get_relative_coordinates (MetaWaylandPointer *pointer,
                                                     MetaWaylandSurface *surface,
                                                     wl_fixed_t         *x,
@@ -159,4 +158,4 @@ void meta_wayland_surface_cursor_update (MetaWaylandSurface *cursor_surface);
 
 void meta_wayland_pointer_update_cursor_surface (MetaWaylandPointer *pointer);
 
-#endif /* META_WAYLAND_POINTER_H */
+gboolean meta_wayland_pointer_is_grabbed (MetaWaylandPointer *pointer);

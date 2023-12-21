@@ -32,22 +32,19 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
 
-#ifndef __COGL_BUFFER_H__
-#define __COGL_BUFFER_H__
+#include "cogl/cogl-types.h"
 
-#include <cogl/cogl-types.h>
-#include <cogl/cogl-error.h>
-
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 /**
  * SECTION:cogl-buffer
  * @short_description: Common buffer functions, including data upload APIs
- * @stability: unstable
  *
  * The CoglBuffer API provides a common interface to manipulate
  * buffers that have been allocated either via cogl_pixel_buffer_new()
@@ -86,10 +83,9 @@ typedef struct _CoglBuffer CoglBuffer;
  *    limitation was hit.
  *
  * Error enumeration for #CoglBuffer
- *
- * Stability: unstable
  */
-typedef enum { /*< prefix=COGL_BUFFER_ERROR >*/
+typedef enum /*< prefix=COGL_BUFFER_ERROR >*/
+{
   COGL_BUFFER_ERROR_MAP
 } CoglBufferError;
 
@@ -103,11 +99,8 @@ _cogl_buffer_error_domain (void);
  * Checks whether @buffer is a buffer object.
  *
  * Return value: %TRUE if the handle is a CoglBuffer, and %FALSE otherwise
- *
- * Since: 1.2
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_is_buffer (void *object);
 
 /**
@@ -117,11 +110,8 @@ cogl_is_buffer (void *object);
  * Retrieves the size of buffer
  *
  * Return value: the size of the buffer in bytes
- *
- * Since: 1.2
- * Stability: unstable
  */
-unsigned int
+COGL_EXPORT unsigned int
 cogl_buffer_get_size (CoglBuffer *buffer);
 
 /**
@@ -133,11 +123,9 @@ cogl_buffer_get_size (CoglBuffer *buffer);
  *
  * The update hint on a buffer allows the user to give some detail on how often
  * the buffer data is going to be updated.
- *
- * Since: 1.2
- * Stability: unstable
  */
-typedef enum { /*< prefix=COGL_BUFFER_UPDATE_HINT >*/
+typedef enum /*< prefix=COGL_BUFFER_UPDATE_HINT >*/
+{
   COGL_BUFFER_UPDATE_HINT_STATIC,
   COGL_BUFFER_UPDATE_HINT_DYNAMIC,
   COGL_BUFFER_UPDATE_HINT_STREAM
@@ -150,11 +138,8 @@ typedef enum { /*< prefix=COGL_BUFFER_UPDATE_HINT >*/
  *
  * Sets the update hint on a buffer. See #CoglBufferUpdateHint for a description
  * of the available hints.
- *
- * Since: 1.2
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_buffer_set_update_hint (CoglBuffer          *buffer,
                              CoglBufferUpdateHint hint);
 
@@ -165,11 +150,8 @@ cogl_buffer_set_update_hint (CoglBuffer          *buffer,
  * Retrieves the update hints set using cogl_buffer_set_update_hint()
  *
  * Return value: the #CoglBufferUpdateHint currently used by the buffer
- *
- * Since: 1.2
- * Stability: unstable
  */
-CoglBufferUpdateHint
+COGL_EXPORT CoglBufferUpdateHint
 cogl_buffer_get_update_hint (CoglBuffer *buffer);
 
 /**
@@ -180,11 +162,9 @@ cogl_buffer_get_update_hint (CoglBuffer *buffer);
  *   writing
  *
  * The access hints for cogl_buffer_set_update_hint()
- *
- * Since: 1.2
- * Stability: unstable
  */
-typedef enum { /*< prefix=COGL_BUFFER_ACCESS >*/
+typedef enum /*< prefix=COGL_BUFFER_ACCESS >*/
+{
  COGL_BUFFER_ACCESS_READ       = 1 << 0,
  COGL_BUFFER_ACCESS_WRITE      = 1 << 1,
  COGL_BUFFER_ACCESS_READ_WRITE = COGL_BUFFER_ACCESS_READ | COGL_BUFFER_ACCESS_WRITE
@@ -204,11 +184,9 @@ typedef enum { /*< prefix=COGL_BUFFER_ACCESS >*/
  *
  * Hints to Cogl about how you are planning to modify the data once it
  * is mapped.
- *
- * Since: 1.4
- * Stability: unstable
  */
-typedef enum { /*< prefix=COGL_BUFFER_MAP_HINT >*/
+typedef enum /*< prefix=COGL_BUFFER_MAP_HINT >*/
+{
   COGL_BUFFER_MAP_HINT_DISCARD = 1 << 0,
   COGL_BUFFER_MAP_HINT_DISCARD_RANGE = 1 << 1
 } CoglBufferMapHint;
@@ -237,11 +215,8 @@ typedef enum { /*< prefix=COGL_BUFFER_MAP_HINT >*/
  *
  * Return value: (transfer none): A pointer to the mapped memory or
  *        %NULL is the call fails
- *
- * Since: 1.2
- * Stability: unstable
  */
-void *
+COGL_EXPORT void *
 cogl_buffer_map (CoglBuffer *buffer,
                  CoglBufferAccess access,
                  CoglBufferMapHint hints);
@@ -254,7 +229,7 @@ cogl_buffer_map (CoglBuffer *buffer,
  * @access: how the mapped buffer will be used by the application
  * @hints: A mask of #CoglBufferMapHint<!-- -->s that tell Cogl how
  *   the data will be modified once mapped.
- * @error: A #CoglError for catching exceptional errors
+ * @error: A #GError for catching exceptional errors
  *
  * Maps a sub-region of the buffer into the application's address space
  * for direct access.
@@ -274,28 +249,22 @@ cogl_buffer_map (CoglBuffer *buffer,
  *
  * Return value: (transfer none): A pointer to the mapped memory or
  *        %NULL is the call fails
- *
- * Since: 2.0
- * Stability: unstable
  */
-void *
+COGL_EXPORT void *
 cogl_buffer_map_range (CoglBuffer *buffer,
                        size_t offset,
                        size_t size,
                        CoglBufferAccess access,
                        CoglBufferMapHint hints,
-                       CoglError **error);
+                       GError **error);
 
 /**
  * cogl_buffer_unmap:
  * @buffer: a buffer object
  *
  * Unmaps a buffer previously mapped by cogl_buffer_map().
- *
- * Since: 1.2
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_buffer_unmap (CoglBuffer *buffer);
 
 /**
@@ -310,16 +279,11 @@ cogl_buffer_unmap (CoglBuffer *buffer);
  * buffer size.
  *
  * Return value: %TRUE is the operation succeeded, %FALSE otherwise
- *
- * Since: 1.2
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_buffer_set_data (CoglBuffer *buffer,
                       size_t offset,
                       const void *data,
                       size_t size);
 
-COGL_END_DECLS
-
-#endif /* __COGL_BUFFER_H__ */
+G_END_DECLS

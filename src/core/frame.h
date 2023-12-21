@@ -19,12 +19,11 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_FRAME_PRIVATE_H
-#define META_FRAME_PRIVATE_H
+#pragma once
 
-#include "window-private.h"
+#include "core/window-private.h"
 
-#include "ui/frames.h"
+#include "x11/meta-sync-counter.h"
 
 struct _MetaFrame
 {
@@ -34,14 +33,16 @@ struct _MetaFrame
   /* reparent window */
   Window xwindow;
 
-  MetaCursor current_cursor;
-
   /* This rect is trusted info from where we put the
    * frame, not the result of ConfigureNotify
    */
-  MetaRectangle rect;
+  MtkRectangle rect;
 
   MetaFrameBorders cached_borders; /* valid if borders_cached is set */
+
+  cairo_region_t *opaque_region;
+
+  MetaSyncCounter sync_counter;
 
   /* position of client, size of frame */
   int child_x;
@@ -49,18 +50,12 @@ struct _MetaFrame
   int right_width;
   int bottom_height;
 
-  guint need_reapply_frame_shape : 1;
-  guint is_flashing : 1; /* used by the visual bell flash */
   guint borders_cached : 1;
-
-  MetaUIFrame *ui_frame;
 };
 
 void     meta_window_ensure_frame           (MetaWindow *window);
 void     meta_window_destroy_frame          (MetaWindow *window);
-void     meta_frame_queue_draw              (MetaFrame  *frame);
 
-MetaFrameFlags meta_frame_get_flags   (MetaFrame *frame);
 Window         meta_frame_get_xwindow (MetaFrame *frame);
 
 /* These should ONLY be called from meta_window_move_resize_internal */
@@ -74,13 +69,17 @@ void meta_frame_clear_cached_borders (MetaFrame *frame);
 
 cairo_region_t *meta_frame_get_frame_bounds (MetaFrame *frame);
 
-void meta_frame_get_mask (MetaFrame *frame,
-                          cairo_t   *cr);
+void meta_frame_get_mask (MetaFrame    *frame,
+                          MtkRectangle *frame_rect,
+                          cairo_t      *cr);
 
-void meta_frame_set_screen_cursor (MetaFrame	*frame,
-				   MetaCursor	cursor);
+gboolean meta_frame_handle_xevent (MetaFrame *frame,
+                                   XEvent    *event);
 
-void meta_frame_update_style (MetaFrame *frame);
-void meta_frame_update_title (MetaFrame *frame);
+GSubprocess * meta_frame_launch_client (MetaX11Display *x11_display,
+                                        const char     *display_name);
 
-#endif
+MetaSyncCounter * meta_frame_get_sync_counter (MetaFrame *frame);
+
+void meta_frame_set_opaque_region (MetaFrame      *frame,
+                                   cairo_region_t *region);

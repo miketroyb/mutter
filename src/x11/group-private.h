@@ -19,23 +19,16 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_GROUP_PRIVATE_H
-#define META_GROUP_PRIVATE_H
+#pragma once
 
-#include <meta/group.h>
+#include "meta/group.h"
 
 struct _MetaGroup
 {
   int refcount;
-  MetaDisplay *display;
+  MetaX11Display *x11_display;
   GSList *windows;
   Window group_leader;
   char *startup_id;
   char *wm_client_machine;
 };
-
-#endif
-
-
-
-

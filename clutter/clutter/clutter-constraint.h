@@ -22,14 +22,13 @@
  *   Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_CONSTRAINT_H__
-#define __CLUTTER_CONSTRAINT_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-actor-meta.h>
+#include "clutter/clutter-actor-meta.h"
 
 G_BEGIN_DECLS
 
@@ -42,14 +41,6 @@ G_BEGIN_DECLS
 
 typedef struct _ClutterConstraintClass          ClutterConstraintClass;
 
-/**
- * ClutterConstraint:
- *
- * The #ClutterConstraint structure contains only
- * private data and should be accessed using the provided API
- *
- * Since: 1.4
- */
 struct _ClutterConstraint
 {
   /*< private >*/
@@ -66,8 +57,6 @@ struct _ClutterConstraint
  *
  * The #ClutterConstraintClass structure contains
  * only private data
- *
- * Since: 1.4
  */
 struct _ClutterConstraintClass
 {
@@ -85,45 +74,42 @@ struct _ClutterConstraintClass
                                   float               for_size,
                                   float              *minimum_size,
                                   float              *natural_size);
-
-  /*< private >*/
-  void (* _clutter_constraint1) (void);
-  void (* _clutter_constraint2) (void);
-  void (* _clutter_constraint3) (void);
-  void (* _clutter_constraint4) (void);
-  void (* _clutter_constraint5) (void);
-  void (* _clutter_constraint6) (void);
-  void (* _clutter_constraint7) (void);
 };
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 GType clutter_constraint_get_type (void) G_GNUC_CONST;
 
+CLUTTER_EXPORT
+void clutter_constraint_update_preferred_size (ClutterConstraint  *constraint,
+                                               ClutterActor       *actor,
+                                               ClutterOrientation  direction,
+                                               float               for_size,
+                                               float              *minimum_size,
+                                               float              *natural_size);
+
 /* ClutterActor API */
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void               clutter_actor_add_constraint            (ClutterActor      *self,
                                                             ClutterConstraint *constraint);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void               clutter_actor_add_constraint_with_name  (ClutterActor      *self,
                                                             const gchar       *name,
                                                             ClutterConstraint *constraint);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void               clutter_actor_remove_constraint         (ClutterActor      *self,
                                                             ClutterConstraint *constraint);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void               clutter_actor_remove_constraint_by_name (ClutterActor      *self,
                                                             const gchar       *name);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 GList *            clutter_actor_get_constraints           (ClutterActor      *self);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 ClutterConstraint *clutter_actor_get_constraint            (ClutterActor      *self,
                                                             const gchar       *name);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void               clutter_actor_clear_constraints         (ClutterActor      *self);
 
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 gboolean           clutter_actor_has_constraints           (ClutterActor      *self);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_CONSTRAINT_H__ */

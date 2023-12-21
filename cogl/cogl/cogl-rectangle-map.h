@@ -26,11 +26,11 @@
  * SOFTWARE.
  */
 
-#ifndef __COGL_RECTANGLE_MAP_H
-#define __COGL_RECTANGLE_MAP_H
+#pragma once
 
 #include <glib.h>
-#include "cogl-types.h"
+
+#include "cogl/cogl-types.h"
 
 typedef struct _CoglRectangleMap      CoglRectangleMap;
 typedef struct _CoglRectangleMapEntry CoglRectangleMapEntry;
@@ -50,7 +50,7 @@ _cogl_rectangle_map_new (unsigned int width,
                          unsigned int height,
                          GDestroyNotify value_destroy_func);
 
-CoglBool
+gboolean
 _cogl_rectangle_map_add (CoglRectangleMap *map,
                          unsigned int width,
                          unsigned int height,
@@ -80,5 +80,3 @@ _cogl_rectangle_map_foreach (CoglRectangleMap *map,
 
 void
 _cogl_rectangle_map_free (CoglRectangleMap *map);
-
-#endif /* __COGL_RECTANGLE_MAP_H */

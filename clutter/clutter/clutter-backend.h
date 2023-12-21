@@ -21,8 +21,7 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __CLUTTER_BACKEND_H__
-#define __CLUTTER_BACKEND_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
@@ -31,10 +30,11 @@
 #include <cairo.h>
 #include <pango/pango.h>
 
-#include <cogl/cogl.h>
+#include "cogl/cogl.h"
 
-#include <clutter/clutter-config.h>
-#include <clutter/clutter-types.h>
+#include "clutter/clutter-keymap.h"
+#include "clutter/clutter-types.h"
+#include "clutter/clutter-seat.h"
 
 G_BEGIN_DECLS
 
@@ -42,47 +42,34 @@ G_BEGIN_DECLS
 #define CLUTTER_BACKEND(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), CLUTTER_TYPE_BACKEND, ClutterBackend))
 #define CLUTTER_IS_BACKEND(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), CLUTTER_TYPE_BACKEND))
 
-/**
- * ClutterBackend:
- *
- * #ClutterBackend is an opaque structure whose
- * members cannot be directly accessed.
- *
- * Since: 0.4
- */
 typedef struct _ClutterBackend          ClutterBackend;
 typedef struct _ClutterBackendClass     ClutterBackendClass;
 
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 GType clutter_backend_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 ClutterBackend *                clutter_get_default_backend             (void);
 
-CLUTTER_AVAILABLE_IN_1_16
-void                            clutter_set_windowing_backend           (const char *backend_type);
-
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 gdouble                         clutter_backend_get_resolution          (ClutterBackend             *backend);
 
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 void                            clutter_backend_set_font_options        (ClutterBackend             *backend,
                                                                          const cairo_font_options_t *options);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 const cairo_font_options_t *    clutter_backend_get_font_options        (ClutterBackend             *backend);
 
-CLUTTER_AVAILABLE_IN_1_8
+CLUTTER_EXPORT
 CoglContext *                   clutter_backend_get_cogl_context        (ClutterBackend             *backend);
 
-CLUTTER_AVAILABLE_IN_ALL
-void                            clutter_backend_bell_notify             (ClutterBackend             *backend);
-
-CLUTTER_AVAILABLE_IN_MUTTER
+CLUTTER_EXPORT
 ClutterInputMethod *            clutter_backend_get_input_method        (ClutterBackend             *backend);
 
-CLUTTER_AVAILABLE_IN_MUTTER
+CLUTTER_EXPORT
 void                            clutter_backend_set_input_method        (ClutterBackend             *backend,
                                                                          ClutterInputMethod         *method);
-G_END_DECLS
+CLUTTER_EXPORT
+ClutterSeat *                   clutter_backend_get_default_seat        (ClutterBackend             *backend);
 
-#endif /* __CLUTTER_BACKEND_H__ */
+G_END_DECLS

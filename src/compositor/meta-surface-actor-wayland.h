@@ -14,71 +14,34 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jasper St. Pierre <jstpierre@mecheye.net>
  */
 
-#ifndef __META_SURFACE_ACTOR_WAYLAND_H__
-#define __META_SURFACE_ACTOR_WAYLAND_H__
+#pragma once
 
 #include <glib-object.h>
 
-#include "meta-surface-actor.h"
-
-#include "wayland/meta-wayland.h"
-#include "wayland/meta-wayland-private.h"
-
 #include "backends/meta-monitor-manager-private.h"
+#include "compositor/meta-surface-actor.h"
+#include "wayland/meta-wayland-private.h"
+#include "wayland/meta-wayland.h"
 
 G_BEGIN_DECLS
 
-#define META_TYPE_SURFACE_ACTOR_WAYLAND            (meta_surface_actor_wayland_get_type ())
-#define META_SURFACE_ACTOR_WAYLAND(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), META_TYPE_SURFACE_ACTOR_WAYLAND, MetaSurfaceActorWayland))
-#define META_SURFACE_ACTOR_WAYLAND_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  META_TYPE_SURFACE_ACTOR_WAYLAND, MetaSurfaceActorWaylandClass))
-#define META_IS_SURFACE_ACTOR_WAYLAND(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), META_TYPE_SURFACE_ACTOR_WAYLAND))
-#define META_IS_SURFACE_ACTOR_WAYLAND_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  META_TYPE_SURFACE_ACTOR_WAYLAND))
-#define META_SURFACE_ACTOR_WAYLAND_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  META_TYPE_SURFACE_ACTOR_WAYLAND, MetaSurfaceActorWaylandClass))
-
-typedef struct _MetaSurfaceActorWayland      MetaSurfaceActorWayland;
-typedef struct _MetaSurfaceActorWaylandClass MetaSurfaceActorWaylandClass;
-
-struct _MetaSurfaceActorWayland
-{
-  MetaSurfaceActor parent;
-};
-
-struct _MetaSurfaceActorWaylandClass
-{
-  MetaSurfaceActorClass parent_class;
-};
-
-GType meta_surface_actor_wayland_get_type (void);
+#define META_TYPE_SURFACE_ACTOR_WAYLAND (meta_surface_actor_wayland_get_type ())
+G_DECLARE_FINAL_TYPE (MetaSurfaceActorWayland,
+                      meta_surface_actor_wayland,
+                      META, SURFACE_ACTOR_WAYLAND,
+                      MetaSurfaceActor)
 
 MetaSurfaceActor * meta_surface_actor_wayland_new (MetaWaylandSurface *surface);
 MetaWaylandSurface * meta_surface_actor_wayland_get_surface (MetaSurfaceActorWayland *self);
 void meta_surface_actor_wayland_surface_destroyed (MetaSurfaceActorWayland *self);
 
-double meta_surface_actor_wayland_get_scale (MetaSurfaceActorWayland *actor);
-
-void meta_surface_actor_wayland_get_subsurface_rect (MetaSurfaceActorWayland *self,
-                                                     MetaRectangle           *rect);
-
-void meta_surface_actor_wayland_sync_state (MetaSurfaceActorWayland *self);
-
-void meta_surface_actor_wayland_sync_state_recursive (MetaSurfaceActorWayland *self);
-
-void meta_surface_actor_wayland_sync_subsurface_state (MetaSurfaceActorWayland *self);
-
-gboolean meta_surface_actor_wayland_is_on_monitor (MetaSurfaceActorWayland *self,
-                                                   MetaLogicalMonitor      *logical_monitor);
-
-void meta_surface_actor_wayland_add_frame_callbacks (MetaSurfaceActorWayland *self,
-                                                     struct wl_list *frame_callbacks);
+gboolean meta_surface_actor_wayland_is_view_primary (MetaSurfaceActor *actor,
+                                                     ClutterStageView *stage_view);
 
 G_END_DECLS
-
-#endif /* __META_SURFACE_ACTOR_WAYLAND_H__ */

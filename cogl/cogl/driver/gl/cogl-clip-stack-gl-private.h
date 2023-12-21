@@ -31,15 +31,12 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifndef _COGL_CLIP_STACK_GL_PRIVATE_H_
-#define _COGL_CLIP_STACK_GL_PRIVATE_H_
+#pragma once
 
-#include "cogl-types.h"
-#include "cogl-framebuffer.h"
-#include "cogl-clip-stack.h"
+#include "cogl/cogl-types.h"
+#include "cogl/cogl-framebuffer.h"
+#include "cogl/cogl-clip-stack.h"
 
 void
 _cogl_clip_stack_gl_flush (CoglClipStack *stack,
                            CoglFramebuffer *framebuffer);
-
-#endif /* _COGL_CLIP_STACK_GL_PRIVATE_H_ */

@@ -14,14 +14,11 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#ifndef META_GLES3_H
-#define META_GLES3_H
+#pragma once
 
 #include <glib-object.h>
 
@@ -43,9 +40,9 @@ void meta_gles3_ensure_loaded (MetaGles3  *gles,
                                gpointer   *func,
                                const char *name);
 
-gboolean meta_gles3_has_extensions (MetaGles3 *gles3,
-                                    char    ***missing_extensions,
-                                    char      *first_extension,
+gboolean meta_gles3_has_extensions (MetaGles3    *gles3,
+                                    const char ***missing_extensions,
+                                    const char   *first_extension,
                                     ...);
 
 MetaGles3 * meta_gles3_new (MetaEgl *egl);
@@ -79,5 +76,3 @@ MetaGles3 * meta_gles3_new (MetaEgl *egl);
       g_error_free (_error);                                                   \
     }                                                                          \
 }
-
-#endif /* META_GLES3_H */

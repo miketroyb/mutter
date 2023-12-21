@@ -22,27 +22,30 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_STARTUP_NOTIFICATION_PRIVATE_H
-#define META_STARTUP_NOTIFICATION_PRIVATE_H
+#pragma once
 
-#include "display-private.h"
+#include "core/display-private.h"
+#include "meta/meta-startup-notification.h"
 
-#define META_TYPE_STARTUP_NOTIFICATION (meta_startup_notification_get_type ())
+struct _MetaStartupSequenceClass
+{
+  GObjectClass parent_class;
 
-G_DECLARE_FINAL_TYPE (MetaStartupNotification,
-                      meta_startup_notification,
-                      META, STARTUP_NOTIFICATION,
-                      GObject)
+  void (* complete) (MetaStartupSequence *sequence);
+};
 
 MetaStartupNotification *
-         meta_startup_notification_get             (MetaDisplay             *display);
+         meta_startup_notification_new             (MetaDisplay             *display);
 
 gboolean meta_startup_notification_handle_xevent   (MetaStartupNotification *sn,
                                                     XEvent                  *xevent);
 
+void     meta_startup_notification_add_sequence    (MetaStartupNotification *sn,
+                                                    MetaStartupSequence     *seq);
 void     meta_startup_notification_remove_sequence (MetaStartupNotification *sn,
+                                                    MetaStartupSequence     *seq);
+MetaStartupSequence *
+         meta_startup_notification_lookup_sequence (MetaStartupNotification *sn,
                                                     const gchar             *id);
 
-GSList * meta_startup_notification_get_sequences   (MetaStartupNotification *sn);
-
-#endif /* META_STARTUP_NOTIFICATION_PRIVATE_H */
+MetaDisplay * meta_startup_sequence_get_display (MetaStartupSequence *seq);

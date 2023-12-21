@@ -22,15 +22,14 @@
  *   Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_DEFORM_EFFECT_H__
-#define __CLUTTER_DEFORM_EFFECT_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <cogl/cogl.h>
-#include <clutter/clutter-offscreen-effect.h>
+#include "cogl/cogl.h"
+#include "clutter/clutter-offscreen-effect.h"
 
 G_BEGIN_DECLS
 
@@ -45,14 +44,6 @@ typedef struct _ClutterDeformEffect             ClutterDeformEffect;
 typedef struct _ClutterDeformEffectPrivate      ClutterDeformEffectPrivate;
 typedef struct _ClutterDeformEffectClass        ClutterDeformEffectClass;
 
-/**
- * ClutterDeformEffect:
- *
- * The #ClutterDeformEffect structure contains
- * only private data and should be accessed using the provided API
- *
- * Since: 1.4
- */
 struct _ClutterDeformEffect
 {
   /*< private >*/
@@ -68,8 +59,6 @@ struct _ClutterDeformEffect
  *
  * The #ClutterDeformEffectClass structure contains
  * only private data
- *
- * Since: 1.4
  */
 struct _ClutterDeformEffectClass
 {
@@ -81,37 +70,26 @@ struct _ClutterDeformEffectClass
                           gfloat               width,
                           gfloat               height,
                           CoglTextureVertex   *vertex);
-
-  /*< private >*/
-  void (*_clutter_deform1) (void);
-  void (*_clutter_deform2) (void);
-  void (*_clutter_deform3) (void);
-  void (*_clutter_deform4) (void);
-  void (*_clutter_deform5) (void);
-  void (*_clutter_deform6) (void);
-  void (*_clutter_deform7) (void);
 };
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 GType clutter_deform_effect_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void            clutter_deform_effect_set_back_material (ClutterDeformEffect *effect,
                                                          CoglHandle           material);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 CoglHandle      clutter_deform_effect_get_back_material (ClutterDeformEffect *effect);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void            clutter_deform_effect_set_n_tiles       (ClutterDeformEffect *effect,
                                                          guint                x_tiles,
                                                          guint                y_tiles);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void            clutter_deform_effect_get_n_tiles       (ClutterDeformEffect *effect,
                                                          guint               *x_tiles,
                                                          guint               *y_tiles);
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void            clutter_deform_effect_invalidate        (ClutterDeformEffect *effect);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_DEFORM_EFFECT_H__ */

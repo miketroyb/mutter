@@ -12,19 +12,17 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#ifndef META_WAYLAND_TEXT_INPUT_H
-#define META_WAYLAND_TEXT_INPUT_H
+#pragma once
 
 #include <wayland-server.h>
-#include "wayland/meta-wayland-types.h"
+
 #include "meta/window.h"
+#include "wayland/meta-wayland-types.h"
 
 #define META_TYPE_WAYLAND_TEXT_INPUT (meta_wayland_text_input_get_type ())
 G_DECLARE_FINAL_TYPE (MetaWaylandTextInput,
@@ -40,7 +38,8 @@ gboolean meta_wayland_text_input_init (MetaWaylandCompositor *compositor);
 void meta_wayland_text_input_set_focus (MetaWaylandTextInput *text_input,
 					MetaWaylandSurface   *surface);
 
+gboolean meta_wayland_text_input_update (MetaWaylandTextInput *text_input,
+                                         const ClutterEvent   *event);
+
 gboolean meta_wayland_text_input_handle_event (MetaWaylandTextInput *text_input,
                                                const ClutterEvent   *event);
-
-#endif /* META_WAYLAND_TEXT_INPUT_H */

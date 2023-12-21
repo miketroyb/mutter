@@ -21,15 +21,14 @@
  * Author: Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_PROPERTY_TRANSITION_H__
-#define __CLUTTER_PROPERTY_TRANSITION_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-types.h>
-#include <clutter/clutter-transition.h>
+#include "clutter/clutter-types.h"
+#include "clutter/clutter-transition.h"
 
 G_BEGIN_DECLS
 
@@ -43,14 +42,6 @@ G_BEGIN_DECLS
 typedef struct _ClutterPropertyTransitionPrivate        ClutterPropertyTransitionPrivate;
 typedef struct _ClutterPropertyTransitionClass          ClutterPropertyTransitionClass;
 
-/**
- * ClutterPropertyTransition:
- *
- * The #ClutterPropertyTransition structure contains
- * private data and should only be accessed using the provided API.
- *
- * Since: 1.10
- */
 struct _ClutterPropertyTransition
 {
   /*< private >*/
@@ -64,28 +55,27 @@ struct _ClutterPropertyTransition
  *
  * The #ClutterPropertyTransitionClass structure
  * contains private data.
- *
- * Since: 1.10
  */
 struct _ClutterPropertyTransitionClass
 {
   /*< private >*/
   ClutterTransitionClass parent_class;
-
-  gpointer _padding[8];
 };
 
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 GType clutter_property_transition_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
+ClutterTransition *     clutter_property_transition_new_for_actor       (ClutterActor              *actor,
+                                                                         const char                *property_name);
+
+CLUTTER_EXPORT
 ClutterTransition *     clutter_property_transition_new                 (const char                *property_name);
-CLUTTER_AVAILABLE_IN_1_10
+
+CLUTTER_EXPORT
 void                    clutter_property_transition_set_property_name   (ClutterPropertyTransition *transition,
                                                                          const char                *property_name);
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 const char *            clutter_property_transition_get_property_name   (ClutterPropertyTransition *transition);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_PROPERTY_TRANSITION_H__ */

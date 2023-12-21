@@ -22,45 +22,34 @@
  *     Jasper St. Pierre <jstpierre@mecheye.net>
  */
 
-#ifndef __META_CULLABLE_H__
-#define __META_CULLABLE_H__
+#pragma once
 
-#include <clutter/clutter.h>
+#include "clutter/clutter.h"
 
 G_BEGIN_DECLS
 
-#define META_TYPE_CULLABLE             (meta_cullable_get_type ())
-#define META_CULLABLE(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), META_TYPE_CULLABLE, MetaCullable))
-#define META_IS_CULLABLE(obj)          (G_TYPE_CHECK_INSTANCE_TYPE ((obj), META_TYPE_CULLABLE))
-#define META_CULLABLE_GET_IFACE(obj)   (G_TYPE_INSTANCE_GET_INTERFACE ((obj),  META_TYPE_CULLABLE, MetaCullableInterface))
-
-typedef struct _MetaCullable MetaCullable;
-typedef struct _MetaCullableInterface MetaCullableInterface;
+#define META_TYPE_CULLABLE (meta_cullable_get_type ())
+G_DECLARE_INTERFACE (MetaCullable, meta_cullable, META, CULLABLE, ClutterActor)
 
 struct _MetaCullableInterface
 {
   GTypeInterface g_iface;
 
-  void (* cull_out)      (MetaCullable   *cullable,
-                          cairo_region_t *unobscured_region,
-                          cairo_region_t *clip_region);
-  void (* reset_culling) (MetaCullable  *cullable);
+  void (* cull_unobscured) (MetaCullable   *cullable,
+                            cairo_region_t *unobscured_region);
+  void (* cull_redraw_clip) (MetaCullable   *cullable,
+                             cairo_region_t *clip_region);
 };
 
-GType meta_cullable_get_type (void);
-
-void meta_cullable_cull_out (MetaCullable   *cullable,
-                             cairo_region_t *unobscured_region,
-                             cairo_region_t *clip_region);
-void meta_cullable_reset_culling (MetaCullable *cullable);
+void meta_cullable_cull_unobscured (MetaCullable   *cullable,
+                                    cairo_region_t *unobscured_region);
+void meta_cullable_cull_redraw_clip (MetaCullable   *cullable,
+                                     cairo_region_t *clip_region);
 
 /* Utility methods for implementations */
-void meta_cullable_cull_out_children (MetaCullable   *cullable,
-                                      cairo_region_t *unobscured_region,
-                                      cairo_region_t *clip_region);
-void meta_cullable_reset_culling_children (MetaCullable *cullable);
+void meta_cullable_cull_unobscured_children (MetaCullable   *cullable,
+                                             cairo_region_t *unobscured_region);
+void meta_cullable_cull_redraw_clip_children (MetaCullable   *cullable,
+                                              cairo_region_t *clip_region);
 
 G_END_DECLS
-
-#endif /* __META_CULLABLE_H__ */
-

@@ -15,33 +15,31 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
 /**
- * SECTION:cally-root
- * @short_description: Root object for the Cally toolkit
- * @see_also: #ClutterStage
+ * CallyRoot:
+ * 
+ * Root object for the Cally toolkit
  *
  * #CallyRoot is the root object of the accessibility tree-like
  * hierarchy, exposing the application level.
  *
  * Somewhat equivalent to #GailTopLevel. We consider that this class
- * expose the a11y information of the #ClutterStageManager, as the
- * children of this object are the different ClutterStage managed (so
- * the #GObject used in the atk_object_initialize() is the
- * #ClutterStageManager).
+ * expose the a11y information of the [class@Clutter.StageManager], as the
+ * children of this object are the different [class@Clutter.Stage] managed (so
+ * the [class@GObject.Object] used in the atk_object_initialize() is the
+ * [class@Clutter.StageManager]).
  */
 
-#include "clutter-build-config.h"
+#include "clutter/clutter-build-config.h"
 
-#include "cally-root.h"
+#include "cally/cally-root.h"
 
-#include "clutter-actor.h"
-#include "clutter-stage-private.h"
-#include "clutter-stage-manager.h"
+#include "clutter/clutter-actor.h"
+#include "clutter/clutter-stage-private.h"
+#include "clutter/clutter-stage-manager.h"
 
 
 /* GObject */
@@ -75,8 +73,8 @@ struct _CallyRootPrivate
   GSList *stage_list;
 
   /* signals id */
-  guint stage_added_id;
-  guint stage_removed_id;
+  gulong stage_added_id;
+  gulong stage_removed_id;
 };
 
 G_DEFINE_TYPE_WITH_PRIVATE (CallyRoot, cally_root,  ATK_TYPE_GOBJECT_ACCESSIBLE)
@@ -113,8 +111,6 @@ cally_root_init (CallyRoot *root)
  * Creates a new #CallyRoot object.
  *
  * Return value: the newly created #AtkObject
- *
- * Since: 1.4
  */
 AtkObject*
 cally_root_new (void)
@@ -149,11 +145,9 @@ cally_root_finalize (GObject *object)
 
   stage_manager = atk_gobject_accessible_get_object (ATK_GOBJECT_ACCESSIBLE (root));
 
-  g_signal_handler_disconnect (stage_manager,
-                               root->priv->stage_added_id);
+  g_clear_signal_handler (&root->priv->stage_added_id, stage_manager);
 
-  g_signal_handler_disconnect (stage_manager,
-                               root->priv->stage_added_id);
+  g_clear_signal_handler (&root->priv->stage_removed_id, stage_manager);
 
   G_OBJECT_CLASS (cally_root_parent_class)->finalize (object);
 }

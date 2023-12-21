@@ -14,9 +14,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jasper St. Pierre <jstpierre@mecheye.net>
@@ -24,115 +22,117 @@
  */
 
 /**
- * SECTION:barrier-x11
- * @Title: MetaBarrierImplX11
- * @Short_Description: Pointer barriers implementation for X11
+ * MetaBarrierImplX11:
+ *
+ * Pointer barriers implementation for X11
  */
 
 #include "config.h"
 
-#ifdef HAVE_XI23
-
 #include <glib-object.h>
-
 #include <X11/extensions/XInput2.h>
 #include <X11/extensions/Xfixes.h>
-#include <meta/barrier.h>
-#include "backends/x11/meta-barrier-x11.h"
-#include "display-private.h"
 
-struct _MetaBarrierImplX11Private
+#include "backends/x11/meta-backend-x11.h"
+#include "backends/x11/meta-barrier-x11.h"
+#include "core/display-private.h"
+#include "meta/barrier.h"
+#include "x11/meta-x11-display-private.h"
+
+struct _MetaX11Barriers
 {
+  GHashTable *barriers;
+};
+
+struct _MetaBarrierImplX11
+{
+  MetaBarrierImpl parent;
+
   MetaBarrier *barrier;
   PointerBarrier xbarrier;
 };
 
-G_DEFINE_TYPE_WITH_PRIVATE (MetaBarrierImplX11, meta_barrier_impl_x11,
-                            META_TYPE_BARRIER_IMPL)
+G_DEFINE_TYPE (MetaBarrierImplX11,
+               meta_barrier_impl_x11,
+               META_TYPE_BARRIER_IMPL)
 
 static gboolean
-_meta_barrier_impl_x11_is_active (MetaBarrierImpl *impl)
+meta_barrier_impl_x11_is_active (MetaBarrierImpl *impl)
 {
   MetaBarrierImplX11 *self = META_BARRIER_IMPL_X11 (impl);
-  MetaBarrierImplX11Private *priv =
-    meta_barrier_impl_x11_get_instance_private (self);
 
-  return priv->xbarrier != 0;
+  return self->xbarrier != 0;
 }
 
 static void
-_meta_barrier_impl_x11_release (MetaBarrierImpl  *impl,
-                                MetaBarrierEvent *event)
+meta_barrier_impl_x11_release (MetaBarrierImpl  *impl,
+                               MetaBarrierEvent *event)
 {
   MetaBarrierImplX11 *self = META_BARRIER_IMPL_X11 (impl);
-  MetaBarrierImplX11Private *priv =
-    meta_barrier_impl_x11_get_instance_private (self);
-  MetaDisplay *display = priv->barrier->priv->display;
+  MetaBackend *backend = meta_barrier_get_backend (self->barrier);
+  MetaBackendX11 *backend_x11 = META_BACKEND_X11 (backend);
+  Display *xdisplay = meta_backend_x11_get_xdisplay (backend_x11);
 
-  if (META_DISPLAY_HAS_XINPUT_23 (display))
+  if (!event)
     {
-      XIBarrierReleasePointer (display->xdisplay,
-                               META_VIRTUAL_CORE_POINTER_ID,
-                               priv->xbarrier, event->event_id);
+      g_warning ("X11 barriers always need barrier events to release");
+      return;
     }
+
+  XIBarrierReleasePointer (xdisplay,
+                           META_VIRTUAL_CORE_POINTER_ID,
+                           self->xbarrier, event->event_id);
 }
 
 static void
-_meta_barrier_impl_x11_destroy (MetaBarrierImpl *impl)
+meta_barrier_impl_x11_destroy (MetaBarrierImpl *impl)
 {
   MetaBarrierImplX11 *self = META_BARRIER_IMPL_X11 (impl);
-  MetaBarrierImplX11Private *priv =
-    meta_barrier_impl_x11_get_instance_private (self);
-  MetaDisplay *display = priv->barrier->priv->display;
-  Display *dpy;
+  MetaBackend *backend = meta_barrier_get_backend (self->barrier);
+  MetaBackendX11 *backend_x11 = META_BACKEND_X11 (backend);
+  MetaX11Barriers *barriers = meta_backend_x11_get_barriers (backend_x11);
+  Display *xdisplay = meta_backend_x11_get_xdisplay (backend_x11);
 
-  if (display == NULL)
+  if (!meta_barrier_is_active (self->barrier))
     return;
 
-  dpy = display->xdisplay;
-
-  if (!meta_barrier_is_active (priv->barrier))
-    return;
-
-  XFixesDestroyPointerBarrier (dpy, priv->xbarrier);
-  g_hash_table_remove (display->xids, &priv->xbarrier);
-  priv->xbarrier = 0;
+  XFixesDestroyPointerBarrier (xdisplay, self->xbarrier);
+  g_hash_table_remove (barriers->barriers, &self->xbarrier);
+  self->xbarrier = 0;
 }
 
 MetaBarrierImpl *
 meta_barrier_impl_x11_new (MetaBarrier *barrier)
 {
   MetaBarrierImplX11 *self;
-  MetaBarrierImplX11Private *priv;
-  MetaDisplay *display = barrier->priv->display;
-  Display *dpy;
+  MetaBackend *backend;
+  MetaBackendX11 *backend_x11;
+  MetaX11Barriers *barriers;
+  Display *xdisplay;
   Window root;
+  MetaBorder *border;
   unsigned int allowed_motion_dirs;
 
-  if (display == NULL)
-    {
-      g_warning ("A display must be provided when constructing a barrier.");
-      return NULL;
-    }
-
   self = g_object_new (META_TYPE_BARRIER_IMPL_X11, NULL);
-  priv = meta_barrier_impl_x11_get_instance_private (self);
-  priv->barrier = barrier;
+  self->barrier = barrier;
 
-  dpy = display->xdisplay;
-  root = DefaultRootWindow (dpy);
+  backend = meta_barrier_get_backend (self->barrier);
+  backend_x11 = META_BACKEND_X11 (backend);
+  xdisplay = meta_backend_x11_get_xdisplay (backend_x11);
+  root = DefaultRootWindow (xdisplay);
 
-  allowed_motion_dirs =
-    meta_border_get_allows_directions (&barrier->priv->border);
-  priv->xbarrier = XFixesCreatePointerBarrier (dpy, root,
-                                               barrier->priv->border.line.a.x,
-                                               barrier->priv->border.line.a.y,
-                                               barrier->priv->border.line.b.x,
-                                               barrier->priv->border.line.b.y,
+  border = meta_barrier_get_border (barrier);
+  allowed_motion_dirs = meta_border_get_allows_directions (border);
+  self->xbarrier = XFixesCreatePointerBarrier (xdisplay, root,
+                                               border->line.a.x,
+                                               border->line.a.y,
+                                               border->line.b.x,
+                                               border->line.b.y,
                                                allowed_motion_dirs,
                                                0, NULL);
 
-  g_hash_table_insert (display->xids, &priv->xbarrier, barrier);
+  barriers = meta_backend_x11_get_barriers (backend_x11);
+  g_hash_table_insert (barriers->barriers, &self->xbarrier, barrier);
 
   return META_BARRIER_IMPL (self);
 }
@@ -141,7 +141,7 @@ static void
 meta_barrier_fire_xevent (MetaBarrier    *barrier,
                           XIBarrierEvent *xevent)
 {
-  MetaBarrierEvent *event = g_slice_new0 (MetaBarrierEvent);
+  MetaBarrierEvent *event = g_new0 (MetaBarrierEvent, 1);
 
   event->ref_count = 1;
   event->event_id = xevent->eventid;
@@ -159,10 +159,10 @@ meta_barrier_fire_xevent (MetaBarrier    *barrier,
   switch (xevent->evtype)
     {
     case XI_BarrierHit:
-      _meta_barrier_emit_hit_signal (barrier, event);
+      meta_barrier_emit_hit_signal (barrier, event);
       break;
     case XI_BarrierLeave:
-      _meta_barrier_emit_left_signal (barrier, event);
+      meta_barrier_emit_left_signal (barrier, event);
       break;
     default:
       g_assert_not_reached ();
@@ -172,14 +172,11 @@ meta_barrier_fire_xevent (MetaBarrier    *barrier,
 }
 
 gboolean
-meta_display_process_barrier_xevent (MetaDisplay *display,
-                                     XIEvent     *event)
+meta_x11_barriers_process_xevent (MetaX11Barriers *barriers,
+                                  XIEvent         *event)
 {
   MetaBarrier *barrier;
   XIBarrierEvent *xev;
-
-  if (event == NULL)
-    return FALSE;
 
   switch (event->evtype)
     {
@@ -191,8 +188,8 @@ meta_display_process_barrier_xevent (MetaDisplay *display,
     }
 
   xev = (XIBarrierEvent *) event;
-  barrier = g_hash_table_lookup (display->xids, &xev->barrier);
-  if (barrier != NULL)
+  barrier = g_hash_table_lookup (barriers->barriers, &xev->barrier);
+  if (barrier)
     {
       meta_barrier_fire_xevent (barrier, xev);
       return TRUE;
@@ -206,9 +203,9 @@ meta_barrier_impl_x11_class_init (MetaBarrierImplX11Class *klass)
 {
   MetaBarrierImplClass *impl_class = META_BARRIER_IMPL_CLASS (klass);
 
-  impl_class->is_active = _meta_barrier_impl_x11_is_active;
-  impl_class->release = _meta_barrier_impl_x11_release;
-  impl_class->destroy = _meta_barrier_impl_x11_destroy;
+  impl_class->is_active = meta_barrier_impl_x11_is_active;
+  impl_class->release = meta_barrier_impl_x11_release;
+  impl_class->destroy = meta_barrier_impl_x11_destroy;
 }
 
 static void
@@ -216,4 +213,22 @@ meta_barrier_impl_x11_init (MetaBarrierImplX11 *self)
 {
 }
 
-#endif /* HAVE_XI23 */
+MetaX11Barriers *
+meta_x11_barriers_new (MetaBackendX11 *backend_x11)
+{
+  MetaX11Barriers *x11_barriers;
+
+  x11_barriers = g_new0 (MetaX11Barriers, 1);
+  x11_barriers->barriers = g_hash_table_new (meta_unsigned_long_hash,
+                                             meta_unsigned_long_equal);
+
+  return x11_barriers;
+}
+
+void
+meta_x11_barriers_free (MetaX11Barriers *x11_barriers)
+{
+  g_assert (g_hash_table_size (x11_barriers->barriers) == 0);
+  g_hash_table_unref (x11_barriers->barriers);
+  g_free (x11_barriers);
+}

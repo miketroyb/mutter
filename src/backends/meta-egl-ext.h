@@ -24,11 +24,11 @@
  * SOFTWARE.
  */
 
-#ifndef META_EGL_EXT_H
-#define META_EGL_EXT_H
+#pragma once
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
+#include <EGL/eglmesaext.h>
 
 /*
  * This is a little different to the tests shipped with EGL implementations,
@@ -98,5 +98,3 @@ typedef EGLBoolean (EGLAPIENTRYP PFNEGLSTREAMCONSUMERRELEASEATTRIBNVPROC) (EGLDi
 #define EGL_WL_wayland_eglstream 1
 #define EGL_WAYLAND_EGLSTREAM_WL              0x334B
 #endif /* EGL_WL_wayland_eglstream */
-
-#endif /* META_EGL_EXT_H */

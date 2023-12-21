@@ -23,57 +23,93 @@
  */
 
 /**
- * SECTION:clutter-image
- * @Title: ClutterImage
- * @Short_Description: Image data content
+ * ClutterImage:
+ * 
+ * Image data content
  *
  * #ClutterImage is a #ClutterContent implementation that displays
- * image data inside a #ClutterActor.
+ * image data inside a [class@Actor].
  *
  * See [image.c](https://git.gnome.org/browse/clutter/tree/examples/image-content.c?h=clutter-1.18)
- * for an example of how to use #ClutterImage.
- *
- * #ClutterImage is available since Clutter 1.10.
+ * for an example of how to use #ClutterImage..
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
-#define CLUTTER_ENABLE_EXPERIMENTAL_API
+#include "clutter/clutter-image.h"
 
-#include "clutter-image.h"
+#include "clutter/clutter-actor-private.h"
+#include "clutter/clutter-color.h"
+#include "clutter/clutter-content-private.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-paint-node.h"
+#include "clutter/clutter-paint-nodes.h"
+#include "clutter/clutter-private.h"
 
-#include "clutter-actor-private.h"
-#include "clutter-color.h"
-#include "clutter-content-private.h"
-#include "clutter-debug.h"
-#include "clutter-paint-node.h"
-#include "clutter-paint-nodes.h"
-#include "clutter-private.h"
-
-struct _ClutterImagePrivate
+typedef struct
 {
   CoglTexture *texture;
-};
+  gint width;
+  gint height;
+} ClutterImagePrivate;
 
-static void clutter_content_iface_init (ClutterContentIface *iface);
+static void clutter_content_iface_init (ClutterContentInterface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (ClutterImage, clutter_image, G_TYPE_OBJECT,
                          G_ADD_PRIVATE (ClutterImage)
                          G_IMPLEMENT_INTERFACE (CLUTTER_TYPE_CONTENT,
                                                 clutter_content_iface_init))
 
-GQuark
-clutter_image_error_quark (void)
+static CoglTexture *
+create_texture_from_data (unsigned int      width,
+                          unsigned int      height,
+                          CoglPixelFormat   pixel_format,
+                          unsigned int      row_stride,
+                          const uint8_t    *data,
+                          GError          **error)
 {
-  return g_quark_from_static_string ("clutter-image-error-quark");
+  CoglContext *ctx =
+    clutter_backend_get_cogl_context (clutter_get_default_backend ());
+  CoglTexture2D *texture_2d;
+
+  texture_2d = cogl_texture_2d_new_from_data (ctx,
+                                              width,
+                                              height,
+                                              pixel_format,
+                                              row_stride,
+                                              data,
+                                              error);
+
+  return texture_2d ? COGL_TEXTURE (texture_2d) : NULL;
+}
+
+static void
+update_image_size (ClutterImage *self)
+{
+  ClutterImagePrivate *priv = clutter_image_get_instance_private (self);
+  gint width, height;
+
+  if (priv->texture == NULL)
+    return;
+
+  width = cogl_texture_get_width (priv->texture);
+  height = cogl_texture_get_height (priv->texture);
+
+  if (priv->width == width &&
+      priv->height == height)
+    return;
+
+  priv->width = width;
+  priv->height = height;
+
+  clutter_content_invalidate_size (CLUTTER_CONTENT (self));
 }
 
 static void
 clutter_image_finalize (GObject *gobject)
 {
-  ClutterImagePrivate *priv = CLUTTER_IMAGE (gobject)->priv;
+  ClutterImage *image = CLUTTER_IMAGE (gobject);
+  ClutterImagePrivate *priv = clutter_image_get_instance_private (image);
 
   if (priv->texture != NULL)
     {
@@ -93,22 +129,23 @@ clutter_image_class_init (ClutterImageClass *klass)
 static void
 clutter_image_init (ClutterImage *self)
 {
-  self->priv = clutter_image_get_instance_private (self);
 }
 
 static void
-clutter_image_paint_content (ClutterContent   *content,
-                             ClutterActor     *actor,
-                             ClutterPaintNode *root)
+clutter_image_paint_content (ClutterContent      *content,
+                             ClutterActor        *actor,
+                             ClutterPaintNode    *root,
+                             ClutterPaintContext *paint_context)
 {
-  ClutterImagePrivate *priv = CLUTTER_IMAGE (content)->priv;
+  ClutterImage *image = CLUTTER_IMAGE (content);
+  ClutterImagePrivate *priv = clutter_image_get_instance_private (image);
   ClutterPaintNode *node;
 
   if (priv->texture == NULL)
     return;
 
   node = clutter_actor_create_texture_paint_node (actor, priv->texture);
-  clutter_paint_node_set_name (node, "Image Content");
+  clutter_paint_node_set_static_name (node, "Image Content");
   clutter_paint_node_add_child (root, node);
   clutter_paint_node_unref (node);
 }
@@ -118,7 +155,8 @@ clutter_image_get_preferred_size (ClutterContent *content,
                                   gfloat         *width,
                                   gfloat         *height)
 {
-  ClutterImagePrivate *priv = CLUTTER_IMAGE (content)->priv;
+  ClutterImage *image = CLUTTER_IMAGE (content);
+  ClutterImagePrivate *priv = clutter_image_get_instance_private (image);
 
   if (priv->texture == NULL)
     return FALSE;
@@ -133,7 +171,7 @@ clutter_image_get_preferred_size (ClutterContent *content,
 }
 
 static void
-clutter_content_iface_init (ClutterContentIface *iface)
+clutter_content_iface_init (ClutterContentInterface *iface)
 {
   iface->get_preferred_size = clutter_image_get_preferred_size;
   iface->paint_content = clutter_image_paint_content;
@@ -146,8 +184,6 @@ clutter_content_iface_init (ClutterContentIface *iface)
  *
  * Return value: (transfer full): the newly created #ClutterImage instance.
  *   Use g_object_unref() when done.
- *
- * Since: 1.10
  */
 ClutterContent *
 clutter_image_new (void)
@@ -178,7 +214,7 @@ clutter_image_new (void)
  * how to retrieve that data is left to platform specific image loaders. For
  * instance, if you use the GdkPixbuf library:
  *
- * |[<!-- language="C" -->
+ * ```c
  *   ClutterContent *image = clutter_image_new ();
  *
  *   GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file (filename, NULL);
@@ -194,12 +230,10 @@ clutter_image_new (void)
  *                           &error);
  *
  *   g_object_unref (pixbuf);
- * ]|
+ * ```
  *
  * Return value: %TRUE if the image data was successfully loaded,
  *   and %FALSE otherwise.
- *
- * Since: 1.10
  */
 gboolean
 clutter_image_set_data (ClutterImage     *image,
@@ -211,35 +245,27 @@ clutter_image_set_data (ClutterImage     *image,
                         GError          **error)
 {
   ClutterImagePrivate *priv;
-  CoglTextureFlags flags;
 
   g_return_val_if_fail (CLUTTER_IS_IMAGE (image), FALSE);
   g_return_val_if_fail (data != NULL, FALSE);
 
-  priv = image->priv;
+  priv = clutter_image_get_instance_private (image);
 
   if (priv->texture != NULL)
     cogl_object_unref (priv->texture);
 
-  flags = COGL_TEXTURE_NONE;
-  if (width >= 512 && height >= 512)
-    flags |= COGL_TEXTURE_NO_ATLAS;
+  priv->texture = create_texture_from_data (width,
+                                            height,
+                                            pixel_format,
+                                            row_stride,
+                                            data,
+                                            error);
 
-  priv->texture = cogl_texture_new_from_data (width, height,
-                                              flags,
-                                              pixel_format,
-                                              COGL_PIXEL_FORMAT_ANY,
-                                              row_stride,
-                                              data);
   if (priv->texture == NULL)
-    {
-      g_set_error_literal (error, CLUTTER_IMAGE_ERROR,
-                           CLUTTER_IMAGE_ERROR_INVALID_DATA,
-                           _("Unable to load image data"));
-      return FALSE;
-    }
+    return FALSE;
 
   clutter_content_invalidate (CLUTTER_CONTENT (image));
+  update_image_size (image);
 
   return TRUE;
 }
@@ -266,8 +292,6 @@ clutter_image_set_data (ClutterImage     *image,
  *
  * Return value: %TRUE if the image data was successfully loaded,
  *   and %FALSE otherwise.
- *
- * Since: 1.12
  */
 gboolean
 clutter_image_set_bytes (ClutterImage     *image,
@@ -279,35 +303,27 @@ clutter_image_set_bytes (ClutterImage     *image,
                          GError          **error)
 {
   ClutterImagePrivate *priv;
-  CoglTextureFlags flags;
 
   g_return_val_if_fail (CLUTTER_IS_IMAGE (image), FALSE);
   g_return_val_if_fail (data != NULL, FALSE);
 
-  priv = image->priv;
+  priv = clutter_image_get_instance_private (image);
 
   if (priv->texture != NULL)
     cogl_object_unref (priv->texture);
 
-  flags = COGL_TEXTURE_NONE;
-  if (width >= 512 && height >= 512)
-    flags |= COGL_TEXTURE_NO_ATLAS;
+  priv->texture = create_texture_from_data (width,
+                                            height,
+                                            pixel_format,
+                                            row_stride,
+                                            g_bytes_get_data (data, NULL),
+                                            error);
 
-  priv->texture = cogl_texture_new_from_data (width, height,
-                                              flags,
-                                              pixel_format,
-                                              COGL_PIXEL_FORMAT_ANY,
-                                              row_stride,
-                                              g_bytes_get_data (data, NULL));
   if (priv->texture == NULL)
-    {
-      g_set_error_literal (error, CLUTTER_IMAGE_ERROR,
-                           CLUTTER_IMAGE_ERROR_INVALID_DATA,
-                           _("Unable to load image data"));
-      return FALSE;
-    }
+    return FALSE;
 
   clutter_content_invalidate (CLUTTER_CONTENT (image));
+  update_image_size (image);
 
   return TRUE;
 }
@@ -338,16 +354,14 @@ clutter_image_set_bytes (ClutterImage     *image,
  *
  * Return value: %TRUE if the image data was successfully loaded,
  *   and %FALSE otherwise.
- *
- * Since: 1.10
  */
 gboolean
-clutter_image_set_area (ClutterImage                 *image,
-                        const guint8                 *data,
-                        CoglPixelFormat               pixel_format,
-                        const cairo_rectangle_int_t  *area,
-                        guint                         row_stride,
-                        GError                      **error)
+clutter_image_set_area (ClutterImage        *image,
+                        const guint8        *data,
+                        CoglPixelFormat      pixel_format,
+                        const MtkRectangle  *area,
+                        guint                row_stride,
+                        GError             **error)
 {
   ClutterImagePrivate *priv;
 
@@ -355,22 +369,16 @@ clutter_image_set_area (ClutterImage                 *image,
   g_return_val_if_fail (data != NULL, FALSE);
   g_return_val_if_fail (area != NULL, FALSE);
 
-  priv = image->priv;
+  priv = clutter_image_get_instance_private (image);
 
   if (priv->texture == NULL)
     {
-      CoglTextureFlags flags = COGL_TEXTURE_NONE;
-
-      if (area->width >= 512 && area->height >= 512)
-        flags |= COGL_TEXTURE_NO_ATLAS;
-
-      priv->texture = cogl_texture_new_from_data (area->width,
-                                                  area->height,
-                                                  flags,
-                                                  pixel_format,
-                                                  COGL_PIXEL_FORMAT_ANY,
-                                                  row_stride,
-                                                  data);
+      priv->texture = create_texture_from_data (area->width,
+                                                area->height,
+                                                pixel_format,
+                                                row_stride,
+                                                data,
+                                                error);
     }
   else
     {
@@ -393,14 +401,10 @@ clutter_image_set_area (ClutterImage                 *image,
     }
 
   if (priv->texture == NULL)
-    {
-      g_set_error_literal (error, CLUTTER_IMAGE_ERROR,
-                           CLUTTER_IMAGE_ERROR_INVALID_DATA,
-                           _("Unable to load image data"));
-      return FALSE;
-    }
+    return FALSE;
 
   clutter_content_invalidate (CLUTTER_CONTENT (image));
+  update_image_size (image);
 
   return TRUE;
 }
@@ -416,14 +420,14 @@ clutter_image_set_area (ClutterImage                 *image,
  * in order to update the actors using @image as their content.
  *
  * Return value: (transfer none): a pointer to the Cogl texture, or %NULL
- *
- * Since: 1.10
- * Stability: unstable
  */
 CoglTexture *
 clutter_image_get_texture (ClutterImage *image)
 {
+  ClutterImagePrivate *priv;
+
   g_return_val_if_fail (CLUTTER_IS_IMAGE (image), NULL);
 
-  return image->priv->texture;
+  priv = clutter_image_get_instance_private (image);
+  return priv->texture;
 }

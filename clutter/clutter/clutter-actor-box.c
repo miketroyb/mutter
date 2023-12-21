@@ -1,12 +1,11 @@
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
 #include <math.h>
 
-#include "clutter-types.h"
-#include "clutter-interval.h"
-#include "clutter-private.h"
+#include "clutter/clutter-types.h"
+#include "clutter/clutter-interval.h"
+#include "clutter/clutter-private.h"
+#include "clutter/clutter-actor-box-private.h"
 
 /**
  * clutter_actor_box_new:
@@ -15,21 +14,19 @@
  * @x_2: X coordinate of the bottom right point
  * @y_2: Y coordinate of the bottom right point
  *
- * Allocates a new #ClutterActorBox using the passed coordinates
+ * Allocates a new [struct@ActorBox] using the passed coordinates
  * for the top left and bottom right points.
  *
  * This function is the logical equivalent of:
  *
- * |[
+ * ```c
  *   clutter_actor_box_init (clutter_actor_box_alloc (),
  *                           x_1, y_1,
  *                           x_2, y_2);
- * ]|
+ * ```
  *
  * Return value: (transfer full): the newly allocated #ClutterActorBox.
- *   Use clutter_actor_box_free() to free the resources
- *
- * Since: 1.0
+ *   Use [method@ActorBox.free] to free the resources
  */
 ClutterActorBox *
 clutter_actor_box_new (gfloat x_1,
@@ -45,17 +42,15 @@ clutter_actor_box_new (gfloat x_1,
 /**
  * clutter_actor_box_alloc:
  *
- * Allocates a new #ClutterActorBox.
+ * Allocates a new [struct@ActorBox].
  *
  * Return value: (transfer full): the newly allocated #ClutterActorBox.
- *   Use clutter_actor_box_free() to free its resources
- *
- * Since: 1.12
+ *   Use [method@ActorBox.free] to free its resources
  */
 ClutterActorBox *
 clutter_actor_box_alloc (void)
 {
-  return g_slice_new0 (ClutterActorBox);
+  return g_new0 (ClutterActorBox, 1);
 }
 
 /**
@@ -69,8 +64,6 @@ clutter_actor_box_alloc (void)
  * Initializes @box with the given coordinates.
  *
  * Return value: (transfer none): the initialized #ClutterActorBox
- *
- * Since: 1.10
  */
 ClutterActorBox *
 clutter_actor_box_init (ClutterActorBox *box,
@@ -98,8 +91,6 @@ clutter_actor_box_init (ClutterActorBox *box,
  * @height: height of the box
  *
  * Initializes @box with the given origin and size.
- *
- * Since: 1.10
  */
 void
 clutter_actor_box_init_rect (ClutterActorBox *box,
@@ -123,15 +114,13 @@ clutter_actor_box_init_rect (ClutterActorBox *box,
  * Copies @box
  *
  * Return value: a newly allocated copy of #ClutterActorBox. Use
- *   clutter_actor_box_free() to free the allocated resources
- *
- * Since: 1.0
+ *   [method@ActorBox.free] to free the allocated resources
  */
 ClutterActorBox *
 clutter_actor_box_copy (const ClutterActorBox *box)
 {
   if (G_LIKELY (box != NULL))
-    return g_slice_dup (ClutterActorBox, box);
+    return g_memdup2 (box, sizeof (ClutterActorBox));
 
   return NULL;
 }
@@ -140,16 +129,14 @@ clutter_actor_box_copy (const ClutterActorBox *box)
  * clutter_actor_box_free:
  * @box: a #ClutterActorBox
  *
- * Frees a #ClutterActorBox allocated using clutter_actor_box_new()
- * or clutter_actor_box_copy()
- *
- * Since: 1.0
+ * Frees a #ClutterActorBox allocated using [ctor@ActorBox.new]
+ * or [method@ActorBox.copy].
  */
 void
 clutter_actor_box_free (ClutterActorBox *box)
 {
   if (G_LIKELY (box != NULL))
-    g_slice_free (ClutterActorBox, box);
+    g_free (box);
 }
 
 /**
@@ -160,8 +147,6 @@ clutter_actor_box_free (ClutterActorBox *box)
  * Checks @box_a and @box_b for equality
  *
  * Return value: %TRUE if the passed #ClutterActorBox are equal
- *
- * Since: 1.0
  */
 gboolean
 clutter_actor_box_equal (const ClutterActorBox *box_a,
@@ -183,8 +168,6 @@ clutter_actor_box_equal (const ClutterActorBox *box_a,
  * Retrieves the X coordinate of the origin of @box
  *
  * Return value: the X coordinate of the origin
- *
- * Since: 1.0
  */
 gfloat
 clutter_actor_box_get_x (const ClutterActorBox *box)
@@ -201,8 +184,6 @@ clutter_actor_box_get_x (const ClutterActorBox *box)
  * Retrieves the Y coordinate of the origin of @box
  *
  * Return value: the Y coordinate of the origin
- *
- * Since: 1.0
  */
 gfloat
 clutter_actor_box_get_y (const ClutterActorBox *box)
@@ -219,8 +200,6 @@ clutter_actor_box_get_y (const ClutterActorBox *box)
  * Retrieves the width of the @box
  *
  * Return value: the width of the box
- *
- * Since: 1.0
  */
 gfloat
 clutter_actor_box_get_width (const ClutterActorBox *box)
@@ -237,8 +216,6 @@ clutter_actor_box_get_width (const ClutterActorBox *box)
  * Retrieves the height of the @box
  *
  * Return value: the height of the box
- *
- * Since: 1.0
  */
 gfloat
 clutter_actor_box_get_height (const ClutterActorBox *box)
@@ -255,8 +232,6 @@ clutter_actor_box_get_height (const ClutterActorBox *box)
  * @y: (out) (allow-none): return location for the Y coordinate, or %NULL
  *
  * Retrieves the origin of @box
- *
- * Since: 1.0
  */
 void
 clutter_actor_box_get_origin (const ClutterActorBox *box,
@@ -279,8 +254,6 @@ clutter_actor_box_get_origin (const ClutterActorBox *box,
  * @height: (out) (allow-none): return location for the height, or %NULL
  *
  * Retrieves the size of @box
- *
- * Since: 1.0
  */
 void
 clutter_actor_box_get_size (const ClutterActorBox *box,
@@ -303,8 +276,6 @@ clutter_actor_box_get_size (const ClutterActorBox *box,
  * Retrieves the area of @box
  *
  * Return value: the area of a #ClutterActorBox, in pixels
- *
- * Since: 1.0
  */
 gfloat
 clutter_actor_box_get_area (const ClutterActorBox *box)
@@ -321,11 +292,9 @@ clutter_actor_box_get_area (const ClutterActorBox *box)
  * @y: Y coordinate of the point
  *
  * Checks whether a point with @x, @y coordinates is contained
- * withing @box
+ * within @box
  *
  * Return value: %TRUE if the point is contained by the #ClutterActorBox
- *
- * Since: 1.0
  */
 gboolean
 clutter_actor_box_contains (const ClutterActorBox *box,
@@ -341,16 +310,14 @@ clutter_actor_box_contains (const ClutterActorBox *box,
 /**
  * clutter_actor_box_from_vertices:
  * @box: a #ClutterActorBox
- * @verts: (array fixed-size=4): array of four #ClutterVertex
+ * @verts: (array fixed-size=4): array of four #graphene_point3d_t
  *
  * Calculates the bounding box represented by the four vertices; for details
- * of the vertex array see clutter_actor_get_abs_allocation_vertices().
- *
- * Since: 1.0
+ * of the vertex array see [method@Actor.get_abs_allocation_vertices].
  */
 void
-clutter_actor_box_from_vertices (ClutterActorBox     *box,
-                                 const ClutterVertex  verts[])
+clutter_actor_box_from_vertices (ClutterActorBox          *box,
+                                 const graphene_point3d_t  verts[])
 {
   gfloat x_1, x_2, y_1, y_2;
 
@@ -413,10 +380,8 @@ clutter_actor_box_from_vertices (ClutterActorBox     *box,
  * @progress: the interpolation progress
  * @result: (out): return location for the interpolation
  *
- * Interpolates between @initial and @final #ClutterActorBox<!-- -->es
+ * Interpolates between @initial and @final `ClutterActorBox`es
  * using @progress
- *
- * Since: 1.2
  */
 void
 clutter_actor_box_interpolate (const ClutterActorBox *initial,
@@ -439,8 +404,6 @@ clutter_actor_box_interpolate (const ClutterActorBox *initial,
  * @box: (inout): the #ClutterActorBox to clamp
  *
  * Clamps the components of @box to the nearest integer
- *
- * Since: 1.2
  */
 void
 clutter_actor_box_clamp_to_pixel (ClutterActorBox *box)
@@ -461,8 +424,6 @@ clutter_actor_box_clamp_to_pixel (ClutterActorBox *box)
  *   of @a and @b
  *
  * Unions the two boxes @a and @b and stores the result in @result.
- *
- * Since: 1.4
  */
 void
 clutter_actor_box_union (const ClutterActorBox *a,
@@ -505,8 +466,6 @@ clutter_actor_box_progress (const GValue *a,
  * @y: the Y coordinate of the new origin
  *
  * Changes the origin of @box, maintaining the size of the #ClutterActorBox.
- *
- * Since: 1.6
  */
 void
 clutter_actor_box_set_origin (ClutterActorBox *box,
@@ -530,8 +489,6 @@ clutter_actor_box_set_origin (ClutterActorBox *box,
  * @height: the new height
  *
  * Sets the size of @box, maintaining the origin of the #ClutterActorBox.
- *
- * Since: 1.6
  */
 void
 clutter_actor_box_set_size (ClutterActorBox *box,
@@ -542,6 +499,105 @@ clutter_actor_box_set_size (ClutterActorBox *box,
 
   box->x2 = box->x1 + width;
   box->y2 = box->y1 + height;
+}
+
+void
+_clutter_actor_box_enlarge_for_effects (ClutterActorBox *box)
+{
+  float width, height;
+
+  if (clutter_actor_box_get_area (box) == 0.0)
+    return;
+
+  /* The aim here is that for a given rectangle defined with floating point
+   * coordinates we want to determine a stable quantized size in pixels
+   * that doesn't vary due to the original box's sub-pixel position.
+   *
+   * The reason this is important is because effects will use this
+   * API to determine the size of offscreen framebuffers and so for
+   * a fixed-size object that may be animated across the screen we
+   * want to make sure that the stage paint-box has an equally stable
+   * size so that effects aren't made to continuously re-allocate
+   * a corresponding fbo.
+   *
+   * The other thing we consider is that the calculation of this box is
+   * subject to floating point precision issues that might be slightly
+   * different to the precision issues involved with actually painting the
+   * actor, which might result in painting slightly leaking outside the
+   * user's calculated paint-volume. For this we simply aim to pad out the
+   * paint-volume by at least half a pixel all the way around.
+   */
+  width = box->x2 - box->x1;
+  height = box->y2 - box->y1;
+  width = CLUTTER_NEARBYINT (width);
+  height = CLUTTER_NEARBYINT (height);
+  /* XXX: NB the width/height may now be up to 0.5px too small so we
+   * must also pad by 0.25px all around to account for this. In total we
+   * must padd by at least 0.75px around all sides. */
+
+  /* XXX: The furthest that we can overshoot the bottom right corner by
+   * here is 1.75px in total if you consider that the 0.75 padding could
+   * just cross an integer boundary and so ceil will effectively add 1.
+   */
+  box->x2 = ceilf (box->x2 + 0.75);
+  box->y2 = ceilf (box->y2 + 0.75);
+
+  /* Now we redefine the top-left relative to the bottom right based on the
+   * rounded width/height determined above + a constant so that the overall
+   * size of the box will be stable and not dependent on the box's
+   * position.
+   *
+   * Adding 3px to the width/height will ensure we cover the maximum of
+   * 1.75px padding on the bottom/right and still ensure we have > 0.75px
+   * padding on the top/left.
+   */
+  box->x1 = box->x2 - width - 3;
+  box->y1 = box->y2 - height - 3;
+}
+
+/**
+ * clutter_actor_box_scale:
+ * @box: a #ClutterActorBox
+ * @scale: scale factor for resizing this box
+ *
+ * Rescale the @box by provided @scale factor.
+ */
+void
+clutter_actor_box_scale (ClutterActorBox *box,
+                         gfloat           scale)
+{
+  g_return_if_fail (box != NULL);
+
+  box->x1 *= scale;
+  box->x2 *= scale;
+  box->y1 *= scale;
+  box->y2 *= scale;
+}
+
+/**
+ * clutter_actor_box_is_initialized:
+ * @box: a #ClutterActorBox
+ *
+ * Checks if @box has been initialized, a #ClutterActorBox is uninitialized
+ * if it has a size of -1 at an origin of 0, 0.
+ *
+ * Returns: %TRUE if the box is uninitialized, %FALSE if it isn't
+ */
+gboolean
+clutter_actor_box_is_initialized (ClutterActorBox *box)
+{
+  gboolean x1_uninitialized, x2_uninitialized;
+  gboolean y1_uninitialized, y2_uninitialized;
+
+  g_return_val_if_fail (box != NULL, TRUE);
+
+  x1_uninitialized = isinf (box->x1);
+  x2_uninitialized = isinf (box->x2) && signbit (box->x2);
+  y1_uninitialized = isinf (box->y1);
+  y2_uninitialized = isinf (box->y2) && signbit (box->y2);
+
+  return !x1_uninitialized || !x2_uninitialized ||
+         !y1_uninitialized || !y2_uninitialized;
 }
 
 G_DEFINE_BOXED_TYPE_WITH_CODE (ClutterActorBox, clutter_actor_box,

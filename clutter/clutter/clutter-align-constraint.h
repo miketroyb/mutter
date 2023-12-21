@@ -22,14 +22,13 @@
  *   Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_ALIGN_CONSTRAINT_H__
-#define __CLUTTER_ALIGN_CONSTRAINT_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-constraint.h>
+#include "clutter/clutter-constraint.h"
 
 G_BEGIN_DECLS
 
@@ -37,41 +36,37 @@ G_BEGIN_DECLS
 #define CLUTTER_ALIGN_CONSTRAINT(obj)           (G_TYPE_CHECK_INSTANCE_CAST ((obj), CLUTTER_TYPE_ALIGN_CONSTRAINT, ClutterAlignConstraint))
 #define CLUTTER_IS_ALIGN_CONSTRAINT(obj)        (G_TYPE_CHECK_INSTANCE_TYPE ((obj), CLUTTER_TYPE_ALIGN_CONSTRAINT))
 
-/**
- * ClutterAlignConstraint:
- *
- * #ClutterAlignConstraint is an opaque structure
- * whose members cannot be directly accesses
- *
- * Since: 1.4
- */
 typedef struct _ClutterAlignConstraint          ClutterAlignConstraint;
 typedef struct _ClutterAlignConstraintClass     ClutterAlignConstraintClass;
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 GType clutter_align_constraint_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 ClutterConstraint *clutter_align_constraint_new            (ClutterActor           *source,
                                                             ClutterAlignAxis        axis,
                                                             gfloat                  factor);
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void               clutter_align_constraint_set_source     (ClutterAlignConstraint *align,
                                                             ClutterActor           *source);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 ClutterActor *     clutter_align_constraint_get_source     (ClutterAlignConstraint *align);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 void               clutter_align_constraint_set_align_axis (ClutterAlignConstraint *align,
                                                             ClutterAlignAxis        axis);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 ClutterAlignAxis   clutter_align_constraint_get_align_axis (ClutterAlignConstraint *align);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
+void               clutter_align_constraint_set_pivot_point (ClutterAlignConstraint *align,
+                                                             const graphene_point_t *pivot_point);
+CLUTTER_EXPORT
+void               clutter_align_constraint_get_pivot_point (ClutterAlignConstraint *align,
+                                                             graphene_point_t       *pivot_point);
+CLUTTER_EXPORT
 void               clutter_align_constraint_set_factor     (ClutterAlignConstraint *align,
                                                             gfloat                  factor);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 gfloat             clutter_align_constraint_get_factor     (ClutterAlignConstraint *align);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_ALIGN_CONSTRAINT_H__ */

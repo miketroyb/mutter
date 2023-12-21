@@ -22,15 +22,14 @@
  *   Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_OFFSCREEN_EFFECT_H__
-#define __CLUTTER_OFFSCREEN_EFFECT_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <cogl/cogl.h>
-#include <clutter/clutter-effect.h>
+#include "cogl/cogl.h"
+#include "clutter/clutter-effect.h"
 
 G_BEGIN_DECLS
 
@@ -45,14 +44,6 @@ typedef struct _ClutterOffscreenEffect          ClutterOffscreenEffect;
 typedef struct _ClutterOffscreenEffectPrivate   ClutterOffscreenEffectPrivate;
 typedef struct _ClutterOffscreenEffectClass     ClutterOffscreenEffectClass;
 
-/**
- * ClutterOffscreenEffect:
- *
- * The #ClutterOffscreenEffect structure contains only private data
- * and should be accessed using the provided API
- *
- * Since: 1.4
- */
 struct _ClutterOffscreenEffect
 {
   /*< private >*/
@@ -67,8 +58,6 @@ struct _ClutterOffscreenEffect
  * @paint_target: virtual function
  *
  * The #ClutterOffscreenEffectClass structure contains only private data
- *
- * Since: 1.4
  */
 struct _ClutterOffscreenEffectClass
 {
@@ -79,43 +68,34 @@ struct _ClutterOffscreenEffectClass
   CoglHandle (* create_texture) (ClutterOffscreenEffect *effect,
                                  gfloat                  width,
                                  gfloat                  height);
-  void       (* paint_target)   (ClutterOffscreenEffect *effect);
-
-  /*< private >*/
-  void (* _clutter_offscreen1) (void);
-  void (* _clutter_offscreen2) (void);
-  void (* _clutter_offscreen3) (void);
-  void (* _clutter_offscreen4) (void);
-  void (* _clutter_offscreen5) (void);
-  void (* _clutter_offscreen6) (void);
-  void (* _clutter_offscreen7) (void);
+  CoglPipeline* (* create_pipeline) (ClutterOffscreenEffect *effect,
+                                     CoglTexture            *texture);
+  void       (* paint_target)   (ClutterOffscreenEffect *effect,
+                                 ClutterPaintNode       *node,
+                                 ClutterPaintContext    *paint_context);
 };
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 GType clutter_offscreen_effect_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_4
-CoglMaterial *  clutter_offscreen_effect_get_target             (ClutterOffscreenEffect *effect);
+CLUTTER_EXPORT
+CoglPipeline *  clutter_offscreen_effect_get_pipeline           (ClutterOffscreenEffect *effect);
 
-CLUTTER_AVAILABLE_IN_1_10
+CLUTTER_EXPORT
 CoglHandle      clutter_offscreen_effect_get_texture            (ClutterOffscreenEffect *effect);
 
-CLUTTER_AVAILABLE_IN_1_4
-void            clutter_offscreen_effect_paint_target           (ClutterOffscreenEffect *effect);
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
+void            clutter_offscreen_effect_paint_target           (ClutterOffscreenEffect *effect,
+                                                                 ClutterPaintNode       *node,
+                                                                 ClutterPaintContext    *paint_context);
+CLUTTER_EXPORT
 CoglHandle      clutter_offscreen_effect_create_texture         (ClutterOffscreenEffect *effect,
                                                                  gfloat                  width,
                                                                  gfloat                  height);
 
-CLUTTER_DEPRECATED_IN_1_14_FOR (clutter_offscreen_effect_get_target_rect)
+CLUTTER_EXPORT
 gboolean        clutter_offscreen_effect_get_target_size        (ClutterOffscreenEffect *effect,
                                                                  gfloat                 *width,
                                                                  gfloat                 *height);
 
-CLUTTER_AVAILABLE_IN_1_14
-gboolean        clutter_offscreen_effect_get_target_rect        (ClutterOffscreenEffect *effect,
-                                                                 ClutterRect            *rect);
-
 G_END_DECLS
-
-#endif /* __CLUTTER_OFFSCREEN_EFFECT_H__ */

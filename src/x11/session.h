@@ -26,10 +26,9 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_SESSION_H
-#define META_SESSION_H
+#pragma once
 
-#include "window-private.h"
+#include "core/window-private.h"
 
 typedef struct _MetaWindowSessionInfo MetaWindowSessionInfo;
 
@@ -55,9 +54,9 @@ struct _MetaWindowSessionInfo
    * light of gravity. This preserves semantics of the
    * window size/pos, even if fonts/themes change, etc.
    */
-  int gravity;
-  MetaRectangle rect;
-  MetaRectangle saved_rect;
+  MetaGravity gravity;
+  MtkRectangle rect;
+  MtkRectangle saved_rect;
   guint on_all_workspaces : 1;
   guint minimized : 1;
   guint maximized : 1;
@@ -76,14 +75,9 @@ struct _MetaWindowSessionInfo
 const MetaWindowSessionInfo* meta_window_lookup_saved_state  (MetaWindow                  *window);
 void                         meta_window_release_saved_state (const MetaWindowSessionInfo *info);
 
-void meta_session_init (const char *client_id,
-                        const char *save_file);
+void meta_session_init (MetaContext *context,
+                        const char  *client_id,
+                        const char  *save_file);
 
 
 void meta_session_shutdown (void);
-
-#endif
-
-
-
-

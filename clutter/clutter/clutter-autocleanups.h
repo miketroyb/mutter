@@ -21,8 +21,7 @@
  *
  */
 
-#ifndef __CLUTTER_AUTO_CLEANUPS_H__
-#define __CLUTTER_AUTO_CLEANUPS_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
@@ -30,11 +29,8 @@
 
 #ifndef __GI_SCANNER__
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterAction, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterActor, g_object_unref)
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterActorMeta, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterAlignConstraint, g_object_unref)
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterAnimatable, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterBackend, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterBindConstraint, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterBindingPool, g_object_unref)
@@ -44,23 +40,16 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterBoxLayout, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterBrightnessContrastEffect, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterCanvas, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterChildMeta, g_object_unref)
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterClickAction, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterClone, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterColorizeEffect, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterConstraint, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterContainer, g_object_unref)
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterContent, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterDeformEffect, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterDesaturateEffect, g_object_unref)
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterDeviceManager, g_object_unref)
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterDragAction, g_object_unref)
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterDropAction, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterEffect, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterFixedLayout, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterFlowLayout, g_object_unref)
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterGestureAction, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterGridLayout, g_object_unref)
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterImage, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterInputDevice, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterInterval, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterKeyframeTransition, g_object_unref)
@@ -92,15 +81,9 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterZoomAction, g_object_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterActorBox, clutter_actor_box_free)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterColor, clutter_color_free)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterMargin, clutter_margin_free)
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterMatrix, clutter_matrix_free)
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterPaintContext, clutter_paint_context_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterPaintNode, clutter_paint_node_unref)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterPaintVolume, clutter_paint_volume_free)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterPathNode, clutter_path_node_free)
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterPoint, clutter_point_free)
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterRect, clutter_rect_free)
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterSize, clutter_size_free)
-G_DEFINE_AUTOPTR_CLEANUP_FUNC (ClutterVertex, clutter_vertex_free)
 
 #endif /* __GI_SCANNER__ */
-
-#endif /* __CLUTTER_AUTO_CLEANUPS_H__ */

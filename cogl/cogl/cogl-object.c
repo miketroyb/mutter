@@ -29,17 +29,15 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
 #include <glib.h>
 #include <string.h>
 
-#include "cogl-util.h"
-#include "cogl-types.h"
-#include "cogl-object-private.h"
-#include "cogl-gtype-private.h"
+#include "cogl/cogl-util.h"
+#include "cogl/cogl-types.h"
+#include "cogl/cogl-object-private.h"
+#include "cogl/cogl-gtype-private.h"
 
 COGL_GTYPE_DEFINE_BASE_CLASS (Object, object);
 
@@ -48,16 +46,10 @@ cogl_object_ref (void *object)
 {
   CoglObject *obj = object;
 
-  _COGL_RETURN_VAL_IF_FAIL (object != NULL, NULL);
+  g_return_val_if_fail (object != NULL, NULL);
 
   obj->ref_count++;
   return object;
-}
-
-CoglHandle
-cogl_handle_ref (CoglHandle handle)
-{
-  return cogl_object_ref (handle);
 }
 
 void
@@ -65,8 +57,8 @@ _cogl_object_default_unref (void *object)
 {
   CoglObject *obj = object;
 
-  _COGL_RETURN_IF_FAIL (object != NULL);
-  _COGL_RETURN_IF_FAIL (obj->ref_count > 0);
+  g_return_if_fail (object != NULL);
+  g_return_if_fail (obj->ref_count > 0);
 
   if (--obj->ref_count < 1)
     {
@@ -109,14 +101,12 @@ _cogl_object_default_unref (void *object)
 void
 cogl_object_unref (void *obj)
 {
-  void (* unref_func) (void *) = ((CoglObject *) obj)->klass->virt_unref;
-  unref_func (obj);
-}
+  void (* unref_func) (void *);
 
-void
-cogl_handle_unref (CoglHandle handle)
-{
-  cogl_object_unref (handle);
+  g_return_if_fail (obj != NULL);
+
+  unref_func = ((CoglObject *) obj)->klass->virt_unref;
+  unref_func (obj);
 }
 
 GType
@@ -124,7 +114,7 @@ cogl_handle_get_type (void)
 {
   static GType our_type = 0;
 
-  /* XXX: We are keeping the "CoglHandle" name for now incase it would
+  /* XXX: We are keeping the "CoglHandle" name for now in case it would
    * break bindings to change to "CoglObject" */
   if (G_UNLIKELY (our_type == 0))
     our_type = g_boxed_type_register_static (g_intern_static_string ("CoglHandle"),

@@ -21,14 +21,13 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __CLUTTER_CLONE_H__
-#define __CLUTTER_CLONE_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-actor.h>
+#include "clutter/clutter-actor.h"
 
 G_BEGIN_DECLS
 
@@ -43,14 +42,6 @@ typedef struct _ClutterClone            ClutterClone;
 typedef struct _ClutterCloneClass       ClutterCloneClass;
 typedef struct _ClutterClonePrivate     ClutterClonePrivate;
 
-/**
- * ClutterClone:
- *
- * The #ClutterClone structure contains only private data
- * and should be accessed using the provided API
- *
- * Since: 1.0
- */
 struct _ClutterClone
 {
   /*< private >*/
@@ -63,32 +54,22 @@ struct _ClutterClone
  * ClutterCloneClass:
  *
  * The #ClutterCloneClass structure contains only private data
- *
- * Since: 1.0
  */
 struct _ClutterCloneClass
 {
   /*< private >*/
   ClutterActorClass parent_class;
-
-  /* padding for future expansion */
-  void (*_clutter_actor_clone1) (void);
-  void (*_clutter_actor_clone2) (void);
-  void (*_clutter_actor_clone3) (void);
-  void (*_clutter_actor_clone4) (void);
 };
 
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 GType clutter_clone_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 ClutterActor *  clutter_clone_new               (ClutterActor *source);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 void            clutter_clone_set_source        (ClutterClone *self,
                                                  ClutterActor *source);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 ClutterActor *  clutter_clone_get_source        (ClutterClone *self);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_CLONE_H__ */

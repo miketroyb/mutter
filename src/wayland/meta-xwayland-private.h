@@ -12,33 +12,51 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_XWAYLAND_PRIVATE_H
-#define META_XWAYLAND_PRIVATE_H
-
-#include "meta-wayland-private.h"
+#pragma once
 
 #include <glib.h>
 
+#include "wayland/meta-wayland-private.h"
+
 gboolean
-meta_xwayland_start (MetaXWaylandManager *manager,
-                     struct wl_display   *display);
+meta_xwayland_init (MetaXWaylandManager    *manager,
+                    MetaWaylandCompositor  *compositor,
+                    struct wl_display      *display,
+                    GError                **error);
 
 void
-meta_xwayland_complete_init (void);
+meta_xwayland_init_display (MetaXWaylandManager  *manager,
+                            MetaDisplay          *display);
 
 void
-meta_xwayland_stop (MetaXWaylandManager *manager);
+meta_xwayland_setup_xdisplay (MetaXWaylandManager *manager,
+                              Display             *xdisplay);
+
+gboolean
+meta_xwayland_handle_xevent (XEvent *event);
 
 /* wl_data_device/X11 selection interoperation */
-void     meta_xwayland_init_selection         (void);
-void     meta_xwayland_shutdown_selection     (void);
-gboolean meta_xwayland_selection_handle_event (XEvent *xevent);
+void meta_xwayland_init_dnd (MetaX11Display *x11_display);
+void meta_xwayland_shutdown_dnd (MetaXWaylandManager *manager,
+                                 MetaX11Display      *x11_display);
+gboolean meta_xwayland_dnd_handle_xevent (MetaXWaylandManager *manger,
+                                          XEvent              *xevent);
 
 const MetaWaylandDragDestFuncs * meta_xwayland_selection_get_drag_dest_funcs (void);
 
-#endif /* META_XWAYLAND_PRIVATE_H */
+void meta_xwayland_start_xserver (MetaXWaylandManager *manager,
+                                  GCancellable        *cancellable,
+                                  GAsyncReadyCallback  callback,
+                                  gpointer             user_data);
+gboolean meta_xwayland_start_xserver_finish (MetaXWaylandManager  *manager,
+                                             GAsyncResult         *result,
+                                             GError              **error);
+
+gboolean meta_xwayland_manager_handle_xevent (MetaXWaylandManager *manager,
+                                              XEvent              *xevent);
+
+void meta_xwayland_set_should_enable_ei_portal (MetaXWaylandManager  *manager,
+                                                gboolean              should_enable_ei_portal);

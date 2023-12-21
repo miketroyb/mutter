@@ -21,15 +21,14 @@
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#ifndef __CLUTTER_INPUT_DEVICE_TOOL_H__
-#define __CLUTTER_INPUT_DEVICE_TOOL_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-types.h>
-#include "clutter-enum-types.h"
+#include "clutter/clutter-types.h"
+#include "clutter/clutter-enum-types.h"
 
 G_BEGIN_DECLS
 
@@ -52,18 +51,19 @@ struct _ClutterInputDeviceToolClass
   GObjectClass parent_class;
 };
 
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 GType                      clutter_input_device_tool_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 guint64                    clutter_input_device_tool_get_serial    (ClutterInputDeviceTool *tool);
 
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 ClutterInputDeviceToolType clutter_input_device_tool_get_tool_type (ClutterInputDeviceTool *tool);
 
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 guint64                    clutter_input_device_tool_get_id        (ClutterInputDeviceTool *tool);
 
-G_END_DECLS
+CLUTTER_EXPORT
+ClutterInputAxisFlags      clutter_input_device_tool_get_axes      (ClutterInputDeviceTool *tool);
 
-#endif /* __CLUTTER_INPUT_DEVICE_TOOL_H__ */
+G_END_DECLS

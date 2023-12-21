@@ -28,17 +28,14 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
 #include <string.h>
 
-#include "cogl-boxed-value.h"
-#include "cogl-context-private.h"
-#include "cogl-util-gl-private.h"
+#include "cogl/cogl-boxed-value.h"
+#include "cogl/cogl-context-private.h"
 
-CoglBool
+gboolean
 _cogl_boxed_value_equal (const CoglBoxedValue *bva,
                          const CoglBoxedValue *bvb)
 {
@@ -112,9 +109,9 @@ _cogl_boxed_value_equal (const CoglBoxedValue *bva,
 }
 
 static void
-_cogl_boxed_value_tranpose (float *dst,
-                            int size,
-                            const float *src)
+_cogl_boxed_value_transpose (float       *dst,
+                             int          size,
+                             const float *src)
 {
   int y, x;
 
@@ -136,7 +133,7 @@ _cogl_boxed_value_set_x (CoglBoxedValue *bv,
                          CoglBoxedType type,
                          size_t value_size,
                          const void *value,
-                         CoglBool transpose)
+                         gboolean transpose)
 {
   if (count == 1)
     {
@@ -144,9 +141,9 @@ _cogl_boxed_value_set_x (CoglBoxedValue *bv,
         g_free (bv->v.array);
 
       if (transpose)
-        _cogl_boxed_value_tranpose (bv->v.float_value,
-                                    size,
-                                    value);
+        _cogl_boxed_value_transpose (bv->v.float_value,
+                                     size,
+                                     value);
       else
         memcpy (bv->v.float_value, value, value_size);
     }
@@ -170,11 +167,11 @@ _cogl_boxed_value_set_x (CoglBoxedValue *bv,
           int value_num;
 
           for (value_num = 0; value_num < count; value_num++)
-            _cogl_boxed_value_tranpose (bv->v.float_array +
-                                        value_num * size * size,
-                                        size,
-                                        (const float *) value +
-                                        value_num * size * size);
+            _cogl_boxed_value_transpose (bv->v.float_array +
+                                         value_num * size * size,
+                                         size,
+                                         (const float *) value +
+                                         value_num * size * size);
         }
       else
         memcpy (bv->v.array, value, count * value_size);
@@ -231,7 +228,7 @@ void
 _cogl_boxed_value_set_matrix (CoglBoxedValue *bv,
                               int dimensions,
                               int count,
-                              CoglBool transpose,
+                              gboolean transpose,
                               const float *value)
 {
   _cogl_boxed_value_set_x (bv,
@@ -256,21 +253,21 @@ _cogl_boxed_value_copy (CoglBoxedValue *dst,
           break;
 
         case COGL_BOXED_INT:
-          dst->v.int_array = g_memdup (src->v.int_array,
-                                       src->size * src->count * sizeof (int));
+          dst->v.int_array = g_memdup2 (src->v.int_array,
+                                        src->size * src->count * sizeof (int));
           break;
 
         case COGL_BOXED_FLOAT:
-          dst->v.float_array = g_memdup (src->v.float_array,
-                                         src->size *
-                                         src->count *
-                                         sizeof (float));
+          dst->v.float_array = g_memdup2 (src->v.float_array,
+                                          src->size *
+                                          src->count *
+                                          sizeof (float));
           break;
 
         case COGL_BOXED_MATRIX:
-          dst->v.float_array = g_memdup (src->v.float_array,
-                                         src->size * src->size *
-                                         src->count * sizeof (float));
+          dst->v.float_array = g_memdup2 (src->v.float_array,
+                                          src->size * src->size *
+                                          src->count * sizeof (float));
           break;
         }
     }
@@ -288,90 +285,5 @@ _cogl_boxed_value_set_uniform (CoglContext *ctx,
                                GLint location,
                                const CoglBoxedValue *value)
 {
-  switch (value->type)
-    {
-    case COGL_BOXED_NONE:
-      break;
-
-    case COGL_BOXED_INT:
-      {
-        const int *ptr;
-
-        if (value->count == 1)
-          ptr = value->v.int_value;
-        else
-          ptr = value->v.int_array;
-
-        switch (value->size)
-          {
-          case 1:
-            GE( ctx, glUniform1iv (location, value->count, ptr) );
-            break;
-          case 2:
-            GE( ctx, glUniform2iv (location, value->count, ptr) );
-            break;
-          case 3:
-            GE( ctx, glUniform3iv (location, value->count, ptr) );
-            break;
-          case 4:
-            GE( ctx, glUniform4iv (location, value->count, ptr) );
-            break;
-          }
-      }
-      break;
-
-    case COGL_BOXED_FLOAT:
-      {
-        const float *ptr;
-
-        if (value->count == 1)
-          ptr = value->v.float_value;
-        else
-          ptr = value->v.float_array;
-
-        switch (value->size)
-          {
-          case 1:
-            GE( ctx, glUniform1fv (location, value->count, ptr) );
-            break;
-          case 2:
-            GE( ctx, glUniform2fv (location, value->count, ptr) );
-            break;
-          case 3:
-            GE( ctx, glUniform3fv (location, value->count, ptr) );
-            break;
-          case 4:
-            GE( ctx, glUniform4fv (location, value->count, ptr) );
-            break;
-          }
-      }
-      break;
-
-    case COGL_BOXED_MATRIX:
-      {
-        const float *ptr;
-
-        if (value->count == 1)
-          ptr = value->v.matrix;
-        else
-          ptr = value->v.float_array;
-
-        switch (value->size)
-          {
-          case 2:
-            GE( ctx, glUniformMatrix2fv (location, value->count,
-                                         FALSE, ptr) );
-            break;
-          case 3:
-            GE( ctx, glUniformMatrix3fv (location, value->count,
-                                         FALSE, ptr) );
-            break;
-          case 4:
-            GE( ctx, glUniformMatrix4fv (location, value->count,
-                                         FALSE, ptr) );
-            break;
-          }
-      }
-      break;
-    }
+  ctx->driver_vtable->set_uniform (ctx, location, value);
 }

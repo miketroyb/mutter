@@ -30,25 +30,26 @@
  *
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
-
-#ifndef __COGL_CONTEXT_H__
-#define __COGL_CONTEXT_H__
 
 /* We forward declare the CoglContext type here to avoid some circular
  * dependency issues with the following headers.
  */
 typedef struct _CoglContext CoglContext;
+typedef struct _CoglTimestampQuery CoglTimestampQuery;
 
-#include <cogl/cogl-defines.h>
-#include <cogl/cogl-display.h>
-#include <cogl/cogl-primitive.h>
+#include "cogl/cogl-defines.h"
+#include "cogl/cogl-display.h"
+#include "cogl/cogl-pipeline.h"
+#include "cogl/cogl-primitive.h"
 
 #include <glib-object.h>
 
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 /**
  * SECTION:cogl-context
@@ -80,14 +81,14 @@ COGL_BEGIN_DECLS
  * context.
  *
  * One a context has been destroyed then all directly or indirectly
- * dependant resources will be in an inconsistent state and should not
+ * dependent resources will be in an inconsistent state and should not
  * be manipulated or queried in any way.
  *
  * For applications that rely on the operating system to clean up
  * resources this policy shouldn't affect them, but for applications
  * that need to carefully destroy and re-create Cogl contexts multiple
  * times throughout their lifetime (such as Android applications) they
- * should be careful to destroy all context dependant resources, such as
+ * should be careful to destroy all context dependent resources, such as
  * framebuffers or textures etc before unrefing and destroying the
  * context.</para></note>
  */
@@ -99,26 +100,25 @@ COGL_BEGIN_DECLS
  *
  * Returns: a #GType that can be used with the GLib type system.
  */
+COGL_EXPORT
 GType cogl_context_get_gtype (void);
 
 /**
- * cogl_context_new: (constructor)
+ * cogl_context_new: (constructor) (skip)
  * @display: (allow-none): A #CoglDisplay pointer
- * @error: A CoglError return location.
+ * @error: A GError return location.
  *
  * Creates a new #CoglContext which acts as an application sandbox
  * for any state objects that are allocated.
  *
  * Return value: (transfer full): A newly allocated #CoglContext
- * Since: 1.8
- * Stability: unstable
  */
-CoglContext *
+COGL_EXPORT CoglContext *
 cogl_context_new (CoglDisplay *display,
-                  CoglError **error);
+                  GError **error);
 
 /**
- * cogl_context_get_display:
+ * cogl_context_get_display: (skip)
  * @context: A #CoglContext pointer
  *
  * Retrieves the #CoglDisplay that is internally associated with the
@@ -129,14 +129,12 @@ cogl_context_new (CoglDisplay *display,
  *
  * Return value: (transfer none): The #CoglDisplay associated with the
  *               given @context.
- * Since: 1.8
- * Stability: unstable
  */
-CoglDisplay *
+COGL_EXPORT CoglDisplay *
 cogl_context_get_display (CoglContext *context);
 
 /**
- * cogl_context_get_renderer:
+ * cogl_context_get_renderer: (skip)
  * @context: A #CoglContext pointer
  *
  * Retrieves the #CoglRenderer that is internally associated with the
@@ -148,10 +146,8 @@ cogl_context_get_display (CoglContext *context);
  *
  * Return value: (transfer none): The #CoglRenderer associated with the
  *               given @context.
- * Since: 1.16
- * Stability: unstable
  */
-CoglRenderer *
+COGL_EXPORT CoglRenderer *
 cogl_context_get_renderer (CoglContext *context);
 
 /**
@@ -162,11 +158,8 @@ cogl_context_get_renderer (CoglContext *context);
  *
  * Return value: %TRUE if the @object references a #CoglContext,
  *   %FALSE otherwise
- *
- * Since: 1.10
- * Stability: Unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_is_context (void *object);
 
 /* XXX: not guarded by the EXPERIMENTAL_API defines to avoid
@@ -174,95 +167,37 @@ cogl_is_context (void *object);
  * experimental since it's only useable with experimental API... */
 /**
  * CoglFeatureID:
- * @COGL_FEATURE_ID_TEXTURE_NPOT_BASIC: The hardware supports non power
- *     of two textures, but you also need to check the
- *     %COGL_FEATURE_ID_TEXTURE_NPOT_MIPMAP and %COGL_FEATURE_ID_TEXTURE_NPOT_REPEAT
- *     features to know if the hardware supports npot texture mipmaps
- *     or repeat modes other than
- *     %COGL_PIPELINE_WRAP_MODE_CLAMP_TO_EDGE respectively.
- * @COGL_FEATURE_ID_TEXTURE_NPOT_MIPMAP: Mipmapping is supported in
- *     conjuntion with non power of two textures.
- * @COGL_FEATURE_ID_TEXTURE_NPOT_REPEAT: Repeat modes other than
- *     %COGL_PIPELINE_WRAP_MODE_CLAMP_TO_EDGE are supported by the
- *     hardware.
- * @COGL_FEATURE_ID_TEXTURE_NPOT: Non power of two textures are supported
- *    by the hardware. This is a equivalent to the
- *    %COGL_FEATURE_ID_TEXTURE_NPOT_BASIC, %COGL_FEATURE_ID_TEXTURE_NPOT_MIPMAP
- *    and %COGL_FEATURE_ID_TEXTURE_NPOT_REPEAT features combined.
- * @COGL_FEATURE_ID_TEXTURE_RECTANGLE: Support for rectangular
- *    textures with non-normalized texture coordinates.
  * @COGL_FEATURE_ID_TEXTURE_RG: Support for
  *    %COGL_TEXTURE_COMPONENTS_RG as the internal components of a
  *    texture.
- * @COGL_FEATURE_ID_TEXTURE_3D: 3D texture support
- * @COGL_FEATURE_ID_OFFSCREEN: Offscreen rendering support
- * @COGL_FEATURE_ID_OFFSCREEN_MULTISAMPLE: Multisample support for
- *    offscreen framebuffers
- * @COGL_FEATURE_ID_ONSCREEN_MULTIPLE: Multiple onscreen framebuffers
- *    supported.
- * @COGL_FEATURE_ID_GLSL: GLSL support
- * @COGL_FEATURE_ID_ARBFP: ARBFP support
  * @COGL_FEATURE_ID_UNSIGNED_INT_INDICES: Set if
  *     %COGL_INDICES_TYPE_UNSIGNED_INT is supported in
  *     cogl_indices_new().
- * @COGL_FEATURE_ID_DEPTH_RANGE: cogl_pipeline_set_depth_range() support
- * @COGL_FEATURE_ID_POINT_SPRITE: Whether
- *     cogl_pipeline_set_layer_point_sprite_coords_enabled() is supported.
- * @COGL_FEATURE_ID_PER_VERTEX_POINT_SIZE: Whether cogl_point_size_in
- *     can be used as an attribute to set a per-vertex point size.
  * @COGL_FEATURE_ID_MAP_BUFFER_FOR_READ: Whether cogl_buffer_map() is
  *     supported with CoglBufferAccess including read support.
  * @COGL_FEATURE_ID_MAP_BUFFER_FOR_WRITE: Whether cogl_buffer_map() is
  *     supported with CoglBufferAccess including write support.
- * @COGL_FEATURE_ID_MIRRORED_REPEAT: Whether
- *    %COGL_PIPELINE_WRAP_MODE_MIRRORED_REPEAT is supported.
- * @COGL_FEATURE_ID_SWAP_BUFFERS_EVENT:
- *     Available if the window system supports reporting an event
- *     for swap buffer completions.
  * @COGL_FEATURE_ID_BUFFER_AGE: Available if the age of #CoglOnscreen back
  *    buffers are tracked and so cogl_onscreen_get_buffer_age() can be
  *    expected to return age values other than 0.
- * @COGL_FEATURE_ID_GLES2_CONTEXT: Whether creating new GLES2 contexts is
- *    suported.
- * @COGL_FEATURE_ID_DEPTH_TEXTURE: Whether #CoglFramebuffer support rendering
- *     the depth buffer to a texture.
- * @COGL_FEATURE_ID_PRESENTATION_TIME: Whether frame presentation
- *    time stamps will be recorded in #CoglFrameInfo objects.
+ * @COGL_FEATURE_ID_BLIT_FRAMEBUFFER: Whether blitting using
+ *    cogl_blit_framebuffer() is supported.
  *
  * All the capabilities that can vary between different GPUs supported
  * by Cogl. Applications that depend on any of these features should explicitly
  * check for them using cogl_has_feature() or cogl_has_features().
- *
- * Since: 1.10
  */
 typedef enum _CoglFeatureID
 {
-  COGL_FEATURE_ID_TEXTURE_NPOT_BASIC = 1,
-  COGL_FEATURE_ID_TEXTURE_NPOT_MIPMAP,
-  COGL_FEATURE_ID_TEXTURE_NPOT_REPEAT,
-  COGL_FEATURE_ID_TEXTURE_NPOT,
-  COGL_FEATURE_ID_TEXTURE_RECTANGLE,
-  COGL_FEATURE_ID_TEXTURE_3D,
-  COGL_FEATURE_ID_GLSL,
-  COGL_FEATURE_ID_ARBFP,
-  COGL_FEATURE_ID_OFFSCREEN,
-  COGL_FEATURE_ID_OFFSCREEN_MULTISAMPLE,
-  COGL_FEATURE_ID_ONSCREEN_MULTIPLE,
   COGL_FEATURE_ID_UNSIGNED_INT_INDICES,
-  COGL_FEATURE_ID_DEPTH_RANGE,
-  COGL_FEATURE_ID_POINT_SPRITE,
   COGL_FEATURE_ID_MAP_BUFFER_FOR_READ,
   COGL_FEATURE_ID_MAP_BUFFER_FOR_WRITE,
-  COGL_FEATURE_ID_MIRRORED_REPEAT,
-  COGL_FEATURE_ID_SWAP_BUFFERS_EVENT,
-  COGL_FEATURE_ID_GLES2_CONTEXT,
-  COGL_FEATURE_ID_DEPTH_TEXTURE,
-  COGL_FEATURE_ID_PRESENTATION_TIME,
   COGL_FEATURE_ID_FENCE,
-  COGL_FEATURE_ID_PER_VERTEX_POINT_SIZE,
   COGL_FEATURE_ID_TEXTURE_RG,
   COGL_FEATURE_ID_BUFFER_AGE,
   COGL_FEATURE_ID_TEXTURE_EGL_IMAGE_EXTERNAL,
+  COGL_FEATURE_ID_BLIT_FRAMEBUFFER,
+  COGL_FEATURE_ID_TIMESTAMP_QUERY,
 
   /*< private >*/
   _COGL_N_FEATURE_IDS   /*< skip >*/
@@ -283,11 +218,8 @@ typedef enum _CoglFeatureID
  *
  * Returns: %TRUE if the @feature is currently supported or %FALSE if
  * not.
- *
- * Since: 1.10
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_has_feature (CoglContext *context, CoglFeatureID feature);
 
 /**
@@ -303,11 +235,8 @@ cogl_has_feature (CoglContext *context, CoglFeatureID feature);
  *
  * Return value: %TRUE if all the features are available, %FALSE
  * otherwise.
- *
- * Since: 1.10
- * Stability: unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_has_features (CoglContext *context, ...);
 
 /**
@@ -317,9 +246,6 @@ cogl_has_features (CoglContext *context, ...);
  *
  * A callback used with cogl_foreach_feature() for enumerating all
  * context level features supported by Cogl.
- *
- * Since: 0.10
- * Stability: unstable
  */
 typedef void (*CoglFeatureCallback) (CoglFeatureID feature, void *user_data);
 
@@ -332,37 +258,11 @@ typedef void (*CoglFeatureCallback) (CoglFeatureID feature, void *user_data);
  *
  * Iterates through all the context level features currently supported
  * for a given @context and for each feature @callback is called.
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_foreach_feature (CoglContext *context,
                       CoglFeatureCallback callback,
                       void *user_data);
-
-/**
- * cogl_get_clock_time:
- * @context: a #CoglContext pointer
- *
- * Returns the current time value from Cogl's internal clock. This
- * clock is used for measuring times such as the presentation time
- * in a #CoglFrameInfo.
- *
- * This method is meant for converting timestamps retrieved from Cogl
- * to other time systems, and is not meant to be used as a standalone
- * timing system. For that reason, if this function is called without
- * having retrieved a valid (non-zero) timestamp from Cogl first, it
- * may return 0 to indicate that Cogl has no active internal clock.
- *
- * Return value: the time value for the Cogl clock, in nanoseconds
- *  from an arbitrary point in time, or 0 if Cogl doesn't have an
- *  active internal clock.
- * Since: 1.14
- * Stability: unstable
- */
-int64_t
-cogl_get_clock_time (CoglContext *context);
 
 /**
  * CoglGraphicsResetStatus:
@@ -403,10 +303,69 @@ typedef enum _CoglGraphicsResetStatus
  *
  * Return value: a #CoglGraphicsResetStatus
  */
-CoglGraphicsResetStatus
+COGL_EXPORT CoglGraphicsResetStatus
 cogl_get_graphics_reset_status (CoglContext *context);
 
-COGL_END_DECLS
+/**
+ * cogl_context_is_hardware_accelerated:
+ * @context: a #CoglContext pointer
+ *
+ * Returns: %TRUE if the @context is hardware accelerated, or %FALSE if
+ * not.
+ */
+COGL_EXPORT gboolean
+cogl_context_is_hardware_accelerated (CoglContext *context);
 
-#endif /* __COGL_CONTEXT_H__ */
+typedef const char * const CoglPipelineKey;
 
+/**
+ * cogl_context_set_named_pipeline:
+ * @context: a #CoglContext pointer
+ * @key: a #CoglPipelineKey pointer
+ * @pipeline: (nullable): a #CoglPipeline to associate with the @context and
+ *            @key
+ *
+ * Associate a #CoglPipeline with a @context and @key. This will not take a new
+ * reference to the @pipeline, but will unref all associated pipelines when
+ * the @context gets destroyed. Similarly, if a pipeline gets overwritten,
+ * it will get unreffed as well.
+ */
+COGL_EXPORT void
+cogl_context_set_named_pipeline (CoglContext     *context,
+                                 CoglPipelineKey *key,
+                                 CoglPipeline    *pipeline);
+
+/**
+ * cogl_context_get_named_pipeline:
+ * @context: a #CoglContext pointer
+ * @key: a #CoglPipelineKey pointer
+ *
+ * Return value: (transfer none): The #CoglPipeline associated with the
+ *               given @context and @key, or %NULL if no such #CoglPipeline
+ *               was found.
+ */
+COGL_EXPORT CoglPipeline *
+cogl_context_get_named_pipeline (CoglContext     *context,
+                                 CoglPipelineKey *key);
+
+COGL_EXPORT void
+cogl_context_free_timestamp_query (CoglContext        *context,
+                                   CoglTimestampQuery *query);
+
+COGL_EXPORT int64_t
+cogl_context_timestamp_query_get_time_ns (CoglContext        *context,
+                                          CoglTimestampQuery *query);
+
+/**
+ * cogl_context_get_gpu_time_ns:
+ * @context: a #CoglContext pointer
+ *
+ * This function should only be called if the COGL_FEATURE_ID_TIMESTAMP_QUERY
+ * feature is advertised.
+ *
+ * Return value: Current GPU time in nanoseconds
+ */
+COGL_EXPORT int64_t
+cogl_context_get_gpu_time_ns (CoglContext *context);
+
+G_END_DECLS

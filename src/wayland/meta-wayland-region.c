@@ -14,9 +14,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jasper St. Pierre <jstpierre@mecheye.net>
@@ -24,7 +22,8 @@
 
 #include "config.h"
 
-#include "meta-wayland-region.h"
+#include "mtk/mtk.h"
+#include "wayland/meta-wayland-region.h"
 
 struct _MetaWaylandRegion
 {
@@ -48,7 +47,7 @@ wl_region_add (struct wl_client *client,
                gint32 height)
 {
   MetaWaylandRegion *region = wl_resource_get_user_data (resource);
-  cairo_rectangle_int_t rectangle = { x, y, width, height };
+  MtkRectangle rectangle = { x, y, width, height };
 
   cairo_region_union_rectangle (region->region, &rectangle);
 }
@@ -62,7 +61,7 @@ wl_region_subtract (struct wl_client *client,
                     gint32 height)
 {
   MetaWaylandRegion *region = wl_resource_get_user_data (resource);
-  cairo_rectangle_int_t rectangle = { x, y, width, height };
+  MtkRectangle rectangle = { x, y, width, height };
 
   cairo_region_subtract_rectangle (region->region, &rectangle);
 }
@@ -79,7 +78,7 @@ wl_region_destructor (struct wl_resource *resource)
   MetaWaylandRegion *region = wl_resource_get_user_data (resource);
 
   cairo_region_destroy (region->region);
-  g_slice_free (MetaWaylandRegion, region);
+  g_free (region);
 }
 
 MetaWaylandRegion *
@@ -88,7 +87,7 @@ meta_wayland_region_create (MetaWaylandCompositor *compositor,
                             struct wl_resource    *compositor_resource,
                             guint32                id)
 {
-  MetaWaylandRegion *region = g_slice_new0 (MetaWaylandRegion);
+  MetaWaylandRegion *region = g_new0 (MetaWaylandRegion, 1);
 
   region->resource = wl_resource_create (client, &wl_region_interface, wl_resource_get_version (compositor_resource), id);
   wl_resource_set_implementation (region->resource, &meta_wayland_wl_region_interface, region, wl_region_destructor);

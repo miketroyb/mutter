@@ -28,19 +28,17 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
 #include <string.h>
 
-#include "cogl-context-private.h"
+#include "cogl/cogl-context-private.h"
 
-#include "cogl-feature-private.h"
-#include "cogl-renderer-private.h"
-#include "cogl-private.h"
+#include "cogl/cogl-feature-private.h"
+#include "cogl/cogl-renderer-private.h"
+#include "cogl/cogl-private.h"
 
-CoglBool
+gboolean
 _cogl_feature_check (CoglRenderer *renderer,
                      const char *driver_prefix,
                      const CoglFeatureData *data,
@@ -54,13 +52,10 @@ _cogl_feature_check (CoglRenderer *renderer,
   const char *suffix = NULL;
   int func_num;
   CoglExtGlesAvailability gles_availability = 0;
-  CoglBool in_core;
+  gboolean in_core;
 
   switch (driver)
     {
-    case COGL_DRIVER_GLES1:
-      gles_availability = COGL_EXT_IN_GLES;
-      break;
     case COGL_DRIVER_GLES2:
       gles_availability = COGL_EXT_IN_GLES2;
 
@@ -69,19 +64,14 @@ _cogl_feature_check (CoglRenderer *renderer,
       break;
     case COGL_DRIVER_ANY:
       g_assert_not_reached ();
-    case COGL_DRIVER_WEBGL:
-      /* FIXME: WebGL should probably have its own COGL_EXT_IN_WEBGL flag */
-      break;
     case COGL_DRIVER_NOP:
-    case COGL_DRIVER_GL:
     case COGL_DRIVER_GL3:
       break;
     }
 
   /* First check whether the functions should be directly provided by
      GL */
-  if (((driver == COGL_DRIVER_GL ||
-        driver == COGL_DRIVER_GL3) &&
+  if ((driver == COGL_DRIVER_GL3 &&
        COGL_CHECK_GL_VERSION (gl_major, gl_minor,
                               data->min_gl_major, data->min_gl_minor)) ||
       (data->gles_availability & gles_availability))
@@ -204,7 +194,7 @@ error:
                        gles_availability,                               \
                        namespaces, extension_names)                     \
   { min_gl_major, min_gl_minor, gles_availability, namespaces,          \
-      extension_names, 0, 0, 0,                                         \
+      extension_names, 0, 0,                                            \
     cogl_ext_ ## name ## _funcs },
 #undef COGL_EXT_FUNCTION
 #define COGL_EXT_FUNCTION(ret, name, args)

@@ -30,14 +30,12 @@
  *  Neil Roberts <neil@linux.intel.com>
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
-#include "cogl-poll.h"
-#include "cogl-poll-private.h"
-#include "cogl-winsys-private.h"
-#include "cogl-renderer-private.h"
+#include "cogl/cogl-poll.h"
+#include "cogl/cogl-poll-private.h"
+#include "cogl/cogl-renderer-private.h"
+#include "cogl/winsys/cogl-winsys-private.h"
 
 struct _CoglPollSource
 {
@@ -55,10 +53,10 @@ cogl_poll_renderer_get_info (CoglRenderer *renderer,
 {
   GList *l, *next;
 
-  _COGL_RETURN_VAL_IF_FAIL (cogl_is_renderer (renderer), 0);
-  _COGL_RETURN_VAL_IF_FAIL (poll_fds != NULL, 0);
-  _COGL_RETURN_VAL_IF_FAIL (n_poll_fds != NULL, 0);
-  _COGL_RETURN_VAL_IF_FAIL (timeout != NULL, 0);
+  g_return_val_if_fail (cogl_is_renderer (renderer), 0);
+  g_return_val_if_fail (poll_fds != NULL, 0);
+  g_return_val_if_fail (n_poll_fds != NULL, 0);
+  g_return_val_if_fail (timeout != NULL, 0);
 
   *timeout = -1;
 
@@ -97,7 +95,7 @@ cogl_poll_renderer_dispatch (CoglRenderer *renderer,
 {
   GList *l, *next;
 
-  _COGL_RETURN_IF_FAIL (cogl_is_renderer (renderer));
+  g_return_if_fail (cogl_is_renderer (renderer));
 
   _cogl_closure_list_invoke_no_args (&renderer->idle_closures);
 
@@ -164,7 +162,7 @@ _cogl_poll_renderer_remove_fd (CoglRenderer *renderer, int fd)
         {
           renderer->poll_sources =
             g_list_delete_link (renderer->poll_sources, l);
-          g_slice_free (CoglPollSource, source);
+          g_free (source);
           break;
         }
     }
@@ -205,7 +203,7 @@ _cogl_poll_renderer_add_fd (CoglRenderer *renderer,
 
   _cogl_poll_renderer_remove_fd (renderer, fd);
 
-  source = g_slice_new0 (CoglPollSource);
+  source = g_new0 (CoglPollSource, 1);
   source->fd = fd;
   source->prepare = prepare;
   source->dispatch = dispatch;
@@ -225,7 +223,7 @@ _cogl_poll_renderer_add_source (CoglRenderer *renderer,
 {
   CoglPollSource *source;
 
-  source = g_slice_new0 (CoglPollSource);
+  source = g_new0 (CoglPollSource, 1);
   source->fd = -1;
   source->prepare = prepare;
   source->dispatch = dispatch;
@@ -248,7 +246,7 @@ _cogl_poll_renderer_remove_source (CoglRenderer *renderer,
         {
           renderer->poll_sources =
             g_list_delete_link (renderer->poll_sources, l);
-          g_slice_free (CoglPollSource, source);
+          g_free (source);
           break;
         }
     }

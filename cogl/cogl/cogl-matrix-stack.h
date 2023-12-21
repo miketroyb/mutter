@@ -32,16 +32,15 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifndef _COGL_MATRIX_STACK_H_
-#define _COGL_MATRIX_STACK_H_
+#pragma once
 
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
 
-#include "cogl-matrix.h"
-#include "cogl-context.h"
+#include "cogl/cogl-context.h"
 
+#include <graphene.h>
 
 /**
  * SECTION:cogl-matrix-stack
@@ -52,11 +51,11 @@
  * transforms of objects, texture transforms, and projective
  * transforms.
  *
- * The #CoglMatrix api provides a good way to manipulate individual
+ * The #graphene_matrix_t api provides a good way to manipulate individual
  * matrices representing a single transformation but if you need to
  * track many-many such transformations for many objects that are
  * organized in a scenegraph for example then using a separate
- * #CoglMatrix for each object may not be the most efficient way.
+ * #graphene_matrix_t for each object may not be the most efficient way.
  *
  * A #CoglMatrixStack enables applications to track lots of
  * transformations that are related to each other in some kind of
@@ -69,7 +68,7 @@
  * transformation. The #CoglMatrixStack API is suited to tracking lots
  * of transformations that fit this kind of model.
  *
- * Compared to using the #CoglMatrix api directly to track many
+ * Compared to using the #graphene_matrix_t api directly to track many
  * related transforms, these can be some advantages to using a
  * #CoglMatrixStack:
  * <itemizedlist>
@@ -82,14 +81,14 @@
  * </itemizedlist>
  *
  * For reference (to give an idea of when a #CoglMatrixStack can
- * provide a space saving) a #CoglMatrix can be expected to take 72
+ * provide a space saving) a #graphene_matrix_t can be expected to take 72
  * bytes whereas a single #CoglMatrixEntry in a #CoglMatrixStack is
  * currently around 32 bytes on a 32bit CPU or 36 bytes on a 64bit
  * CPU. An entry is needed for each individual operation applied to
  * the stack (such as rotate, scale, translate) so if most of your
  * leaf node transformations only need one or two simple operations
  * relative to their parent then a matrix stack will likely take less
- * space than having a #CoglMatrix for each node.
+ * space than having a #graphene_matrix_t for each node.
  *
  * Even without any space saving though the ability to perform fast
  * comparisons and avoid redundant arithmetic (especially sine and
@@ -139,6 +138,7 @@ typedef struct _CoglMatrixStack CoglMatrixStack;
  *
  * Returns: a #GType that can be used with the GLib type system.
  */
+COGL_EXPORT
 GType cogl_matrix_stack_get_gtype (void);
 
 /**
@@ -182,6 +182,7 @@ typedef struct _CoglMatrixEntry CoglMatrixEntry;
  *
  * Returns: a #GType that can be used with the GLib type system.
  */
+COGL_EXPORT
 GType cogl_matrix_entry_get_gtype (void);
 
 
@@ -213,7 +214,7 @@ GType cogl_matrix_entry_get_gtype (void);
  *
  * Return value: (transfer full): A newly allocated #CoglMatrixStack
  */
-CoglMatrixStack *
+COGL_EXPORT CoglMatrixStack *
 cogl_matrix_stack_new (CoglContext *ctx);
 
 /**
@@ -228,7 +229,7 @@ cogl_matrix_stack_new (CoglContext *ctx);
  * called when going back up one layer to restore the previous
  * transform of an ancestor.
  */
-void
+COGL_EXPORT void
 cogl_matrix_stack_push (CoglMatrixStack *stack);
 
 /**
@@ -241,7 +242,7 @@ cogl_matrix_stack_push (CoglMatrixStack *stack);
  * This is usually called while traversing a scenegraph whenever you
  * return up one level in the graph towards the root node.
  */
-void
+COGL_EXPORT void
 cogl_matrix_stack_pop (CoglMatrixStack *stack);
 
 /**
@@ -250,7 +251,7 @@ cogl_matrix_stack_pop (CoglMatrixStack *stack);
  *
  * Resets the current matrix to the identity matrix.
  */
-void
+COGL_EXPORT void
 cogl_matrix_stack_load_identity (CoglMatrixStack *stack);
 
 /**
@@ -263,7 +264,7 @@ cogl_matrix_stack_load_identity (CoglMatrixStack *stack);
  * Multiplies the current matrix by one that scales the x, y and z
  * axes by the given values.
  */
-void
+COGL_EXPORT void
 cogl_matrix_stack_scale (CoglMatrixStack *stack,
                          float x,
                          float y,
@@ -279,7 +280,7 @@ cogl_matrix_stack_scale (CoglMatrixStack *stack,
  * Multiplies the current matrix by one that translates along all
  * three axes according to the given values.
  */
-void
+COGL_EXPORT void
 cogl_matrix_stack_translate (CoglMatrixStack *stack,
                              float x,
                              float y,
@@ -299,7 +300,7 @@ cogl_matrix_stack_translate (CoglMatrixStack *stack,
  * the axis-vector (0, 0, 1) causes a small counter-clockwise
  * rotation.
  */
-void
+COGL_EXPORT void
 cogl_matrix_stack_rotate (CoglMatrixStack *stack,
                           float angle,
                           float x,
@@ -307,28 +308,16 @@ cogl_matrix_stack_rotate (CoglMatrixStack *stack,
                           float z);
 
 /**
- * cogl_matrix_stack_rotate_quaternion:
- * @stack: A #CoglMatrixStack
- * @quaternion: A #CoglQuaternion
- *
- * Multiplies the current matrix by one that rotates according to the
- * rotation described by @quaternion.
- */
-void
-cogl_matrix_stack_rotate_quaternion (CoglMatrixStack *stack,
-                                     const CoglQuaternion *quaternion);
-
-/**
  * cogl_matrix_stack_rotate_euler:
  * @stack: A #CoglMatrixStack
- * @euler: A #CoglEuler
+ * @euler: A #graphene_euler_t
  *
  * Multiplies the current matrix by one that rotates according to the
  * rotation described by @euler.
  */
-void
+COGL_EXPORT void
 cogl_matrix_stack_rotate_euler (CoglMatrixStack *stack,
-                                const CoglEuler *euler);
+                                const graphene_euler_t *euler);
 
 /**
  * cogl_matrix_stack_multiply:
@@ -337,9 +326,9 @@ cogl_matrix_stack_rotate_euler (CoglMatrixStack *stack,
  *
  * Multiplies the current matrix by the given matrix.
  */
-void
-cogl_matrix_stack_multiply (CoglMatrixStack *stack,
-                            const CoglMatrix *matrix);
+COGL_EXPORT void
+cogl_matrix_stack_multiply (CoglMatrixStack         *stack,
+                            const graphene_matrix_t *matrix);
 
 /**
  * cogl_matrix_stack_frustum:
@@ -359,7 +348,7 @@ cogl_matrix_stack_multiply (CoglMatrixStack *stack,
  * viewing frustum defined by 4 side clip planes that all cross
  * through the origin and 2 near and far clip planes.
  */
-void
+COGL_EXPORT void
 cogl_matrix_stack_frustum (CoglMatrixStack *stack,
                            float left,
                            float right,
@@ -382,10 +371,10 @@ cogl_matrix_stack_frustum (CoglMatrixStack *stack,
  *
  * <note>You should be careful not to have too great a @z_far / @z_near
  * ratio since that will reduce the effectiveness of depth testing
- * since there wont be enough precision to identify the depth of
+ * since there won't be enough precision to identify the depth of
  * objects near to each other.</note>
  */
-void
+COGL_EXPORT void
 cogl_matrix_stack_perspective (CoglMatrixStack *stack,
                                float fov_y,
                                float aspect,
@@ -408,7 +397,7 @@ cogl_matrix_stack_perspective (CoglMatrixStack *stack,
  *
  * Replaces the current matrix with an orthographic projection matrix.
  */
-void
+COGL_EXPORT void
 cogl_matrix_stack_orthographic (CoglMatrixStack *stack,
                                 float x_1,
                                 float y_1,
@@ -423,15 +412,15 @@ cogl_matrix_stack_orthographic (CoglMatrixStack *stack,
  * @inverse: (out): The destination for a 4x4 inverse transformation matrix
  *
  * Gets the inverse transform of the current matrix and uses it to
- * initialize a new #CoglMatrix.
+ * initialize a new #graphene_matrix_t.
  *
  * Return value: %TRUE if the inverse was successfully calculated or %FALSE
  *   for degenerate transformations that can't be inverted (in this case the
  *   @inverse matrix will simply be initialized with the identity matrix)
  */
-CoglBool
-cogl_matrix_stack_get_inverse (CoglMatrixStack *stack,
-                               CoglMatrix *inverse);
+COGL_EXPORT gboolean
+cogl_matrix_stack_get_inverse (CoglMatrixStack   *stack,
+                               graphene_matrix_t *inverse);
 
 /**
  * cogl_matrix_stack_get_entry:
@@ -451,7 +440,7 @@ cogl_matrix_stack_get_inverse (CoglMatrixStack *stack,
  * Return value: (transfer none): A pointer to the #CoglMatrixEntry
  *               representing the current matrix stack transform.
  */
-CoglMatrixEntry *
+COGL_EXPORT CoglMatrixEntry *
 cogl_matrix_stack_get_entry (CoglMatrixStack *stack);
 
 /**
@@ -459,13 +448,13 @@ cogl_matrix_stack_get_entry (CoglMatrixStack *stack);
  * @stack: A #CoglMatrixStack
  * @matrix: (out): The potential destination for the current matrix
  *
- * Resolves the current @stack transform into a #CoglMatrix by
+ * Resolves the current @stack transform into a #graphene_matrix_t by
  * combining the operations that have been applied to build up the
  * current transform.
  *
  * There are two possible ways that this function may return its
  * result depending on whether the stack is able to directly point
- * to an internal #CoglMatrix or whether the result needs to be
+ * to an internal #graphene_matrix_t or whether the result needs to be
  * composed of multiple operations.
  *
  * If an internal matrix contains the required result then this
@@ -480,9 +469,9 @@ cogl_matrix_stack_get_entry (CoglMatrixStack *stack);
  *               and in that case @matrix will be initialized with
  *               the value of the current transform.
  */
-CoglMatrix *
-cogl_matrix_stack_get (CoglMatrixStack *stack,
-                       CoglMatrix *matrix);
+COGL_EXPORT graphene_matrix_t *
+cogl_matrix_stack_get (CoglMatrixStack   *stack,
+                       graphene_matrix_t *matrix);
 
 /**
  * cogl_matrix_entry_get:
@@ -490,13 +479,13 @@ cogl_matrix_stack_get (CoglMatrixStack *stack,
  * @matrix: (out): The potential destination for the transform as
  *                 a matrix
  *
- * Resolves the current @entry transform into a #CoglMatrix by
+ * Resolves the current @entry transform into a #graphene_matrix_t by
  * combining the sequence of operations that have been applied to
  * build up the current transform.
  *
  * There are two possible ways that this function may return its
  * result depending on whether it's possible to directly point
- * to an internal #CoglMatrix or whether the result needs to be
+ * to an internal #graphene_matrix_t or whether the result needs to be
  * composed of multiple operations.
  *
  * If an internal matrix contains the required result then this
@@ -507,27 +496,27 @@ cogl_matrix_stack_get (CoglMatrixStack *stack,
  * <note>@matrix will be left untouched if a direct pointer is
  * returned.</note>
  *
- * Return value: A direct pointer to a #CoglMatrix transform or %NULL
+ * Return value: A direct pointer to a #graphene_matrix_t transform or %NULL
  *               and in that case @matrix will be initialized with
  *               the effective transform represented by @entry.
  */
-CoglMatrix *
-cogl_matrix_entry_get (CoglMatrixEntry *entry,
-                       CoglMatrix *matrix);
+COGL_EXPORT graphene_matrix_t *
+cogl_matrix_entry_get (CoglMatrixEntry   *entry,
+                       graphene_matrix_t *matrix);
 
 /**
  * cogl_matrix_stack_set:
  * @stack: A #CoglMatrixStack
- * @matrix: A #CoglMatrix replace the current matrix value with
+ * @matrix: A #graphene_matrix_t replace the current matrix value with
  *
  * Replaces the current @stack matrix value with the value of @matrix.
  * This effectively discards any other operations that were applied
  * since the last time cogl_matrix_stack_push() was called or since
  * the stack was initialized.
  */
-void
-cogl_matrix_stack_set (CoglMatrixStack *stack,
-                       const CoglMatrix *matrix);
+COGL_EXPORT void
+cogl_matrix_stack_set (CoglMatrixStack         *stack,
+                       const graphene_matrix_t *matrix);
 
 /**
  * cogl_is_matrix_stack:
@@ -538,7 +527,7 @@ cogl_matrix_stack_set (CoglMatrixStack *stack,
  * Return value: %TRUE if @object is a #CoglMatrixStack, otherwise
  *               %FALSE.
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_is_matrix_stack (void *object);
 
 /**
@@ -560,7 +549,7 @@ cogl_is_matrix_stack (void *object);
  *                @entry0 and the transform of @entry1 is a translation,
  *                otherwise %FALSE.
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_matrix_entry_calculate_translation (CoglMatrixEntry *entry0,
                                          CoglMatrixEntry *entry1,
                                          float *x,
@@ -581,7 +570,7 @@ cogl_matrix_entry_calculate_translation (CoglMatrixEntry *entry0,
  * Return value: %TRUE if @entry is definitely an identity transform,
  *               otherwise %FALSE.
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_matrix_entry_is_identity (CoglMatrixEntry *entry);
 
 /**
@@ -599,7 +588,7 @@ cogl_matrix_entry_is_identity (CoglMatrixEntry *entry);
  * Return value: %TRUE if @entry0 represents the same transform as
  *               @entry1, otherwise %FALSE.
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_matrix_entry_equal (CoglMatrixEntry *entry0,
                          CoglMatrixEntry *entry1);
 
@@ -610,7 +599,7 @@ cogl_matrix_entry_equal (CoglMatrixEntry *entry0,
  * Allows visualizing the operations that build up the given @entry
  * for debugging purposes by printing to stdout.
  */
-void
+COGL_EXPORT void
 cogl_debug_matrix_entry_print (CoglMatrixEntry *entry);
 
 /**
@@ -624,7 +613,7 @@ cogl_debug_matrix_entry_print (CoglMatrixEntry *entry);
  * It is an error to pass an @entry pointer to cogl_object_ref() and
  * cogl_object_unref()
  */
-CoglMatrixEntry *
+COGL_EXPORT CoglMatrixEntry *
 cogl_matrix_entry_ref (CoglMatrixEntry *entry);
 
 /**
@@ -635,7 +624,5 @@ cogl_matrix_entry_ref (CoglMatrixEntry *entry);
  * cogl_matrix_entry_unref() or to release the reference given when
  * calling cogl_matrix_stack_get_entry().
  */
-void
+COGL_EXPORT void
 cogl_matrix_entry_unref (CoglMatrixEntry *entry);
-
-#endif /* _COGL_MATRIX_STACK_H_ */

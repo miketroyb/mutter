@@ -14,9 +14,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jonas Ådahl <jadahl@gmail.com>
@@ -26,63 +24,71 @@
 
 #include <glib-object.h>
 
-#include "clutter/x11/clutter-x11.h"
-#include "cogl/cogl.h"
-#include "cogl/cogl-xlib.h"
-#include "cogl/winsys/cogl-winsys-glx-private.h"
-#include "cogl/winsys/cogl-winsys-egl-x11-private.h"
 #include "backends/meta-backend-private.h"
 #include "backends/meta-logical-monitor.h"
-#include "backends/meta-renderer.h"
 #include "backends/meta-renderer-view.h"
+#include "backends/meta-renderer.h"
+#include "backends/x11/meta-backend-x11.h"
+#include "backends/x11/meta-clutter-backend-x11.h"
 #include "backends/x11/meta-renderer-x11.h"
+#include "cogl/cogl-xlib.h"
+#include "cogl/cogl.h"
 #include "core/boxes-private.h"
 #include "meta/meta-backend.h"
 #include "meta/util.h"
+
+#ifdef COGL_HAS_EGL_SUPPORT
+#include "cogl/winsys/cogl-winsys-egl-x11-private.h"
+#endif
+#ifdef COGL_HAS_GLX_SUPPORT
+#include "cogl/winsys/cogl-winsys-glx-private.h"
+#endif
 
 G_DEFINE_TYPE (MetaRendererX11, meta_renderer_x11, META_TYPE_RENDERER)
 
 static const CoglWinsysVtable *
 get_x11_cogl_winsys_vtable (CoglRenderer *renderer)
 {
+#ifdef COGL_HAS_EGL_PLATFORM_XLIB_SUPPORT
   if (meta_is_wayland_compositor ())
     return _cogl_winsys_egl_xlib_get_vtable ();
+#endif
 
   switch (renderer->driver)
     {
-    case COGL_DRIVER_GLES1:
     case COGL_DRIVER_GLES2:
+#ifdef COGL_HAS_EGL_PLATFORM_XLIB_SUPPORT
       return _cogl_winsys_egl_xlib_get_vtable ();
-    case COGL_DRIVER_GL:
+#else
+      break;
+#endif
     case COGL_DRIVER_GL3:
+#ifdef COGL_HAS_GLX_SUPPORT
       return _cogl_winsys_glx_get_vtable ();
+#else
+      break;
+#endif
     case COGL_DRIVER_ANY:
     case COGL_DRIVER_NOP:
-    case COGL_DRIVER_WEBGL:
       break;
     }
   g_assert_not_reached ();
+  return NULL;
 }
 
 static CoglRenderer *
 meta_renderer_x11_create_cogl_renderer (MetaRenderer *renderer)
 {
+  MetaBackend *backend = meta_renderer_get_backend (renderer);
+  MetaBackendX11 *backend_x11 = META_BACKEND_X11 (backend);
+  Display *xdisplay = meta_backend_x11_get_xdisplay (backend_x11);
   CoglRenderer *cogl_renderer;
-  Display *xdisplay = clutter_x11_get_default_display ();
 
   cogl_renderer = cogl_renderer_new ();
   cogl_renderer_set_custom_winsys (cogl_renderer, get_x11_cogl_winsys_vtable,
                                    NULL);
   cogl_xlib_renderer_set_foreign_display (cogl_renderer, xdisplay);
   cogl_xlib_renderer_request_reset_on_video_memory_purge (cogl_renderer, TRUE);
-
-  /* Set up things so that if the INTEL_swap_event extension is not present,
-   * but the driver is known to have good thread support, we use an extra
-   * thread and call glXWaitVideoSync() in the thread. This allows idles
-   * to work properly, even when Mutter is constantly redrawing new frames;
-   * otherwise, without INTEL_swap_event, we'll just block in glXSwapBuffers().
-   */
-  cogl_xlib_renderer_set_threaded_swap_wait_enabled (cogl_renderer, TRUE);
 
   return cogl_renderer;
 }

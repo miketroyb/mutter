@@ -23,36 +23,29 @@
  */
 
 /**
- * SECTION:clutter-brightness-contrast-effect
- * @short_description: Increase/decrease brightness and/or contrast of actor.
- * @see_also: #ClutterEffect, #ClutterOffscreenEffect
+ * ClutterBrightnessContrastEffect:
+ * 
+ * Increase/decrease brightness and/or contrast of actor.
  *
  * #ClutterBrightnessContrastEffect is a sub-class of #ClutterEffect that
  * changes the overall brightness of a #ClutterActor.
- *
- * #ClutterBrightnessContrastEffect is available since Clutter 1.10
  */
 
 #define CLUTTER_BRIGHTNESS_CONTRAST_EFFECT_CLASS(klass)     (G_TYPE_CHECK_CLASS_CAST ((klass), CLUTTER_TYPE_BRIGHTNESS_CONTRAST_EFFECT, ClutterBrightnessContrastEffectClass))
 #define CLUTTER_IS_BRIGHTNESS_CONTRAST_EFFECT_CLASS(klass)  (G_TYPE_CHECK_CLASS_TYPE ((klass), CLUTTER_TYPE_BRIGHTNESS_CONTRAST_EFFECT))
 #define CLUTTER_BRIGHTNESS_CONTRAST_EFFECT_GET_CLASS(obj)   (G_TYPE_INSTANCE_GET_CLASS ((obj), CLUTTER_TYPE_BRIGHTNESS_CONTRAST_EFFECT, ClutterBrightnessContrastEffectClass))
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
 #include <math.h>
 
-#define CLUTTER_ENABLE_EXPERIMENTAL_API
+#include "cogl/cogl.h"
 
-#include "clutter-brightness-contrast-effect.h"
-
-#include <cogl/cogl.h>
-
-#include "clutter-debug.h"
-#include "clutter-enum-types.h"
-#include "clutter-offscreen-effect.h"
-#include "clutter-private.h"
+#include "clutter/clutter-brightness-contrast-effect.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-enum-types.h"
+#include "clutter/clutter-offscreen-effect.h"
+#include "clutter/clutter-private.h"
 
 struct _ClutterBrightnessContrastEffect
 {
@@ -70,9 +63,6 @@ struct _ClutterBrightnessContrastEffect
   gint brightness_multiplier_uniform;
   gint brightness_offset_uniform;
   gint contrast_uniform;
-
-  gint tex_width;
-  gint tex_height;
 
   CoglPipeline *pipeline;
 };
@@ -123,79 +113,41 @@ G_DEFINE_TYPE (ClutterBrightnessContrastEffect,
 static gboolean
 will_have_no_effect (ClutterBrightnessContrastEffect *self)
 {
-  return (self->brightness_red == no_change &&
-          self->brightness_green == no_change &&
-          self->brightness_blue == no_change &&
-          self->contrast_red == no_change &&
-          self->contrast_green == no_change &&
-          self->contrast_blue == no_change);
+  return (G_APPROX_VALUE (self->brightness_red, no_change, FLT_EPSILON) &&
+          G_APPROX_VALUE (self->brightness_green, no_change, FLT_EPSILON) &&
+          G_APPROX_VALUE (self->brightness_blue, no_change, FLT_EPSILON) &&
+          G_APPROX_VALUE (self->contrast_red, no_change, FLT_EPSILON) &&
+          G_APPROX_VALUE (self->contrast_green, no_change, FLT_EPSILON) &&
+          G_APPROX_VALUE (self->contrast_blue, no_change, FLT_EPSILON));
+}
+
+static CoglPipeline *
+clutter_brightness_contrast_effect_create_pipeline (ClutterOffscreenEffect *effect,
+                                                    CoglTexture            *texture)
+{
+  ClutterBrightnessContrastEffect *self =
+    CLUTTER_BRIGHTNESS_CONTRAST_EFFECT (effect);
+
+  cogl_pipeline_set_layer_texture (self->pipeline, 0, texture);
+
+  return cogl_object_ref (self->pipeline);
 }
 
 static gboolean
-clutter_brightness_contrast_effect_pre_paint (ClutterEffect *effect)
+clutter_brightness_contrast_effect_pre_paint (ClutterEffect       *effect,
+                                              ClutterPaintNode    *node,
+                                              ClutterPaintContext *paint_context)
 {
   ClutterBrightnessContrastEffect *self = CLUTTER_BRIGHTNESS_CONTRAST_EFFECT (effect);
   ClutterEffectClass *parent_class;
 
-  if (!clutter_actor_meta_get_enabled (CLUTTER_ACTOR_META (effect)))
-    return FALSE;
-
   if (will_have_no_effect (self))
     return FALSE;
 
-  if (!clutter_feature_available (CLUTTER_FEATURE_SHADERS_GLSL))
-    {
-      /* if we don't have support for GLSL shaders then we
-       * forcibly disable the ActorMeta
-       */
-      g_warning ("Unable to use the ClutterBrightnessContrastEffect: the "
-                 "graphics hardware or the current GL driver does not "
-                 "implement support for the GLSL shading language. The "
-                 "effect will be disabled.");
-      clutter_actor_meta_set_enabled (CLUTTER_ACTOR_META (effect), FALSE);
-      return FALSE;
-    }
-
   parent_class =
     CLUTTER_EFFECT_CLASS (clutter_brightness_contrast_effect_parent_class);
-  if (parent_class->pre_paint (effect))
-    {
-      ClutterOffscreenEffect *offscreen_effect =
-        CLUTTER_OFFSCREEN_EFFECT (effect);
-      CoglHandle texture;
 
-      texture = clutter_offscreen_effect_get_texture (offscreen_effect);
-      self->tex_width = cogl_texture_get_width (texture);
-      self->tex_height = cogl_texture_get_height (texture);
-
-      cogl_pipeline_set_layer_texture (self->pipeline, 0, texture);
-
-      return TRUE;
-    }
-  else
-    return FALSE;
-}
-
-static void
-clutter_brightness_contrast_effect_paint_target (ClutterOffscreenEffect *effect)
-{
-  ClutterBrightnessContrastEffect *self = CLUTTER_BRIGHTNESS_CONTRAST_EFFECT (effect);
-  ClutterActor *actor;
-  guint8 paint_opacity;
-
-  actor = clutter_actor_meta_get_actor (CLUTTER_ACTOR_META (effect));
-  paint_opacity = clutter_actor_get_paint_opacity (actor);
-
-  cogl_pipeline_set_color4ub (self->pipeline,
-                              paint_opacity,
-                              paint_opacity,
-                              paint_opacity,
-                              paint_opacity);
-  cogl_push_source (self->pipeline);
-
-  cogl_rectangle (0, 0, self->tex_width, self->tex_height);
-
-  cogl_pop_source ();
+  return parent_class->pre_paint (effect, node, paint_context);
 }
 
 static void
@@ -295,7 +247,7 @@ clutter_brightness_contrast_effect_class_init (ClutterBrightnessContrastEffectCl
   ClutterOffscreenEffectClass *offscreen_class;
 
   offscreen_class = CLUTTER_OFFSCREEN_EFFECT_CLASS (klass);
-  offscreen_class->paint_target = clutter_brightness_contrast_effect_paint_target;
+  offscreen_class->create_pipeline = clutter_brightness_contrast_effect_create_pipeline;
 
   effect_class->pre_paint = clutter_brightness_contrast_effect_pre_paint;
 
@@ -313,13 +265,9 @@ clutter_brightness_contrast_effect_class_init (ClutterBrightnessContrastEffectCl
    * to indicate no change; values smaller than 127 indicate a decrease
    * in brightness, and values larger than 127 indicate an increase in
    * brightness.
-   *
-   * Since: 1.10
    */
   obj_props[PROP_BRIGHTNESS] =
-    clutter_param_spec_color ("brightness",
-                              P_("Brightness"),
-                              P_("The brightness change to apply"),
+    clutter_param_spec_color ("brightness", NULL, NULL,
                               &no_brightness_change,
                               CLUTTER_PARAM_READWRITE);
 
@@ -333,13 +281,9 @@ clutter_brightness_contrast_effect_class_init (ClutterBrightnessContrastEffectCl
    * to indicate no change; values smaller than 127 indicate a decrease
    * in contrast, and values larger than 127 indicate an increase in
    * contrast.
-   *
-   * Since: 1.10
    */
   obj_props[PROP_CONTRAST] =
-    clutter_param_spec_color ("contrast",
-                              P_("Contrast"),
-                              P_("The contrast change to apply"),
+    clutter_param_spec_color ("contrast", NULL, NULL,
                               &no_contrast_change,
                               CLUTTER_PARAM_READWRITE);
 
@@ -439,9 +383,7 @@ clutter_brightness_contrast_effect_init (ClutterBrightnessContrastEffect *self)
       cogl_pipeline_add_snippet (klass->base_pipeline, snippet);
       cogl_object_unref (snippet);
 
-      cogl_pipeline_set_layer_null_texture (klass->base_pipeline,
-                                            0, /* layer number */
-                                            COGL_TEXTURE_TYPE_2D);
+      cogl_pipeline_set_layer_null_texture (klass->base_pipeline, 0);
     }
 
   self->pipeline = cogl_pipeline_copy (klass->base_pipeline);
@@ -467,8 +409,6 @@ clutter_brightness_contrast_effect_init (ClutterBrightnessContrastEffect *self)
  * Return value: (transfer full): the newly created
  *   #ClutterBrightnessContrastEffect or %NULL.  Use g_object_unref() when
  *   done.
- *
- * Since: 1.10
  */
 ClutterEffect *
 clutter_brightness_contrast_effect_new (void)
@@ -486,8 +426,6 @@ clutter_brightness_contrast_effect_new (void)
  * The range for each component is [-1.0, 1.0] where 0.0 designates no change,
  * values below 0.0 mean a decrease in brightness, and values above indicate
  * an increase.
- *
- * Since: 1.10
  */
 void
 clutter_brightness_contrast_effect_set_brightness_full (ClutterBrightnessContrastEffect *effect,
@@ -497,9 +435,9 @@ clutter_brightness_contrast_effect_set_brightness_full (ClutterBrightnessContras
 {
   g_return_if_fail (CLUTTER_IS_BRIGHTNESS_CONTRAST_EFFECT (effect));
 
-  if (red == effect->brightness_red &&
-      green == effect->brightness_green &&
-      blue == effect->brightness_blue)
+  if (G_APPROX_VALUE (red, effect->brightness_red, FLT_EPSILON) &&
+      G_APPROX_VALUE (green, effect->brightness_green, FLT_EPSILON) &&
+      G_APPROX_VALUE (blue, effect->brightness_blue, FLT_EPSILON))
     return;
 
   effect->brightness_red = red;
@@ -524,8 +462,6 @@ clutter_brightness_contrast_effect_set_brightness_full (ClutterBrightnessContras
  *    change in brightness
  *
  * Retrieves the change in brightness used by @effect.
- *
- * Since: 1.10
  */
 void
 clutter_brightness_contrast_effect_get_brightness (ClutterBrightnessContrastEffect *effect,
@@ -553,8 +489,6 @@ clutter_brightness_contrast_effect_get_brightness (ClutterBrightnessContrastEffe
  * The range of @brightness is [-1.0, 1.0], where 0.0 designates no change;
  * a value below 0.0 indicates a decrease in brightness; and a value
  * above 0.0 indicates an increase of brightness.
- *
- * Since: 1.10
  */
 void
 clutter_brightness_contrast_effect_set_brightness (ClutterBrightnessContrastEffect *effect,
@@ -576,8 +510,6 @@ clutter_brightness_contrast_effect_set_brightness (ClutterBrightnessContrastEffe
  * The range for each component is [-1.0, 1.0] where 0.0 designates no change,
  * values below 0.0 mean a decrease in contrast, and values above indicate
  * an increase.
- *
- * Since: 1.10
  */
 void
 clutter_brightness_contrast_effect_set_contrast_full (ClutterBrightnessContrastEffect *effect,
@@ -587,9 +519,9 @@ clutter_brightness_contrast_effect_set_contrast_full (ClutterBrightnessContrastE
 {
   g_return_if_fail (CLUTTER_IS_BRIGHTNESS_CONTRAST_EFFECT (effect));
 
-  if (red == effect->contrast_red &&
-      green == effect->contrast_green &&
-      blue == effect->contrast_blue)
+  if (G_APPROX_VALUE (red, effect->contrast_red, FLT_EPSILON) &&
+      G_APPROX_VALUE (green, effect->contrast_green, FLT_EPSILON) &&
+      G_APPROX_VALUE (blue, effect->contrast_blue, FLT_EPSILON))
     return;
 
   effect->contrast_red = red;
@@ -614,8 +546,6 @@ clutter_brightness_contrast_effect_set_contrast_full (ClutterBrightnessContrastE
  *    change in contrast
  *
  * Retrieves the contrast value used by @effect.
- *
- * Since: 1.10
  */
 void
 clutter_brightness_contrast_effect_get_contrast (ClutterBrightnessContrastEffect *effect,
@@ -643,8 +573,6 @@ clutter_brightness_contrast_effect_get_contrast (ClutterBrightnessContrastEffect
  * The range for @contrast is [-1.0, 1.0], where 0.0 designates no change;
  * a value below 0.0 indicates a decrease in contrast; and a value above
  * 0.0 indicates an increase.
- *
- * Since: 1.10
  */
 void
 clutter_brightness_contrast_effect_set_contrast (ClutterBrightnessContrastEffect *effect,

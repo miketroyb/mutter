@@ -32,21 +32,18 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifndef __COGL_PIXEL_BUFFER_PRIVATE_H__
-#define __COGL_PIXEL_BUFFER_PRIVATE_H__
+#pragma once
 
-#include "cogl-object-private.h"
-#include "cogl-buffer-private.h"
+#include "cogl/cogl-object-private.h"
+#include "cogl/cogl-buffer-private.h"
 
 #include <glib.h>
 
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 struct _CoglPixelBuffer
 {
   CoglBuffer            _parent;
 };
 
-COGL_END_DECLS
-
-#endif /* __COGL_PIXEL_BUFFER_PRIVATE_H__ */
+G_END_DECLS

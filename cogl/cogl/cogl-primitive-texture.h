@@ -28,28 +28,26 @@
  *
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
 
-#ifndef __COGL_PRIMITIVE_TEXTURE_H__
-#define __COGL_PRIMITIVE_TEXTURE_H__
+#include "cogl/cogl-types.h"
 
-#include "cogl-types.h"
-
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 /**
  * SECTION:cogl-primitive-texture
  * @short_description: Interface for low-level textures like
- *                     #CoglTexture2D and #CoglTexture3D.
+ *                     #CoglTexture2D.
  *
  * A #CoglPrimitiveTexture is a texture that is directly represented
- * by a single texture on the GPU. For example these could be a
- * #CoglTexture2D, #CoglTexture3D or #CoglTextureRectangle. This is
- * opposed to high level meta textures which may be composed of
- * multiple primitive textures or a sub-region of another texture such
- * as #CoglAtlasTexture and #CoglTexture2DSliced.
+ * by a single texture on the GPU. For example this could be a
+ * #CoglTexture2D. This is opposed to high level meta textures which
+ * may be composed of multiple primitive textures or a sub-region of
+ * another texture such as #CoglAtlasTexture and #CoglTexture2DSliced.
  *
  * A texture that implements this interface can be directly used with
  * the low level cogl_primitive_draw() API. Other types of textures
@@ -82,10 +80,8 @@ typedef struct _CoglPrimitiveTexture CoglPrimitiveTexture;
  *
  * Return value: %TRUE if the pointer references a primitive texture, and
  *   %FALSE otherwise
- * Since: 2.0
- * Stability: unstable
  */
-CoglBool
+gboolean
 cogl_is_primitive_texture (void *object);
 
 /**
@@ -99,14 +95,9 @@ cogl_is_primitive_texture (void *object);
  * filter that requires the lower mipmap levels. An application should
  * disable this if it wants to upload its own data for the other
  * levels. By default auto mipmapping is enabled.
- *
- * Since: 2.0
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_primitive_texture_set_auto_mipmap (CoglPrimitiveTexture *primitive_texture,
-                                        CoglBool value);
+                                        gboolean value);
 
-COGL_END_DECLS
-
-#endif /* __COGL_PRIMITIVE_TEXTURE_H__ */
+G_END_DECLS

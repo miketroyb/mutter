@@ -31,39 +31,35 @@
  */
 
 /**
- * SECTION:clutter-pan-action
- * @Title: ClutterPanAction
- * @Short_Description: Action for pan gestures
+ * ClutterPanAction:
+ * 
+ * Action for pan gestures
  *
- * #ClutterPanAction is a sub-class of #ClutterGestureAction that implements
+ * #ClutterPanAction is a sub-class of [class@GestureAction] that implements
  * the logic for recognizing pan gestures.
  *
  * The simplest usage of #ClutterPanAction consists in adding it to
- * a #ClutterActor with a child and setting it as reactive; for instance,
+ * a [class@Actor] with a child and setting it as reactive; for instance,
  * the following code:
  *
- * |[
+ * ```c
  *   clutter_actor_add_action (actor, clutter_pan_action_new ());
  *   clutter_actor_set_reactive (actor, TRUE);
- * ]|
+ * ```
  *
  * will automatically result in the actor children to be moved
  * when dragging.
- *
- * Since: 1.12
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
-#include "clutter-pan-action.h"
+#include "clutter/clutter-pan-action.h"
 
-#include "clutter-debug.h"
-#include "clutter-enum-types.h"
-#include "clutter-gesture-action-private.h"
-#include "clutter-marshal.h"
-#include "clutter-private.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-enum-types.h"
+#include "clutter/clutter-marshal.h"
+#include "clutter/clutter-private.h"
+#include "clutter/clutter-timeline.h"
 #include <math.h>
 
 #define FLOAT_EPSILON   (1e-15)
@@ -138,7 +134,8 @@ enum
 
 static guint pan_signals[LAST_SIGNAL] = { 0, };
 
-G_DEFINE_TYPE_WITH_PRIVATE (ClutterPanAction, clutter_pan_action, CLUTTER_TYPE_GESTURE_ACTION)
+G_DEFINE_TYPE_WITH_PRIVATE (ClutterPanAction, clutter_pan_action,
+                            CLUTTER_TYPE_GESTURE_ACTION)
 
 static void
 emit_pan (ClutterPanAction *self,
@@ -158,14 +155,18 @@ emit_pan (ClutterPanAction *self,
           gfloat scroll_threshold = G_PI_4/2;
           gfloat drag_angle;
 
-          clutter_gesture_action_get_motion_delta (CLUTTER_GESTURE_ACTION (self), 0, &delta_x, &delta_y);
+          clutter_gesture_action_get_motion_delta (CLUTTER_GESTURE_ACTION (self),
+                                                   0,
+                                                   &delta_x,
+                                                   &delta_y);
 
           if (delta_x != 0.0f)
             drag_angle = atanf (delta_y / delta_x);
           else
             drag_angle = G_PI_2;
 
-          if ((drag_angle > -scroll_threshold) && (drag_angle < scroll_threshold))
+          if ((drag_angle > -scroll_threshold) &&
+              (drag_angle < scroll_threshold))
             priv->pin_state = SCROLL_PINNED_HORIZONTAL;
           else if ((drag_angle > (G_PI_2 - scroll_threshold)) ||
                     (drag_angle < -(G_PI_2 - scroll_threshold)))
@@ -284,7 +285,10 @@ gesture_end (ClutterGestureAction *gesture,
   gfloat tau;
   gint duration;
 
-  clutter_gesture_action_get_release_coords (CLUTTER_GESTURE_ACTION (self), 0, &priv->release_x, &priv->release_y);
+  clutter_gesture_action_get_release_coords (CLUTTER_GESTURE_ACTION (self),
+                                             0,
+                                             &priv->release_x,
+                                             &priv->release_y);
 
   if (!priv->should_interpolate)
     {
@@ -295,7 +299,9 @@ gesture_end (ClutterGestureAction *gesture,
   priv->state = PAN_STATE_INTERPOLATING;
 
   clutter_gesture_action_get_motion_delta (gesture, 0, &delta_x, &delta_y);
-  velocity = clutter_gesture_action_get_velocity (gesture, 0, &velocity_x, &velocity_y);
+  velocity = clutter_gesture_action_get_velocity (gesture, 0,
+                                                  &velocity_x,
+                                                  &velocity_y);
 
   /* Exponential timing constant v(t) = v(0) * exp(-t/tau)
    * tau = 1000ms / (frame_per_second * - ln(decay_per_frame))
@@ -306,17 +312,26 @@ gesture_end (ClutterGestureAction *gesture,
   /* See where the decreasing velocity reaches $min_velocity px/ms
    * v(t) = v(0) * exp(-t/tau) = min_velocity
    * t = - tau * ln( min_velocity / |v(0)|) */
-  duration = - tau * logf (min_velocity / (ABS (velocity) * priv->acceleration_factor));
+  duration = - tau * logf (min_velocity / (ABS (velocity) *
+                                           priv->acceleration_factor));
 
   /* Target point: x(t) = v(0) * tau * [1 - exp(-t/tau)] */
-  priv->target_x = velocity_x * priv->acceleration_factor * tau * (1 - exp ((float)-duration / tau));
-  priv->target_y = velocity_y * priv->acceleration_factor * tau * (1 - exp ((float)-duration / tau));
+  priv->target_x = (velocity_x * priv->acceleration_factor * tau *
+                    (1 - exp ((float)-duration / tau)));
+  priv->target_y = (velocity_y * priv->acceleration_factor * tau *
+                    (1 - exp ((float)-duration / tau)));
 
-  if (ABS (velocity) * priv->acceleration_factor > min_velocity && duration > FLOAT_EPSILON)
+  if (ABS (velocity) * priv->acceleration_factor > min_velocity &&
+      duration > FLOAT_EPSILON)
     {
+      ClutterActor *pan_actor =
+        clutter_actor_meta_get_actor (CLUTTER_ACTOR_META (gesture));
+
       priv->interpolated_x = priv->interpolated_y = 0.0f;
-      priv->deceleration_timeline = clutter_timeline_new (duration);
-      clutter_timeline_set_progress_mode (priv->deceleration_timeline, CLUTTER_EASE_OUT_EXPO);
+      priv->deceleration_timeline = clutter_timeline_new_for_actor (pan_actor,
+                                                                    duration);
+      clutter_timeline_set_progress_mode (priv->deceleration_timeline,
+                                          CLUTTER_EASE_OUT_EXPO);
 
       g_signal_connect (priv->deceleration_timeline, "new_frame",
                         G_CALLBACK (on_deceleration_new_frame), self);
@@ -328,22 +343,6 @@ gesture_end (ClutterGestureAction *gesture,
     {
       emit_pan_stopped (self, actor);
     }
-}
-
-static gboolean
-clutter_pan_action_real_pan (ClutterPanAction *self,
-                             ClutterActor     *actor,
-                             gboolean          is_interpolated)
-{
-  gfloat dx, dy;
-  ClutterMatrix transform;
-
-  clutter_pan_action_get_constrained_motion_delta (self, 0, &dx, &dy);
-
-  clutter_actor_get_child_transform (actor, &transform);
-  cogl_matrix_translate (&transform, dx, dy, 0.0f);
-  clutter_actor_set_child_transform (actor, &transform);
-  return TRUE;
 }
 
 static void
@@ -369,7 +368,8 @@ clutter_pan_action_set_property (GObject      *gobject,
       break;
 
     case PROP_ACCELERATION_FACTOR :
-      clutter_pan_action_set_acceleration_factor (self, g_value_get_double (value));
+      clutter_pan_action_set_acceleration_factor (self,
+                                                  g_value_get_double (value));
       break;
 
     default:
@@ -413,9 +413,11 @@ static void
 clutter_pan_action_constructed (GObject *gobject)
 {
   ClutterGestureAction *gesture;
+  ClutterGestureTriggerEdge edge;
 
   gesture = CLUTTER_GESTURE_ACTION (gobject);
-  clutter_gesture_action_set_threshold_trigger_edge (gesture, CLUTTER_GESTURE_TRIGGER_EDGE_AFTER);
+  edge = CLUTTER_GESTURE_TRIGGER_EDGE_AFTER;
+  clutter_gesture_action_set_threshold_trigger_edge (gesture, edge);
 }
 
 static void
@@ -442,9 +444,12 @@ clutter_pan_action_set_actor (ClutterActorMeta *meta,
       /* make sure we reset the state */
       if (priv->state == PAN_STATE_INTERPOLATING)
         g_clear_object (&priv->deceleration_timeline);
+      else if (priv->deceleration_timeline)
+        clutter_timeline_set_actor (priv->deceleration_timeline, actor);
     }
 
-  CLUTTER_ACTOR_META_CLASS (clutter_pan_action_parent_class)->set_actor (meta, actor);
+  CLUTTER_ACTOR_META_CLASS (clutter_pan_action_parent_class)->set_actor (meta,
+                                                                         actor);
 }
 
 
@@ -455,8 +460,6 @@ clutter_pan_action_class_init (ClutterPanActionClass *klass)
   ClutterActorMetaClass *meta_class = CLUTTER_ACTOR_META_CLASS (klass);
   ClutterGestureActionClass *gesture_class =
       CLUTTER_GESTURE_ACTION_CLASS (klass);
-
-  klass->pan = clutter_pan_action_real_pan;
 
   gesture_class->gesture_prepare = gesture_prepare;
   gesture_class->gesture_begin = gesture_begin;
@@ -470,13 +473,9 @@ clutter_pan_action_class_init (ClutterPanActionClass *klass)
    * ClutterPanAction:pan-axis:
    *
    * Constraints the panning action to the specified axis
-   *
-   * Since: 1.12
    */
   pan_props[PROP_PAN_AXIS] =
-    g_param_spec_enum ("pan-axis",
-                       P_("Pan Axis"),
-                       P_("Constraints the panning to an axis"),
+    g_param_spec_enum ("pan-axis", NULL, NULL,
                        CLUTTER_TYPE_PAN_AXIS,
                        CLUTTER_PAN_AXIS_NONE,
                        CLUTTER_PARAM_READWRITE);
@@ -485,13 +484,9 @@ clutter_pan_action_class_init (ClutterPanActionClass *klass)
    * ClutterPanAction:interpolate:
    *
    * Whether interpolated events emission is enabled.
-   *
-   * Since: 1.12
    */
   pan_props[PROP_INTERPOLATE] =
-    g_param_spec_boolean ("interpolate",
-                          P_("Interpolate"),
-                          P_("Whether interpolated events emission is enabled."),
+    g_param_spec_boolean ("interpolate", NULL, NULL,
                           FALSE,
                           CLUTTER_PARAM_READWRITE);
 
@@ -502,13 +497,9 @@ clutter_pan_action_class_init (ClutterPanActionClass *klass)
    *
    * #ClutterPanAction will emit interpolated ::pan events with decreasing
    * scroll deltas, using the rate specified by this property.
-   *
-   * Since: 1.12
    */
   pan_props[PROP_DECELERATION] =
-    g_param_spec_double ("deceleration",
-                         P_("Deceleration"),
-                         P_("Rate at which the interpolated panning will decelerate in"),
+    g_param_spec_double ("deceleration", NULL, NULL,
                          FLOAT_EPSILON, 1.0, default_deceleration_rate,
                          CLUTTER_PARAM_READWRITE);
 
@@ -520,13 +511,9 @@ clutter_pan_action_class_init (ClutterPanActionClass *klass)
    * The kinetic momentum measured at the time of releasing the pointer will
    * be multiplied by the factor specified by this property before being used
    * to generate interpolated ::pan events.
-   *
-   * Since: 1.12
    */
   pan_props[PROP_ACCELERATION_FACTOR] =
-    g_param_spec_double ("acceleration-factor",
-                         P_("Initial acceleration factor"),
-                         P_("Factor applied to the momentum when starting the interpolated phase"),
+    g_param_spec_double ("acceleration-factor", NULL, NULL,
                          1.0, G_MAXDOUBLE, default_acceleration_factor,
                          CLUTTER_PARAM_READWRITE);
 
@@ -545,22 +532,19 @@ clutter_pan_action_class_init (ClutterPanActionClass *klass)
    * @is_interpolated: if the event is the result of interpolating
    *                   the motion velocity at the end of the drag
    *
-   * The ::pan signal is emitted to keep track of the motion during
+   * The signal is emitted to keep track of the motion during
    * a pan gesture. @is_interpolated is set to %TRUE during the
    * interpolation phase of the pan, after the drag has ended and
    * the :interpolate property was set to %TRUE.
    *
    * Return value: %TRUE if the pan should continue, and %FALSE if
    *   the pan should be cancelled.
-   *
-   * Since: 1.12
    */
   pan_signals[PAN] =
     g_signal_new (I_("pan"),
                   G_TYPE_FROM_CLASS (klass),
                   G_SIGNAL_RUN_LAST,
-                  G_STRUCT_OFFSET (ClutterPanActionClass, pan),
-                  _clutter_boolean_continue_accumulator, NULL,
+                  0, g_signal_accumulator_true_handled, NULL,
                   _clutter_marshal_BOOLEAN__OBJECT_BOOLEAN,
                   G_TYPE_BOOLEAN, 2,
                   CLUTTER_TYPE_ACTOR,
@@ -571,18 +555,15 @@ clutter_pan_action_class_init (ClutterPanActionClass *klass)
    * @action: the #ClutterPanAction that emitted the signal
    * @actor: the #ClutterActor attached to the @action
    *
-   * The ::pan-stopped signal is emitted at the end of the interpolation
+   * The signal is emitted at the end of the interpolation
    * phase of the pan action, only when :interpolate is set to %TRUE.
-   *
-   * Since: 1.12
    */
   pan_signals[PAN_STOPPED] =
     g_signal_new (I_("pan-stopped"),
                   G_TYPE_FROM_CLASS (klass),
                   G_SIGNAL_RUN_LAST,
                   G_STRUCT_OFFSET (ClutterPanActionClass, pan_stopped),
-                  NULL, NULL,
-                  _clutter_marshal_VOID__OBJECT,
+                  NULL, NULL, NULL,
                   G_TYPE_NONE, 1,
                   CLUTTER_TYPE_ACTOR);
 }
@@ -602,8 +583,6 @@ clutter_pan_action_init (ClutterPanAction *self)
  * Creates a new #ClutterPanAction instance
  *
  * Return value: the newly created #ClutterPanAction
- *
- * Since: 1.12
  */
 ClutterAction *
 clutter_pan_action_new (void)
@@ -617,8 +596,6 @@ clutter_pan_action_new (void)
  * @axis: the axis to constraint the panning to
  *
  * Restricts the panning action to a specific axis
- *
- * Since: 1.12
  */
 void
 clutter_pan_action_set_pan_axis (ClutterPanAction *self,
@@ -644,11 +621,9 @@ clutter_pan_action_set_pan_axis (ClutterPanAction *self,
  * clutter_pan_action_get_pan_axis:
  * @self: a #ClutterPanAction
  *
- * Retrieves the axis constraint set by clutter_pan_action_set_pan_axis()
+ * Retrieves the axis constraint set by [method@PanAction.set_pan_axis]
  *
  * Return value: the axis constraint
- *
- * Since: 1.12
  */
 ClutterPanAxis
 clutter_pan_action_get_pan_axis (ClutterPanAction *self)
@@ -666,8 +641,6 @@ clutter_pan_action_get_pan_axis (ClutterPanAction *self)
  *
  * Sets whether the action should emit interpolated ::pan events
  * after the drag has ended, to emulate the gesture kinetic inertia.
- *
- * Since: 1.12
  */
 void
 clutter_pan_action_set_interpolate (ClutterPanAction *self,
@@ -698,8 +671,6 @@ clutter_pan_action_set_interpolate (ClutterPanAction *self,
  * kinetic inertia.
  *
  * Return value: %TRUE if interpolated events emission is active.
- *
- * Since: 1.12
  */
 gboolean
 clutter_pan_action_get_interpolate (ClutterPanAction *self)
@@ -718,8 +689,6 @@ clutter_pan_action_get_interpolate (ClutterPanAction *self)
  * Sets the deceleration rate of the interpolated ::pan events generated
  * after a pan gesture. This is approximately the value that the momentum
  * at the time of releasing the pointer is divided by every 60th of a second.
- *
- * Since: 1.12
  */
 void
 clutter_pan_action_set_deceleration (ClutterPanAction *self,
@@ -740,8 +709,6 @@ clutter_pan_action_set_deceleration (ClutterPanAction *self,
  * Retrieves the deceleration rate of interpolated ::pan events.
  *
  * Return value: The deceleration rate of the interpolated events.
- *
- * Since: 1.12
  */
 gdouble
 clutter_pan_action_get_deceleration (ClutterPanAction *self)
@@ -757,8 +724,6 @@ clutter_pan_action_get_deceleration (ClutterPanAction *self)
  *
  * Factor applied to the momentum velocity at the time of releasing the
  * pointer when generating interpolated ::pan events.
- *
- * Since: 1.12
  */
 void
 clutter_pan_action_set_acceleration_factor (ClutterPanAction *self,
@@ -778,8 +743,6 @@ clutter_pan_action_set_acceleration_factor (ClutterPanAction *self,
  * Retrieves the initial acceleration factor for interpolated ::pan events.
  *
  * Return value: The initial acceleration factor for interpolated events.
- *
- * Since: 1.12
  */
 gdouble
 clutter_pan_action_get_acceleration_factor (ClutterPanAction *self)
@@ -797,9 +760,7 @@ clutter_pan_action_get_acceleration_factor (ClutterPanAction *self)
  *   interpolated event's Y coordinate
  *
  * Retrieves the coordinates, in stage space, of the latest interpolated
- * event, analogous to clutter_gesture_action_get_motion_coords().
- *
- * Since: 1.12
+ * event, analogous to [method@GestureAction.get_motion_coords].
  */
 void
 clutter_pan_action_get_interpolated_coords (ClutterPanAction *self,
@@ -828,11 +789,9 @@ clutter_pan_action_get_interpolated_coords (ClutterPanAction *self,
  *   the latest interpolated event
  *
  * Retrieves the delta, in stage space, since the latest interpolated
- * event, analogous to clutter_gesture_action_get_motion_delta().
+ * event, analogous to [method@GestureAction.get_motion_delta].
  *
  * Return value: the distance since the latest interpolated event
- *
- * Since: 1.12
  */
 gfloat
 clutter_pan_action_get_interpolated_delta (ClutterPanAction *self,
@@ -864,11 +823,9 @@ clutter_pan_action_get_interpolated_delta (ClutterPanAction *self,
  *
  * Retrieves the delta, in stage space, dependent on the current state
  * of the #ClutterPanAction, and respecting the constraint specified by the
- * #ClutterPanAction:pan-axis property.
+ * [property@PanAction:pan-axis] property.
  *
- * Return value: the distance since last motion event
- *
- * Since: 1.24
+ * Return value: the distance since last motion event4
  */
 gfloat
 clutter_pan_action_get_constrained_motion_delta (ClutterPanAction *self,
@@ -883,7 +840,9 @@ clutter_pan_action_get_constrained_motion_delta (ClutterPanAction *self,
 
   priv = self->priv;
 
-  distance = clutter_pan_action_get_motion_delta (self, point, &delta_x, &delta_y);
+  distance = clutter_pan_action_get_motion_delta (self, point,
+                                                  &delta_x,
+                                                  &delta_y);
 
   switch (priv->pan_axis)
     {
@@ -926,13 +885,11 @@ clutter_pan_action_get_constrained_motion_delta (ClutterPanAction *self,
  * Retrieves the delta, in stage space, dependent on the current state
  * of the #ClutterPanAction. If it is inactive, both fields will be
  * set to 0. If it is panning by user action, the values will be equivalent
- * to those returned by clutter_gesture_action_get_motion_delta().
+ * to those returned by [method@GestureAction.get_motion_delta].
  * If it is interpolating with some form of kinetic scrolling, the values
  * will be equivalent to those returned by
- * clutter_pan_action_get_interpolated_delta(). This is a convenience
+ * [method@PanAction.get_interpolated_delta]. This is a convenience
  * method designed to be used in replacement "pan" signal handlers.
- *
- * Since: 1.14
  */
 gfloat
 clutter_pan_action_get_motion_delta (ClutterPanAction *self,
@@ -963,6 +920,7 @@ clutter_pan_action_get_motion_delta (ClutterPanAction *self,
       return clutter_pan_action_get_interpolated_delta (self, delta_x, delta_y);
     default:
       g_assert_not_reached ();
+      return 0.0f;
     }
 }
 
@@ -977,13 +935,11 @@ clutter_pan_action_get_motion_delta (ClutterPanAction *self,
  * Retrieves the coordinates, in stage space, dependent on the current state
  * of the #ClutterPanAction. If it is inactive, both fields will be
  * set to 0. If it is panning by user action, the values will be equivalent
- * to those returned by clutter_gesture_action_get_motion_coords().
+ * to those returned by [method@GestureAction.get_motion_coords].
  * If it is interpolating with some form of kinetic scrolling, the values
  * will be equivalent to those returned by
- * clutter_pan_action_get_interpolated_coords(). This is a convenience
+ * [method@PanAction.get_interpolated_coords]. This is a convenience
  * method designed to be used in replacement "pan" signal handlers.
- *
- * Since: 1.14
  */
 void
 clutter_pan_action_get_motion_coords (ClutterPanAction *self,

@@ -19,14 +19,14 @@
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#ifndef META_CLOSE_DIALOG_H
-#define META_CLOSE_DIALOG_H
+#pragma once
 
 #include <glib-object.h>
 #include <meta/window.h>
 
 #define META_TYPE_CLOSE_DIALOG (meta_close_dialog_get_type ())
 
+META_EXPORT
 G_DECLARE_INTERFACE (MetaCloseDialog, meta_close_dialog,
 		     META, CLOSE_DIALOG, GObject)
 
@@ -45,12 +45,18 @@ struct _MetaCloseDialogInterface
   void (* focus) (MetaCloseDialog *dialog);
 };
 
+META_EXPORT
 void              meta_close_dialog_show (MetaCloseDialog *dialog);
+
+META_EXPORT
 void              meta_close_dialog_hide (MetaCloseDialog *dialog);
+
+META_EXPORT
 void              meta_close_dialog_focus (MetaCloseDialog *dialog);
+
+META_EXPORT
 gboolean          meta_close_dialog_is_visible (MetaCloseDialog *dialog);
 
+META_EXPORT
 void              meta_close_dialog_response (MetaCloseDialog         *dialog,
                                               MetaCloseDialogResponse  response);
-
-#endif /* META_CLOSE_DIALOG_H */

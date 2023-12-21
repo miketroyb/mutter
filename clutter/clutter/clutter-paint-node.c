@@ -23,9 +23,9 @@
  */
 
 /**
- * SECTION:clutter-paint-node
- * @Title: ClutterPaintNode
- * @Short_Description: Paint objects
+ * ClutterPaintNode:(ref-func clutter_paint_node_ref) (unref-func clutter_paint_node_unref) (set-value-func clutter_value_set_paint_node) (get-value-func clutter_value_get_paint_node)
+ * 
+ * Paint objects
  *
  * #ClutterPaintNode is an element in the render graph.
  *
@@ -37,43 +37,27 @@
  * elements also respond to events. The render graph, instead, is only
  * composed by nodes that will be painted.
  *
- * Each #ClutterActor can submit multiple #ClutterPaintNode<!-- -->s to
+ * Each #ClutterActor can submit multiple `ClutterPaintNode`s to
  * the render graph.
- */
-
-/**
- * ClutterPaintNode: (ref-func clutter_paint_node_ref) (unref-func clutter_paint_node_unref) (set-value-func clutter_value_set_paint_node) (get-value-func clutter_value_get_paint_node)
- *
- * The `ClutterPaintNode` structure contains only private data
- * and it should be accessed using the provided API.
- *
- * Since: 1.10
  */
 
 /**
  * ClutterPaintNodeClass:
  *
  * The `ClutterPaintNodeClass` structure contains only private data.
- *
- * Since: 1.10
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
-
-#define CLUTTER_ENABLE_EXPERIMENTAL_API
-
-#include <pango/pango.h>
-#include <cogl/cogl.h>
-#include <json-glib/json-glib.h>
-
-#include "clutter-paint-node-private.h"
-
-#include "clutter-debug.h"
-#include "clutter-private.h"
+#include "clutter/clutter-build-config.h"
 
 #include <gobject/gvaluecollector.h>
+#include <json-glib/json-glib.h>
+#include <pango/pango.h>
+
+#include "cogl/cogl.h"
+#include "clutter/clutter-paint-node-private.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-private.h"
+
 
 static inline void      clutter_paint_operation_clear   (ClutterPaintOperation *op);
 
@@ -173,8 +157,6 @@ clutter_paint_node_real_finalize (ClutterPaintNode *node)
 {
   ClutterPaintNode *iter;
 
-  g_free (node->name);
-
   if (node->operations != NULL)
     {
       guint i;
@@ -204,18 +186,21 @@ clutter_paint_node_real_finalize (ClutterPaintNode *node)
 }
 
 static gboolean
-clutter_paint_node_real_pre_draw (ClutterPaintNode *node)
+clutter_paint_node_real_pre_draw (ClutterPaintNode    *node,
+                                  ClutterPaintContext *paint_context)
 {
   return FALSE;
 }
 
 static void
-clutter_paint_node_real_draw (ClutterPaintNode *node)
+clutter_paint_node_real_draw (ClutterPaintNode    *node,
+                              ClutterPaintContext *paint_context)
 {
 }
 
 static void
-clutter_paint_node_real_post_draw (ClutterPaintNode *node)
+clutter_paint_node_real_post_draw (ClutterPaintNode    *node,
+                                   ClutterPaintContext *paint_context)
 {
 }
 
@@ -237,9 +222,9 @@ clutter_paint_node_init (ClutterPaintNode *self)
 GType
 clutter_paint_node_get_type (void)
 {
-  static volatile gsize paint_node_type_id__volatile = 0;
+  static size_t paint_node_type_id = 0;
 
-  if (g_once_init_enter (&paint_node_type_id__volatile))
+  if (g_once_init_enter (&paint_node_type_id))
     {
       static const GTypeFundamentalInfo finfo = {
         (G_TYPE_FLAG_CLASSED |
@@ -275,16 +260,16 @@ clutter_paint_node_get_type (void)
         &value_table,
       };
 
-      GType paint_node_type_id =
+      GType id =
         g_type_register_fundamental (g_type_fundamental_next (),
                                      I_("ClutterPaintNode"),
                                      &node_info, &finfo,
                                      G_TYPE_FLAG_ABSTRACT);
 
-      g_once_init_leave (&paint_node_type_id__volatile, paint_node_type_id);
+      g_once_init_leave (&paint_node_type_id, id);
     }
 
-  return paint_node_type_id__volatile;
+  return paint_node_type_id;
 }
 
 /**
@@ -296,9 +281,8 @@ clutter_paint_node_get_type (void)
  *
  * The @name will be used for debugging purposes.
  *
- * The @node will copy the passed string.
- *
- * Since: 1.10
+ * The @node will intern @name using g_intern_string(). If you have access to a
+ * static string, use clutter_paint_node_set_static_name() instead.
  */
 void
 clutter_paint_node_set_name (ClutterPaintNode *node,
@@ -306,8 +290,22 @@ clutter_paint_node_set_name (ClutterPaintNode *node,
 {
   g_return_if_fail (CLUTTER_IS_PAINT_NODE (node));
 
-  g_free (node->name);
-  node->name = g_strdup (name);
+  node->name = g_intern_string (name);
+}
+
+/**
+ * clutter_paint_node_set_static_name: (skip)
+ *
+ * Like clutter_paint_node_set_name() but uses a static or interned string
+ * containing the name.
+ */
+void
+clutter_paint_node_set_static_name (ClutterPaintNode *node,
+                                    const char       *name)
+{
+  g_return_if_fail (CLUTTER_IS_PAINT_NODE (node));
+
+  node->name = name;
 }
 
 /**
@@ -317,8 +315,6 @@ clutter_paint_node_set_name (ClutterPaintNode *node,
  * Acquires a reference on @node.
  *
  * Return value: (transfer full): the #ClutterPaintNode
- *
- * Since: 1.10
  */
 ClutterPaintNode *
 clutter_paint_node_ref (ClutterPaintNode *node)
@@ -335,8 +331,6 @@ clutter_paint_node_ref (ClutterPaintNode *node)
  * @node: a #ClutterPaintNode
  *
  * Releases a reference on @node.
- *
- * Since: 1.10
  */
 void
 clutter_paint_node_unref (ClutterPaintNode *node)
@@ -359,8 +353,6 @@ clutter_paint_node_unref (ClutterPaintNode *node)
  * Adds @child to the list of children of @node.
  *
  * This function will acquire a reference on @child.
- *
- * Since: 1.10
  */
 void
 clutter_paint_node_add_child (ClutterPaintNode *node,
@@ -401,8 +393,6 @@ clutter_paint_node_add_child (ClutterPaintNode *node,
  *
  * This function will release the reference on @child acquired by
  * using clutter_paint_node_add_child().
- *
- * Since: 1.10
  */
 void
 clutter_paint_node_remove_child (ClutterPaintNode *node,
@@ -450,8 +440,6 @@ clutter_paint_node_remove_child (ClutterPaintNode *node,
  *
  * This function will release the reference on @old_child acquired
  * by @node, and will acquire a new reference on @new_child.
- *
- * Since: 1.10
  */
 void
 clutter_paint_node_replace_child (ClutterPaintNode *node,
@@ -500,8 +488,6 @@ clutter_paint_node_replace_child (ClutterPaintNode *node,
  *
  * This function releases the reference acquired by @node on its
  * children.
- *
- * Since: 1.10
  */
 void
 clutter_paint_node_remove_all (ClutterPaintNode *node)
@@ -529,8 +515,6 @@ clutter_paint_node_remove_all (ClutterPaintNode *node)
  *
  * Return value: (transfer none): a pointer to the first child of
  *   the #ClutterPaintNode.
- *
- * Since: 1.10
  */
 ClutterPaintNode *
 clutter_paint_node_get_first_child (ClutterPaintNode *node)
@@ -548,8 +532,6 @@ clutter_paint_node_get_first_child (ClutterPaintNode *node)
  *
  * Return value: (transfer none): a pointer to the previous sibling
  *   of the #ClutterPaintNode.
- *
- * Since: 1.10
  */
 ClutterPaintNode *
 clutter_paint_node_get_previous_sibling (ClutterPaintNode *node)
@@ -567,8 +549,6 @@ clutter_paint_node_get_previous_sibling (ClutterPaintNode *node)
  *
  * Return value: (transfer none): a pointer to the next sibling
  *   of a #ClutterPaintNode
- *
- * Since: 1.10
  */
 ClutterPaintNode *
 clutter_paint_node_get_next_sibling (ClutterPaintNode *node)
@@ -586,8 +566,6 @@ clutter_paint_node_get_next_sibling (ClutterPaintNode *node)
  *
  * Return value: (transfer none): a pointer to the last child
  *   of a #ClutterPaintNode
- *
- * Since: 1.10
  */
 ClutterPaintNode *
 clutter_paint_node_get_last_child (ClutterPaintNode *node)
@@ -605,8 +583,6 @@ clutter_paint_node_get_last_child (ClutterPaintNode *node)
  *
  * Return value: (transfer none): a pointer to the parent of
  *   a #ClutterPaintNode
- *
- * Since: 1.10
  */
 ClutterPaintNode *
 clutter_paint_node_get_parent (ClutterPaintNode *node)
@@ -623,8 +599,6 @@ clutter_paint_node_get_parent (ClutterPaintNode *node)
  * Retrieves the number of children of @node.
  *
  * Return value: the number of children of a #ClutterPaintNode
- *
- * Since: 1.10
  */
 guint
 clutter_paint_node_get_n_children (ClutterPaintNode *node)
@@ -644,8 +618,6 @@ clutter_paint_node_get_n_children (ClutterPaintNode *node)
  * This function increased the reference count of @node; if you do not wish
  * to increase the reference count, use clutter_value_take_paint_node()
  * instead. The reference count will be released by g_value_unset().
- *
- * Since: 1.10
  */
 void
 clutter_value_set_paint_node (GValue   *value,
@@ -680,8 +652,6 @@ clutter_value_set_paint_node (GValue   *value,
  * Unlike clutter_value_set_paint_node(), this function will not take a
  * reference on the passed @node: instead, it will take ownership of the
  * current reference count.
- *
- * Since: 1.10
  */
 void
 clutter_value_take_paint_node (GValue   *value,
@@ -716,8 +686,6 @@ clutter_value_take_paint_node (GValue   *value,
  *
  * Return value: (transfer none) (type Clutter.PaintNode): a pointer to
  *   a #ClutterPaintNode, or %NULL
- *
- * Since: 1.10
  */
 gpointer
 clutter_value_get_paint_node (const GValue *value)
@@ -738,8 +706,6 @@ clutter_value_get_paint_node (const GValue *value)
  * Return value: (transfer full) (type Clutter.PaintNode): a pointer
  *   to the #ClutterPaintNode, with its reference count increased,
  *   or %NULL
- *
- * Since: 1.10
  */
 gpointer
 clutter_value_dup_paint_node (const GValue *value)
@@ -763,9 +729,9 @@ clutter_paint_operation_clear (ClutterPaintOperation *op)
     case PAINT_OP_TEX_RECT:
       break;
 
-    case PAINT_OP_PATH:
-      if (op->op.path != NULL)
-        cogl_object_unref (op->op.path);
+    case PAINT_OP_TEX_RECTS:
+    case PAINT_OP_MULTITEX_RECT:
+      g_clear_pointer (&op->coords, g_array_unref);
       break;
 
     case PAINT_OP_PRIMITIVE:
@@ -797,13 +763,54 @@ clutter_paint_op_init_tex_rect (ClutterPaintOperation *op,
 }
 
 static inline void
-clutter_paint_op_init_path (ClutterPaintOperation *op,
-                            CoglPath              *path)
+clutter_paint_op_init_tex_rects (ClutterPaintOperation *op,
+                                 const float           *coords,
+                                 unsigned int           n_rects,
+                                 gboolean               use_default_tex_coords)
+{
+  const unsigned int n_floats = n_rects * 8;
+
+  clutter_paint_operation_clear (op);
+
+  op->opcode = PAINT_OP_TEX_RECTS;
+  op->coords = g_array_sized_new (FALSE, FALSE, sizeof (float), n_floats);
+
+  if (use_default_tex_coords)
+    {
+      const float default_tex_coords[4] = { 0.0, 0.0, 1.0, 1.0 };
+      int i;
+
+      for (i = 0; i < n_rects; i++)
+        {
+          g_array_append_vals (op->coords, &coords[i * 4], 4);
+          g_array_append_vals (op->coords, default_tex_coords, 4);
+        }
+    }
+  else
+    {
+      g_array_append_vals (op->coords, coords, n_floats);
+    }
+}
+
+static inline void
+clutter_paint_op_init_multitex_rect (ClutterPaintOperation *op,
+                                     const ClutterActorBox *rect,
+                                     const float           *tex_coords,
+                                     unsigned int           tex_coords_len)
 {
   clutter_paint_operation_clear (op);
 
-  op->opcode = PAINT_OP_PATH;
-  op->op.path = cogl_object_ref (path);
+  op->opcode = PAINT_OP_MULTITEX_RECT;
+  op->coords = g_array_sized_new (FALSE, FALSE,
+                                  sizeof (float),
+                                  tex_coords_len);
+
+  g_array_append_vals (op->coords, tex_coords, tex_coords_len);
+
+  op->op.texrect[0] = rect->x1;
+  op->op.texrect[1] = rect->y1;
+  op->op.texrect[2] = rect->x2;
+  op->op.texrect[3] = rect->y2;
 }
 
 static inline void
@@ -833,8 +840,6 @@ clutter_paint_node_maybe_init_operations (ClutterPaintNode *node)
  *
  * Adds a rectangle region to the @node, as described by the
  * passed @rect.
- *
- * Since: 1.10
  */
 void
 clutter_paint_node_add_rectangle (ClutterPaintNode      *node,
@@ -861,8 +866,6 @@ clutter_paint_node_add_rectangle (ClutterPaintNode      *node,
  * @y_2: the bottom Y coordinate of the texture
  *
  * Adds a rectangle region to the @node, with texture coordinates.
- *
- * Since: 1.10
  */
 void
 clutter_paint_node_add_texture_rectangle (ClutterPaintNode      *node,
@@ -883,31 +886,98 @@ clutter_paint_node_add_texture_rectangle (ClutterPaintNode      *node,
   g_array_append_val (node->operations, operation);
 }
 
+
 /**
- * clutter_paint_node_add_path: (skip)
+ * clutter_paint_node_add_multitexture_rectangle:
  * @node: a #ClutterPaintNode
- * @path: a Cogl path
+ * @rect: a #ClutterActorBox
+ * @text_coords: array of multitexture values
+ * @text_coords_len: number of items of @text_coords
  *
- * Adds a region described as a path to the @node.
- *
- * This function acquires a reference on the passed @path, so it
- * is safe to call cogl_object_unref() when it returns.
- *
- * Since: 1.10
- * Stability: unstable
+ * Adds a rectangle region to the @node, with multitexture coordinates.
  */
 void
-clutter_paint_node_add_path (ClutterPaintNode *node,
-                             CoglPath         *path)
+clutter_paint_node_add_multitexture_rectangle (ClutterPaintNode      *node,
+                                               const ClutterActorBox *rect,
+                                               const float           *text_coords,
+                                               unsigned int           text_coords_len)
 {
   ClutterPaintOperation operation = PAINT_OP_INIT;
 
   g_return_if_fail (CLUTTER_IS_PAINT_NODE (node));
-  g_return_if_fail (cogl_is_path (path));
+  g_return_if_fail (rect != NULL);
 
   clutter_paint_node_maybe_init_operations (node);
 
-  clutter_paint_op_init_path (&operation, path);
+  clutter_paint_op_init_multitex_rect (&operation, rect, text_coords, text_coords_len);
+  g_array_append_val (node->operations, operation);
+}
+
+/**
+ * clutter_paint_node_add_rectangles:
+ * @node: a #ClutterPaintNode
+ * @coords: (in) (array length=n_rects) (transfer none): array of
+ *   coordinates containing groups of 4 float values: [x_1, y_1, x_2, y_2] that
+ *   are interpreted as two position coordinates; one for the top left of the
+ *   rectangle (x1, y1), and one for the bottom right of the rectangle
+ *   (x2, y2).
+ * @n_rects: number of rectangles defined in @coords.
+ *
+ * Adds a series of rectangles to @node.
+ *
+ * As a general rule for better performance its recommended to use this API
+ * instead of calling clutter_paint_node_add_rectangle() separately for
+ * multiple rectangles if all of the rectangles will be drawn together.
+ *
+ * See cogl_framebuffer_draw_rectangles().
+ */
+void
+clutter_paint_node_add_rectangles (ClutterPaintNode *node,
+                                   const float      *coords,
+                                   unsigned int      n_rects)
+{
+  ClutterPaintOperation operation = PAINT_OP_INIT;
+
+  g_return_if_fail (CLUTTER_IS_PAINT_NODE (node));
+  g_return_if_fail (coords != NULL);
+
+  clutter_paint_node_maybe_init_operations (node);
+
+  clutter_paint_op_init_tex_rects (&operation, coords, n_rects, TRUE);
+  g_array_append_val (node->operations, operation);
+}
+
+/**
+ * clutter_paint_node_add_texture_rectangles:
+ * @node: a #ClutterPaintNode
+ * @coords: (in) (array length=n_rects) (transfer none): array containing
+ *   groups of 8 float values: [x_1, y_1, x_2, y_2, s_1, t_1, s_2, t_2]
+ *   that have the same meaning as the arguments for
+ *   cogl_framebuffer_draw_textured_rectangle().
+ * @n_rects: number of rectangles defined in @coords.
+ *
+ * Adds a series of rectangles to @node.
+ *
+ * The given texture coordinates should always be normalized such that
+ * (0, 0) corresponds to the top left and (1, 1) corresponds to the
+ * bottom right. To map an entire texture across the rectangle pass
+ * in s_1=0, t_1=0, s_2=1, t_2=1.
+ *
+ * See cogl_framebuffer_draw_textured_rectangles().
+ */
+void
+clutter_paint_node_add_texture_rectangles (ClutterPaintNode *node,
+                                           const float      *coords,
+                                           unsigned int      n_rects)
+{
+  ClutterPaintOperation operation = PAINT_OP_INIT;
+
+  g_return_if_fail (CLUTTER_IS_PAINT_NODE (node));
+  g_return_if_fail (coords != NULL);
+
+  clutter_paint_node_maybe_init_operations (node);
+
+  clutter_paint_op_init_tex_rects (&operation, coords, n_rects, FALSE);
   g_array_append_val (node->operations, operation);
 }
 
@@ -920,8 +990,6 @@ clutter_paint_node_add_path (ClutterPaintNode *node,
  *
  * This function acquires a reference on @primitive, so it is safe
  * to call cogl_object_unref() when it returns.
- *
- * Since: 1.10
  */
 void
 clutter_paint_node_add_primitive (ClutterPaintNode *node,
@@ -938,37 +1006,38 @@ clutter_paint_node_add_primitive (ClutterPaintNode *node,
   g_array_append_val (node->operations, operation);
 }
 
-/*< private >
- * _clutter_paint_node_paint:
+/**
+ * clutter_paint_node_paint:
  * @node: a #ClutterPaintNode
  *
  * Paints the @node using the class implementation, traversing
  * its children, if any.
  */
 void
-_clutter_paint_node_paint (ClutterPaintNode *node)
+clutter_paint_node_paint (ClutterPaintNode    *node,
+                          ClutterPaintContext *paint_context)
 {
   ClutterPaintNodeClass *klass = CLUTTER_PAINT_NODE_GET_CLASS (node);
   ClutterPaintNode *iter;
   gboolean res;
 
-  res = klass->pre_draw (node);
+  res = klass->pre_draw (node, paint_context);
 
   if (res)
     {
-      klass->draw (node);
+      klass->draw (node, paint_context);
     }
 
   for (iter = node->first_child;
        iter != NULL;
        iter = iter->next_sibling)
     {
-      _clutter_paint_node_paint (iter);
+      clutter_paint_node_paint (iter, paint_context);
     }
 
   if (res)
     {
-      klass->post_draw (node);
+      klass->post_draw (node, paint_context);
     }
 }
 
@@ -1008,7 +1077,7 @@ clutter_paint_node_to_json (ClutterPaintNode *node)
 
   if (node->operations != NULL)
     {
-      guint i;
+      guint i, j;
 
       for (i = 0; i < node->operations->len; i++)
         {
@@ -1033,14 +1102,35 @@ clutter_paint_node_to_json (ClutterPaintNode *node)
               json_builder_end_array (builder);
               break;
 
-            case PAINT_OP_PATH:
-              json_builder_set_member_name (builder, "path");
-              json_builder_add_int_value (builder, (gint64) op->op.path);
+            case PAINT_OP_TEX_RECTS:
+              json_builder_set_member_name (builder, "texrects");
+              json_builder_begin_array (builder);
+
+              for (j = 0; i < op->coords->len; j++)
+                {
+                  float coord = g_array_index (op->coords, float, j);
+                  json_builder_add_double_value (builder, coord);
+                }
+
+              json_builder_end_array (builder);
+              break;
+
+            case PAINT_OP_MULTITEX_RECT:
+              json_builder_set_member_name (builder, "texrect");
+              json_builder_begin_array (builder);
+
+              for (j = 0; i < op->coords->len; j++)
+                {
+                  float coord = g_array_index (op->coords, float, j);
+                  json_builder_add_double_value (builder, coord);
+                }
+
+              json_builder_end_array (builder);
               break;
 
             case PAINT_OP_PRIMITIVE:
               json_builder_set_member_name (builder, "primitive");
-              json_builder_add_int_value (builder, (gint64) op->op.primitive);
+              json_builder_add_int_value (builder, (intptr_t) op->op.primitive);
               break;
 
             case PAINT_OP_INVALID:
@@ -1113,35 +1203,35 @@ _clutter_paint_node_create (GType gtype)
 {
   g_return_val_if_fail (g_type_is_a (gtype, CLUTTER_TYPE_PAINT_NODE), NULL);
 
-  _clutter_paint_node_init_types ();
-
   return (gpointer) g_type_create_instance (gtype);
 }
 
-static ClutterPaintNode *
-clutter_paint_node_get_root (ClutterPaintNode *node)
-{
-  ClutterPaintNode *iter;
-
-  iter = node;
-  while (iter != NULL && iter->parent != NULL)
-    iter = iter->parent;
-
-  return iter;
-}
-
+/**
+ * clutter_paint_node_get_framebuffer:
+ * @node: a #ClutterPaintNode
+ *
+ * Retrieves the #CoglFramebuffer that @node will draw
+ * into. If @node doesn't specify a custom framebuffer,
+ * the first ancestor with a custom framebuffer will be
+ * used.
+ *
+ * Returns: (transfer none): a #CoglFramebuffer or %NULL if no custom one is
+ * set.
+ */
 CoglFramebuffer *
 clutter_paint_node_get_framebuffer (ClutterPaintNode *node)
 {
-  ClutterPaintNode *root = clutter_paint_node_get_root (node);
   ClutterPaintNodeClass *klass;
 
-  if (root == NULL)
-    return NULL;
+  while (node)
+    {
+      klass = CLUTTER_PAINT_NODE_GET_CLASS (node);
 
-  klass = CLUTTER_PAINT_NODE_GET_CLASS (root);
-  if (klass->get_framebuffer != NULL)
-    return klass->get_framebuffer (root);
+      if (klass->get_framebuffer != NULL)
+        return klass->get_framebuffer (node);
 
-  return cogl_get_draw_framebuffer ();
+      node = node->parent;
+    }
+
+  return NULL;
 }

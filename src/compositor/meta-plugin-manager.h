@@ -19,14 +19,14 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_PLUGIN_MANAGER_H_
-#define META_PLUGIN_MANAGER_H_
+#pragma once
 
-#include <meta/types.h>
-#include <meta/screen.h>
-#include <meta/meta-plugin.h>
+#include "core/util-private.h"
+#include "meta/meta-plugin.h"
+#include "meta/types.h"
 
-typedef enum {
+typedef enum
+{
   META_PLUGIN_NONE,
   META_PLUGIN_MINIMIZE,
   META_PLUGIN_MAP,
@@ -44,6 +44,9 @@ typedef struct MetaPluginManager MetaPluginManager;
 
 MetaPluginManager * meta_plugin_manager_new (MetaCompositor *compositor);
 
+void meta_plugin_manager_start (MetaPluginManager *plugin_mgr);
+
+META_EXPORT_TEST
 void     meta_plugin_manager_load         (const gchar       *plugin_name);
 
 gboolean meta_plugin_manager_event_simple (MetaPluginManager *mgr,
@@ -56,8 +59,8 @@ void     meta_plugin_manager_event_size_changed   (MetaPluginManager *mgr,
 gboolean meta_plugin_manager_event_size_change    (MetaPluginManager *mgr,
                                                    MetaWindowActor   *actor,
                                                    MetaSizeChange     which_change,
-                                                   MetaRectangle     *old_frame_rect,
-                                                   MetaRectangle     *old_buffer_rect);
+                                                   MtkRectangle      *old_frame_rect,
+                                                   MtkRectangle      *old_buffer_rect);
 
 gboolean meta_plugin_manager_switch_workspace (MetaPluginManager   *mgr,
                                                gint                 from,
@@ -76,7 +79,7 @@ void     meta_plugin_manager_confirm_display_change (MetaPluginManager *mgr);
 
 gboolean meta_plugin_manager_show_tile_preview (MetaPluginManager *mgr,
                                                 MetaWindow        *window,
-                                                MetaRectangle     *tile_rect,
+                                                MtkRectangle      *tile_rect,
                                                 int                tile_monitor_number);
 gboolean meta_plugin_manager_hide_tile_preview (MetaPluginManager *mgr);
 
@@ -86,11 +89,6 @@ void meta_plugin_manager_show_window_menu (MetaPluginManager  *mgr,
                                            int                 x,
                                            int                 y);
 
-void meta_plugin_manager_show_window_menu_for_rect (MetaPluginManager  *mgr,
-		                                    MetaWindow         *window,
-						    MetaWindowMenuType  menu,
-						    MetaRectangle      *rect);
-
 MetaCloseDialog * meta_plugin_manager_create_close_dialog (MetaPluginManager *plugin_mgr,
                                                            MetaWindow        *window);
 
@@ -98,4 +96,4 @@ MetaInhibitShortcutsDialog *
   meta_plugin_manager_create_inhibit_shortcuts_dialog (MetaPluginManager *plugin_mgr,
                                                        MetaWindow        *window);
 
-#endif
+void meta_plugin_manager_locate_pointer (MetaPluginManager *mgr);

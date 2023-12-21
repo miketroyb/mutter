@@ -28,12 +28,11 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
-#include "cogl-frame-info-private.h"
-#include "cogl-gtype-private.h"
+#include "cogl/cogl-frame-info-private.h"
+#include "cogl/cogl-gtype-private.h"
+#include "cogl/cogl-context-private.h"
 
 static void _cogl_frame_info_free (CoglFrameInfo *info);
 
@@ -41,11 +40,14 @@ COGL_OBJECT_DEFINE (FrameInfo, frame_info);
 COGL_GTYPE_DEFINE_CLASS (FrameInfo, frame_info);
 
 CoglFrameInfo *
-_cogl_frame_info_new (void)
+cogl_frame_info_new (CoglContext *context,
+                     int64_t      global_frame_counter)
 {
   CoglFrameInfo *info;
 
-  info = g_slice_new0 (CoglFrameInfo);
+  info = g_new0 (CoglFrameInfo, 1);
+  info->context = context;
+  info->global_frame_counter = global_frame_counter;
 
   return _cogl_frame_info_object_new (info);
 }
@@ -53,7 +55,10 @@ _cogl_frame_info_new (void)
 static void
 _cogl_frame_info_free (CoglFrameInfo *info)
 {
-  g_slice_free (CoglFrameInfo, info);
+  if (info->timestamp_query)
+    cogl_context_free_timestamp_query (info->context, info->timestamp_query);
+
+  g_free (info);
 }
 
 int64_t
@@ -63,25 +68,85 @@ cogl_frame_info_get_frame_counter (CoglFrameInfo *info)
 }
 
 int64_t
-cogl_frame_info_get_presentation_time (CoglFrameInfo *info)
+cogl_frame_info_get_presentation_time_us (CoglFrameInfo *info)
 {
-  return info->presentation_time;
+  g_warn_if_fail (!(info->flags & COGL_FRAME_INFO_FLAG_SYMBOLIC));
+
+  return info->presentation_time_us;
 }
 
 float
 cogl_frame_info_get_refresh_rate (CoglFrameInfo *info)
 {
-  return info->refresh_rate;
-}
+  g_warn_if_fail (!(info->flags & COGL_FRAME_INFO_FLAG_SYMBOLIC));
 
-CoglOutput *
-cogl_frame_info_get_output (CoglFrameInfo *info)
-{
-  return info->output;
+  return info->refresh_rate;
 }
 
 int64_t
 cogl_frame_info_get_global_frame_counter (CoglFrameInfo *info)
 {
   return info->global_frame_counter;
+}
+
+gboolean
+cogl_frame_info_get_is_symbolic (CoglFrameInfo *info)
+{
+  return !!(info->flags & COGL_FRAME_INFO_FLAG_SYMBOLIC);
+}
+
+gboolean
+cogl_frame_info_is_hw_clock (CoglFrameInfo *info)
+{
+  return !!(info->flags & COGL_FRAME_INFO_FLAG_HW_CLOCK);
+}
+
+gboolean
+cogl_frame_info_is_zero_copy (CoglFrameInfo *info)
+{
+  return !!(info->flags & COGL_FRAME_INFO_FLAG_ZERO_COPY);
+}
+
+gboolean
+cogl_frame_info_is_vsync (CoglFrameInfo *info)
+{
+  return !!(info->flags & COGL_FRAME_INFO_FLAG_VSYNC);
+}
+
+unsigned int
+cogl_frame_info_get_sequence (CoglFrameInfo *info)
+{
+  g_warn_if_fail (!(info->flags & COGL_FRAME_INFO_FLAG_SYMBOLIC));
+
+  return info->sequence;
+}
+
+int64_t
+cogl_frame_info_get_rendering_duration_ns (CoglFrameInfo *info)
+{
+  int64_t gpu_time_rendering_done_ns;
+
+  if (!info->timestamp_query ||
+      info->gpu_time_before_buffer_swap_ns == 0)
+    return 0;
+
+  gpu_time_rendering_done_ns =
+    cogl_context_timestamp_query_get_time_ns (info->context,
+                                              info->timestamp_query);
+
+  return gpu_time_rendering_done_ns - info->gpu_time_before_buffer_swap_ns;
+}
+
+int64_t
+cogl_frame_info_get_time_before_buffer_swap_us (CoglFrameInfo *info)
+{
+  return info->cpu_time_before_buffer_swap_us;
+}
+
+void
+cogl_frame_info_set_target_presentation_time (CoglFrameInfo *info,
+                                              int64_t        presentation_time_us)
+{
+  info->has_target_presentation_time = TRUE;
+  info->target_presentation_time_us = presentation_time_us;
 }

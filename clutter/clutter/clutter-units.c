@@ -26,55 +26,50 @@
  */
 
 /**
- * SECTION:clutter-units
- * @short_description: A logical distance unit
+ * ClutterUnits:
+ * 
+ * A logical distance unit
  *
  * #ClutterUnits is a structure holding a logical distance value along with
- * its type, expressed as a value of the #ClutterUnitType enumeration. It is
+ * its type, expressed as a value of the [enum@UnitType] enumeration. It is
  * possible to use #ClutterUnits to store a position or a size in units
  * different than pixels, and convert them whenever needed (for instance
- * inside the #ClutterActorClass.allocate() virtual function, or inside the
- * #ClutterActorClass.get_preferred_width() and #ClutterActorClass.get_preferred_height()
+ * inside the [vfunc@Actor.allocate] virtual function, or inside the
+ * [vfunc@Actor.get_preferred_width] and [vfunc@Actor.get_preferred_height]
  * virtual functions.
  *
- * In order to register a #ClutterUnits property, the #ClutterParamSpecUnits
- * #GParamSpec sub-class should be used:
+ * In order to register a #ClutterUnits property, the [class@ParamSpecUnit]
+ * [class@GObject.ParamSpec] sub-class should be used:
  *
- * |[
+ * ```c
  *   GParamSpec *pspec;
  *
- *   pspec = clutter_param_spec_units ("active-width",
- *                                     "Width",
- *                                     "Width of the active area, in millimeters",
+ *   pspec = clutter_param_spec_units ("active-width", NULL, NULL,
  *                                     CLUTTER_UNIT_MM,
  *                                     0.0, 12.0,
  *                                     12.0,
  *                                     G_PARAM_READWRITE);
  *   g_object_class_install_property (gobject_class, PROP_WIDTH, pspec);
- * ]|
+ * ```
  *
- * A #GValue holding units can be manipulated using clutter_value_set_units()
- * and clutter_value_get_units(). #GValue<!-- -->s containing a #ClutterUnits
- * value can also be transformed to #GValue<!-- -->s initialized with
+ * A [struct@GObject.Value] holding units can be manipulated using [func@value_set_units]
+ * and [func@value_get_units]. [struct@GObject.Value]s containing a #ClutterUnits
+ * value can also be transformed to [struct@GObject.Value]s initialized with
  * %G_TYPE_INT, %G_TYPE_FLOAT and %G_TYPE_STRING through implicit conversion
- * and using g_value_transform().
- *
- * #ClutterUnits is available since Clutter 1.0
+ * and using [method@GObject.Value.transform].
  */
 
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
+#include "clutter/clutter-build-config.h"
 
 #include <stdlib.h>
 
 #include <glib-object.h>
 #include <gobject/gvaluecollector.h>
 
-#include "clutter-backend-private.h"
-#include "clutter-interval.h"
-#include "clutter-private.h"
-#include "clutter-units.h"
+#include "clutter/clutter-backend-private.h"
+#include "clutter/clutter-interval.h"
+#include "clutter/clutter-private.h"
+#include "clutter/clutter-units.h"
 
 #define DPI_FALLBACK    (96.0)
 
@@ -146,9 +141,7 @@ units_em_to_pixels (const gchar *font_name,
  * @units: (out caller-allocates): a #ClutterUnits
  * @mm: millimeters
  *
- * Stores a value in millimiters inside @units
- *
- * Since: 1.0
+ * Stores a value in millimeters inside @units
  */
 void
 clutter_units_from_mm (ClutterUnits *units,
@@ -173,8 +166,6 @@ clutter_units_from_mm (ClutterUnits *units,
  * @cm: centimeters
  *
  * Stores a value in centimeters inside @units
- *
- * Since: 1.2
  */
 void
 clutter_units_from_cm (ClutterUnits *units,
@@ -199,8 +190,6 @@ clutter_units_from_cm (ClutterUnits *units,
  * @pt: typographic points
  *
  * Stores a value in typographic points inside @units
- *
- * Since: 1.0
  */
 void
 clutter_units_from_pt (ClutterUnits *units,
@@ -225,9 +214,7 @@ clutter_units_from_pt (ClutterUnits *units,
  * @em: em
  *
  * Stores a value in em inside @units, using the default font
- * name as returned by clutter_backend_get_font_name()
- *
- * Since: 1.0
+ * name
  */
 void
 clutter_units_from_em (ClutterUnits *units,
@@ -253,8 +240,6 @@ clutter_units_from_em (ClutterUnits *units,
  * @em: em
  *
  * Stores a value in em inside @units using @font_name
- *
- * Since: 1.0
  */
 void
 clutter_units_from_em_for_font (ClutterUnits *units,
@@ -280,8 +265,6 @@ clutter_units_from_em_for_font (ClutterUnits *units,
  * @px: pixels
  *
  * Stores a value in pixels inside @units
- *
- * Since: 1.0
  */
 void
 clutter_units_from_pixels (ClutterUnits *units,
@@ -307,8 +290,6 @@ clutter_units_from_pixels (ClutterUnits *units,
  * Retrieves the unit type of the value stored inside @units
  *
  * Return value: a unit type
- *
- * Since: 1.0
  */
 ClutterUnitType
 clutter_units_get_unit_type (const ClutterUnits *units)
@@ -325,8 +306,6 @@ clutter_units_get_unit_type (const ClutterUnits *units)
  * Retrieves the value stored inside @units
  *
  * Return value: the value stored inside a #ClutterUnits
- *
- * Since: 1.0
  */
 gfloat
 clutter_units_get_unit_value (const ClutterUnits *units)
@@ -343,16 +322,14 @@ clutter_units_get_unit_value (const ClutterUnits *units)
  * Copies @units
  *
  * Return value: (transfer full): the newly created copy of a
- *   #ClutterUnits structure. Use clutter_units_free() to free
+ *   #ClutterUnits structure. Use [method@Units.free] to free
  *   the allocated resources
- *
- * Since: 1.0
  */
 ClutterUnits *
 clutter_units_copy (const ClutterUnits *units)
 {
   if (units != NULL)
-    return g_slice_dup (ClutterUnits, units);
+    return g_memdup2 (units, sizeof (ClutterUnits));
 
   return NULL;
 }
@@ -364,15 +341,13 @@ clutter_units_copy (const ClutterUnits *units)
  * Frees the resources allocated by @units
  *
  * You should only call this function on a #ClutterUnits
- * created using clutter_units_copy()
- *
- * Since: 1.0
+ * created using [method@Units.copy]
  */
 void
 clutter_units_free (ClutterUnits *units)
 {
   if (units != NULL)
-    g_slice_free (ClutterUnits, units);
+    g_free (units);
 }
 
 /**
@@ -382,8 +357,6 @@ clutter_units_free (ClutterUnits *units)
  * Converts a value in #ClutterUnits to pixels
  *
  * Return value: the value in pixels
- *
- * Since: 1.0
  */
 gfloat
 clutter_units_to_pixels (ClutterUnits *units)
@@ -438,7 +411,7 @@ clutter_units_to_pixels (ClutterUnits *units)
  *
  * A #ClutterUnits expressed in string should match:
  *
- * |[
+ * ```
  *   units: wsp* unit-value wsp* unit-name? wsp*
  *   unit-value: number
  *   unit-name: 'px' | 'pt' | 'mm' | 'em' | 'cm'
@@ -447,31 +420,29 @@ clutter_units_to_pixels (ClutterUnits *units)
  *   sep: '.' | ','
  *   digit: '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
  *   wsp: (#0x20 | #0x9 | #0xA | #0xB | #0xC | #0xD)+
- * ]|
+ * ```
  *
  * For instance, these are valid strings:
  *
- * |[
+ * ```
  *   10 px
  *   5.1 em
  *   24 pt
  *   12.6 mm
  *   .3 cm
- * ]|
+ * ```
  *
  * While these are not:
  *
- * |[
+ * ```
  *   42 cats
  *   omg!1!ponies
- * ]|
+ * ```
  *
  * If no unit is specified, pixels are assumed.
  *
  * Return value: %TRUE if the string was successfully parsed,
  *   and %FALSE otherwise
- *
- * Since: 1.0
  */
 gboolean
 clutter_units_from_string (ClutterUnits *units,
@@ -592,7 +563,7 @@ clutter_unit_type_name (ClutterUnitType unit_type)
  *
  * Converts @units into a string
  *
- * See clutter_units_from_string() for the units syntax and for
+ * See [func@Units.from_string] for the units syntax and for
  * examples of output
  *
  * Fractional values are truncated to the second decimal
@@ -600,9 +571,7 @@ clutter_unit_type_name (ClutterUnitType unit_type)
  * typographic points. Pixels are integers.
  *
  * Return value: a newly allocated string containing the encoded
- *   #ClutterUnits value. Use g_free() to free the string
- *
- * Since: 1.0
+ *   #ClutterUnits value. Use [func@GLib.free] to free the string
  */
 gchar *
 clutter_units_to_string (const ClutterUnits *units)
@@ -751,8 +720,6 @@ G_DEFINE_BOXED_TYPE_WITH_CODE (ClutterUnits, clutter_units,
  * @units: the units to set
  *
  * Sets @value to @units
- *
- * Since: 0.8
  */
 void
 clutter_value_set_units (GValue             *value,
@@ -769,9 +736,7 @@ clutter_value_set_units (GValue             *value,
  *
  * Gets the #ClutterUnits contained in @value.
  *
- * Return value: the units inside the passed #GValue
- *
- * Since: 0.8
+ * Return value: the units inside the passed [struct@GObject.Value]
  */
 const ClutterUnits *
 clutter_value_get_units (const GValue *value)
@@ -900,11 +865,9 @@ clutter_param_units_get_type (void)
  * @default_value: default value
  * @flags: flags for the param spec
  *
- * Creates a #GParamSpec for properties using #ClutterUnits.
+ * Creates a [class@GObject.ParamSpec] for properties using [struct@Units].
  *
- * Return value: the newly created #GParamSpec
- *
- * Since: 1.0
+ * Return value: the newly created [class@GObject.ParamSpec]
  */
 GParamSpec *
 clutter_param_spec_units (const gchar     *name,

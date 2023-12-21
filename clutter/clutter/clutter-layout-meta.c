@@ -23,24 +23,22 @@
  */
 
 /**
- * SECTION:clutter-layout-meta
- * @short_description: Wrapper for actors inside a layout manager
+ * ClutterLayoutMeta:
+ * 
+ * Wrapper for actors inside a layout manager
  *
- * #ClutterLayoutMeta is a wrapper object created by #ClutterLayoutManager
+ * #ClutterLayoutMeta is a wrapper object created by [class@LayoutManager]
  * implementations in order to store child-specific data and properties.
  *
- * A #ClutterLayoutMeta wraps a #ClutterActor inside a #ClutterContainer
- * using a #ClutterLayoutManager.
- *
- * #ClutterLayoutMeta is available since Clutter 1.2
+ * A #ClutterLayoutMeta wraps a [class@Actor] inside a [iface@Container]
+ * using a [class@LayoutManager].
  */
-#ifdef HAVE_CONFIG_H
-#include "clutter-build-config.h"
-#endif
 
-#include "clutter-layout-meta.h"
-#include "clutter-debug.h"
-#include "clutter-private.h"
+#include "clutter/clutter-build-config.h"
+
+#include "clutter/clutter-layout-meta.h"
+#include "clutter/clutter-debug.h"
+#include "clutter/clutter-private.h"
 
 G_DEFINE_ABSTRACT_TYPE (ClutterLayoutMeta,
                         clutter_layout_meta,
@@ -109,13 +107,9 @@ clutter_layout_meta_class_init (ClutterLayoutMetaClass *klass)
   /**
    * ClutterLayoutMeta:manager:
    *
-   * The #ClutterLayoutManager that created this #ClutterLayoutMeta.
-   *
-   * Since: 1.2
+   * The [class@LayoutManager] that created this #ClutterLayoutMeta.
    */
-  pspec = g_param_spec_object ("manager",
-                               P_("Manager"),
-                               P_("The manager that created this data"),
+  pspec = g_param_spec_object ("manager", NULL, NULL,
                                CLUTTER_TYPE_LAYOUT_MANAGER,
                                G_PARAM_CONSTRUCT_ONLY |
                                CLUTTER_PARAM_READWRITE);
@@ -135,8 +129,6 @@ clutter_layout_meta_init (ClutterLayoutMeta *self)
  * Retrieves the actor wrapped by @data
  *
  * Return value: (transfer none): a #ClutterLayoutManager
- *
- * Since: 1.2
  */
 ClutterLayoutManager *
 clutter_layout_meta_get_manager (ClutterLayoutMeta *data)

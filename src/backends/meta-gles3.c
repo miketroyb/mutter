@@ -14,9 +14,7 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include <stdio.h>
@@ -114,9 +112,9 @@ meta_gles3_validate (MetaGles3 *gles3,
 }
 
 gboolean
-meta_gles3_has_extensions (MetaGles3 *gles3,
-                           char    ***missing_extensions,
-                           char      *first_extension,
+meta_gles3_has_extensions (MetaGles3    *gles3,
+                           const char ***missing_extensions,
+                           const char   *first_extension,
                            ...)
 {
   va_list var_args;
@@ -127,7 +125,7 @@ meta_gles3_has_extensions (MetaGles3 *gles3,
   if (!extensions_str)
     {
       g_warning ("Failed to get string: %s", get_gl_error_str (glGetError ()));
-      return FALSE;
+      extensions_str = "";
     }
 
   va_start (var_args, first_extension);

@@ -26,18 +26,17 @@
  * SOFTWARE.
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
 
-#ifndef __COGL_SWAP_CHAIN_H__
-#define __COGL_SWAP_CHAIN_H__
-
-#include <cogl/cogl-types.h>
+#include "cogl/cogl-types.h"
 
 #include <glib-object.h>
 
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 typedef struct _CoglSwapChain CoglSwapChain;
 
@@ -46,22 +45,21 @@ typedef struct _CoglSwapChain CoglSwapChain;
  *
  * Returns: a #GType that can be used with the GLib type system.
  */
+COGL_EXPORT
 GType cogl_swap_chain_get_gtype (void);
 
-CoglSwapChain *
+COGL_EXPORT CoglSwapChain *
 cogl_swap_chain_new (void);
 
-void
+COGL_EXPORT void
 cogl_swap_chain_set_has_alpha (CoglSwapChain *swap_chain,
-                               CoglBool has_alpha);
+                               gboolean has_alpha);
 
-void
+COGL_EXPORT void
 cogl_swap_chain_set_length (CoglSwapChain *swap_chain,
                             int length);
 
-CoglBool
+COGL_EXPORT gboolean
 cogl_is_swap_chain (void *object);
 
-COGL_END_DECLS
-
-#endif /* __COGL_SWAP_CHAIN_H__ */
+G_END_DECLS

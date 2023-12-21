@@ -31,10 +31,9 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifndef __COGL_COLOR_PRIVATE_PRIVATE_H
-#define __COGL_COLOR_PRIVATE_PRIVATE_H
+#pragma once
 
-#include "cogl-color.h"
+#include "cogl/cogl-color.h"
 
 #include <glib.h>
 
@@ -46,6 +45,4 @@
 void
 _cogl_color_get_rgba_4ubv (const CoglColor *color,
                            uint8_t *dest);
-
-#endif /* __COGL_COLOR_PRIVATE_PRIVATE_H */
 

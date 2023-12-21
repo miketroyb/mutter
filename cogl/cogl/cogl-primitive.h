@@ -31,25 +31,24 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
-
-#ifndef __COGL_PRIMITIVE_H__
-#define __COGL_PRIMITIVE_H__
 
 /* We forward declare the CoglPrimitive type here to avoid some circular
  * dependency issues with the following headers.
  */
 typedef struct _CoglPrimitive CoglPrimitive;
 
-#include <cogl/cogl-types.h> /* for CoglVerticesMode */
-#include <cogl/cogl-attribute.h>
-#include <cogl/cogl-framebuffer.h>
+#include "cogl/cogl-types.h" /* for CoglVerticesMode */
+#include "cogl/cogl-attribute.h"
+#include "cogl/cogl-framebuffer.h"
 
 #include <glib-object.h>
 
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 /**
  * SECTION:cogl-primitive
@@ -70,6 +69,7 @@ COGL_BEGIN_DECLS
  *
  * Returns: a #GType that can be used with the GLib type system.
  */
+COGL_EXPORT
 GType cogl_primitive_get_gtype (void);
 
 /**
@@ -79,9 +79,6 @@ GType cogl_primitive_get_gtype (void);
  *
  * A convenience vertex definition that can be used with
  * cogl_primitive_new_p2().
- *
- * Since: 1.6
- * Stability: Unstable
  */
 typedef struct {
    float x, y;
@@ -95,9 +92,6 @@ typedef struct {
  *
  * A convenience vertex definition that can be used with
  * cogl_primitive_new_p3().
- *
- * Since: 1.6
- * Stability: Unstable
  */
 typedef struct {
    float x, y, z;
@@ -114,9 +108,6 @@ typedef struct {
  *
  * A convenience vertex definition that can be used with
  * cogl_primitive_new_p2c4().
- *
- * Since: 1.6
- * Stability: Unstable
  */
 typedef struct {
    float x, y;
@@ -135,9 +126,6 @@ typedef struct {
  *
  * A convenience vertex definition that can be used with
  * cogl_primitive_new_p3c4().
- *
- * Since: 1.6
- * Stability: Unstable
  */
 typedef struct {
    float x, y, z;
@@ -153,9 +141,6 @@ typedef struct {
  *
  * A convenience vertex definition that can be used with
  * cogl_primitive_new_p2t2().
- *
- * Since: 1.6
- * Stability: Unstable
  */
 typedef struct {
    float x, y;
@@ -172,9 +157,6 @@ typedef struct {
  *
  * A convenience vertex definition that can be used with
  * cogl_primitive_new_p3t2().
- *
- * Since: 1.6
- * Stability: Unstable
  */
 typedef struct {
    float x, y, z;
@@ -195,9 +177,6 @@ typedef struct {
  *
  * A convenience vertex definition that can be used with
  * cogl_primitive_new_p3t2c4().
- *
- * Since: 1.6
- * Stability: Unstable
  */
 typedef struct {
    float x, y;
@@ -219,9 +198,6 @@ typedef struct {
  *
  * A convenience vertex definition that can be used with
  * cogl_primitive_new_p3t2c4().
- *
- * Since: 1.6
- * Stability: Unstable
  */
 typedef struct {
    float x, y, z;
@@ -245,11 +221,8 @@ typedef struct {
  * the number of vertices to read when drawing.
  *
  * Return value: (transfer full): A newly allocated #CoglPrimitive object
- *
- * Since: 1.6
- * Stability: Unstable
  */
-CoglPrimitive *
+COGL_EXPORT CoglPrimitive *
 cogl_primitive_new (CoglVerticesMode mode,
                     int n_vertices,
                     ...);
@@ -271,11 +244,8 @@ cogl_primitive_new (CoglVerticesMode mode,
  * the number of vertices to read when drawing.
  *
  * Return value: (transfer full): A newly allocated #CoglPrimitive object
- *
- * Since: 1.6
- * Stability: Unstable
  */
-CoglPrimitive *
+COGL_EXPORT CoglPrimitive *
 cogl_primitive_new_with_attributes (CoglVerticesMode mode,
                                     int n_vertices,
                                     CoglAttribute **attributes,
@@ -316,20 +286,16 @@ cogl_primitive_new_with_attributes (CoglVerticesMode mode,
 
  * <note>The primitive API doesn't support drawing with sliced
  * textures (since switching between slices implies changing state and
- * so that implies multiple primitives need to be submitted). You
- * should pass the %COGL_TEXTURE_NO_SLICING flag to all textures that
- * might be used while drawing with this API. If your hardware doesn't
- * support non-power of two textures (For example you are using GLES
- * 1.1) then you will need to make sure your assets are resized to a
- * power-of-two size (though they don't have to be square)</note>
+ * so that implies multiple primitives need to be submitted). If your
+ * hardware doesn't support non-power of two textures (For example you
+ * are using GLES 1.1) then you will need to make sure your assets are
+ * resized to a power-of-two size (though they don't have to be square)
+ * </note>
  *
  * Return value: (transfer full): A newly allocated #CoglPrimitive
  * with a reference of 1. This can be freed using cogl_object_unref().
- *
- * Since: 1.6
- * Stability: Unstable
  */
-CoglPrimitive *
+COGL_EXPORT CoglPrimitive *
 cogl_primitive_new_p2 (CoglContext *context,
                        CoglVerticesMode mode,
                        int n_vertices,
@@ -370,20 +336,16 @@ cogl_primitive_new_p2 (CoglContext *context,
 
  * <note>The primitive API doesn't support drawing with sliced
  * textures (since switching between slices implies changing state and
- * so that implies multiple primitives need to be submitted). You
- * should pass the %COGL_TEXTURE_NO_SLICING flag to all textures that
- * might be used while drawing with this API. If your hardware doesn't
- * support non-power of two textures (For example you are using GLES
- * 1.1) then you will need to make sure your assets are resized to a
- * power-of-two size (though they don't have to be square)</note>
+ * so that implies multiple primitives need to be submitted). If your
+ * hardware doesn't support non-power of two textures (For example you
+ * are using GLES 1.1) then you will need to make sure your assets are
+ * resized to a power-of-two size (though they don't have to be square)
+ * </note>
  *
  * Return value: (transfer full): A newly allocated #CoglPrimitive
  * with a reference of 1. This can be freed using cogl_object_unref().
- *
- * Since: 1.6
- * Stability: Unstable
  */
-CoglPrimitive *
+COGL_EXPORT CoglPrimitive *
 cogl_primitive_new_p3 (CoglContext *context,
                        CoglVerticesMode mode,
                        int n_vertices,
@@ -426,20 +388,16 @@ cogl_primitive_new_p3 (CoglContext *context,
 
  * <note>The primitive API doesn't support drawing with sliced
  * textures (since switching between slices implies changing state and
- * so that implies multiple primitives need to be submitted). You
- * should pass the %COGL_TEXTURE_NO_SLICING flag to all textures that
- * might be used while drawing with this API. If your hardware doesn't
- * support non-power of two textures (For example you are using GLES
- * 1.1) then you will need to make sure your assets are resized to a
- * power-of-two size (though they don't have to be square)</note>
+ * so that implies multiple primitives need to be submitted). If your
+ * hardware doesn't support non-power of two textures (For example you
+ * are using GLES 1.1) then you will need to make sure your assets are
+ * resized to a power-of-two size (though they don't have to be square)
+ * </note>
  *
  * Return value: (transfer full): A newly allocated #CoglPrimitive
  * with a reference of 1. This can be freed using cogl_object_unref().
- *
- * Since: 1.6
- * Stability: Unstable
  */
-CoglPrimitive *
+COGL_EXPORT CoglPrimitive *
 cogl_primitive_new_p2c4 (CoglContext *context,
                          CoglVerticesMode mode,
                          int n_vertices,
@@ -482,20 +440,16 @@ cogl_primitive_new_p2c4 (CoglContext *context,
 
  * <note>The primitive API doesn't support drawing with sliced
  * textures (since switching between slices implies changing state and
- * so that implies multiple primitives need to be submitted). You
- * should pass the %COGL_TEXTURE_NO_SLICING flag to all textures that
- * might be used while drawing with this API. If your hardware doesn't
- * support non-power of two textures (For example you are using GLES
- * 1.1) then you will need to make sure your assets are resized to a
- * power-of-two size (though they don't have to be square)</note>
+ * so that implies multiple primitives need to be submitted). If your
+ * hardware doesn't support non-power of two textures (For example you
+ * are using GLES 1.1) then you will need to make sure your assets are
+ * resized to a power-of-two size (though they don't have to be square)
+ * </note>
  *
  * Return value: (transfer full): A newly allocated #CoglPrimitive
  * with a reference of 1. This can be freed using cogl_object_unref().
- *
- * Since: 1.6
- * Stability: Unstable
  */
-CoglPrimitive *
+COGL_EXPORT CoglPrimitive *
 cogl_primitive_new_p3c4 (CoglContext *context,
                          CoglVerticesMode mode,
                          int n_vertices,
@@ -538,20 +492,16 @@ cogl_primitive_new_p3c4 (CoglContext *context,
 
  * <note>The primitive API doesn't support drawing with sliced
  * textures (since switching between slices implies changing state and
- * so that implies multiple primitives need to be submitted). You
- * should pass the %COGL_TEXTURE_NO_SLICING flag to all textures that
- * might be used while drawing with this API. If your hardware doesn't
- * support non-power of two textures (For example you are using GLES
- * 1.1) then you will need to make sure your assets are resized to a
- * power-of-two size (though they don't have to be square)</note>
+ * so that implies multiple primitives need to be submitted). If your
+ * hardware doesn't support non-power of two textures (For example you
+ * are using GLES 1.1) then you will need to make sure your assets are
+ * resized to a power-of-two size (though they don't have to be square)
+ * </note>
  *
  * Return value: (transfer full): A newly allocated #CoglPrimitive
  * with a reference of 1. This can be freed using cogl_object_unref().
- *
- * Since: 1.6
- * Stability: Unstable
  */
-CoglPrimitive *
+COGL_EXPORT CoglPrimitive *
 cogl_primitive_new_p2t2 (CoglContext *context,
                          CoglVerticesMode mode,
                          int n_vertices,
@@ -594,20 +544,16 @@ cogl_primitive_new_p2t2 (CoglContext *context,
 
  * <note>The primitive API doesn't support drawing with sliced
  * textures (since switching between slices implies changing state and
- * so that implies multiple primitives need to be submitted). You
- * should pass the %COGL_TEXTURE_NO_SLICING flag to all textures that
- * might be used while drawing with this API. If your hardware doesn't
- * support non-power of two textures (For example you are using GLES
- * 1.1) then you will need to make sure your assets are resized to a
- * power-of-two size (though they don't have to be square)</note>
+ * so that implies multiple primitives need to be submitted). If your
+ * hardware doesn't support non-power of two textures (For example you
+ * are using GLES 1.1) then you will need to make sure your assets are
+ * resized to a power-of-two size (though they don't have to be square)
+ * </note>
  *
  * Return value: (transfer full): A newly allocated #CoglPrimitive
  * with a reference of 1. This can be freed using cogl_object_unref().
- *
- * Since: 1.6
- * Stability: Unstable
  */
-CoglPrimitive *
+COGL_EXPORT CoglPrimitive *
 cogl_primitive_new_p3t2 (CoglContext *context,
                          CoglVerticesMode mode,
                          int n_vertices,
@@ -650,20 +596,16 @@ cogl_primitive_new_p3t2 (CoglContext *context,
 
  * <note>The primitive API doesn't support drawing with sliced
  * textures (since switching between slices implies changing state and
- * so that implies multiple primitives need to be submitted). You
- * should pass the %COGL_TEXTURE_NO_SLICING flag to all textures that
- * might be used while drawing with this API. If your hardware doesn't
- * support non-power of two textures (For example you are using GLES
- * 1.1) then you will need to make sure your assets are resized to a
- * power-of-two size (though they don't have to be square)</note>
+ * so that implies multiple primitives need to be submitted). If your
+ * hardware doesn't support non-power of two textures (For example you
+ * are using GLES 1.1) then you will need to make sure your assets are
+ * resized to a power-of-two size (though they don't have to be square)
+ * </note>
  *
  * Return value: (transfer full): A newly allocated #CoglPrimitive
  * with a reference of 1. This can be freed using cogl_object_unref().
- *
- * Since: 1.6
- * Stability: Unstable
  */
-CoglPrimitive *
+COGL_EXPORT CoglPrimitive *
 cogl_primitive_new_p2t2c4 (CoglContext *context,
                            CoglVerticesMode mode,
                            int n_vertices,
@@ -706,28 +648,24 @@ cogl_primitive_new_p2t2c4 (CoglContext *context,
 
  * <note>The primitive API doesn't support drawing with sliced
  * textures (since switching between slices implies changing state and
- * so that implies multiple primitives need to be submitted). You
- * should pass the %COGL_TEXTURE_NO_SLICING flag to all textures that
- * might be used while drawing with this API. If your hardware doesn't
- * support non-power of two textures (For example you are using GLES
- * 1.1) then you will need to make sure your assets are resized to a
- * power-of-two size (though they don't have to be square)</note>
+ * so that implies multiple primitives need to be submitted). If your
+ * hardware doesn't support non-power of two textures (For example you
+ * are using GLES 1.1) then you will need to make sure your assets are
+ * resized to a power-of-two size (though they don't have to be square)
+ * </note>
  *
  * Return value: (transfer full): A newly allocated #CoglPrimitive
  * with a reference of 1. This can be freed using cogl_object_unref().
- *
- * Since: 1.6
- * Stability: Unstable
  */
-CoglPrimitive *
+COGL_EXPORT CoglPrimitive *
 cogl_primitive_new_p3t2c4 (CoglContext *context,
                            CoglVerticesMode mode,
                            int n_vertices,
                            const CoglVertexP3T2C4 *data);
-int
+COGL_EXPORT int
 cogl_primitive_get_first_vertex (CoglPrimitive *primitive);
 
-void
+COGL_EXPORT void
 cogl_primitive_set_first_vertex (CoglPrimitive *primitive,
                                  int first_vertex);
 
@@ -749,11 +687,8 @@ cogl_primitive_set_first_vertex (CoglPrimitive *primitive,
  * of vertices to read and draw.</note>
  *
  * Returns: The number of vertices to read when drawing.
- *
- * Since: 1.8
- * Stability: unstable
  */
-int
+COGL_EXPORT int
 cogl_primitive_get_n_vertices (CoglPrimitive *primitive);
 
 /**
@@ -770,18 +705,15 @@ cogl_primitive_get_n_vertices (CoglPrimitive *primitive);
  * <note>To be clear; it doesn't refer to the number of vertices - in
  * terms of data - associated with the primitive it's just the number
  * of vertices to read and draw.</note>
- *
- * Since: 1.8
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_primitive_set_n_vertices (CoglPrimitive *primitive,
                                int n_vertices);
 
-CoglVerticesMode
+COGL_EXPORT CoglVerticesMode
 cogl_primitive_get_mode (CoglPrimitive *primitive);
 
-void
+COGL_EXPORT void
 cogl_primitive_set_mode (CoglPrimitive *primitive,
                          CoglVerticesMode mode);
 
@@ -792,11 +724,8 @@ cogl_primitive_set_mode (CoglPrimitive *primitive,
  * @n_attributes: the number of elements in @attributes
  *
  * Replaces all the attributes of the given #CoglPrimitive object.
- *
- * Since: 1.6
- * Stability: Unstable
  */
-void
+COGL_EXPORT void
 cogl_primitive_set_attributes (CoglPrimitive *primitive,
                                CoglAttribute **attributes,
                                int n_attributes);
@@ -825,11 +754,8 @@ cogl_primitive_set_attributes (CoglPrimitive *primitive,
  * <note>The #CoglPrimitive <structfield>first_vertex</structfield> property
  * also affects drawing with indices by defining the first entry of the
  * indices to start drawing from.</note>
- *
- * Since: 1.10
- * Stability: unstable
  */
-void
+COGL_EXPORT void
 cogl_primitive_set_indices (CoglPrimitive *primitive,
                             CoglIndices *indices,
                             int n_indices);
@@ -840,11 +766,8 @@ cogl_primitive_set_indices (CoglPrimitive *primitive,
  *
  * Return value: (transfer none): the indices that were set with
  * cogl_primitive_set_indices() or %NULL if no indices were set.
- *
- * Since: 1.10
- * Stability: unstable
  */
-CoglIndices *
+COGL_EXPORT CoglIndices *
 cogl_primitive_get_indices (CoglPrimitive *primitive);
 
 /**
@@ -856,10 +779,8 @@ cogl_primitive_get_indices (CoglPrimitive *primitive);
  * attribute buffers as the original primitive.
  *
  * Return value: (transfer full): the new primitive
- * Since: 1.10
- * Stability: unstable
  */
-CoglPrimitive *
+COGL_EXPORT CoglPrimitive *
 cogl_primitive_copy (CoglPrimitive *primitive);
 
 /**
@@ -870,11 +791,8 @@ cogl_primitive_copy (CoglPrimitive *primitive);
  *
  * Returns: %TRUE if the @object references a #CoglPrimitive,
  *   %FALSE otherwise
- *
- * Since: 1.6
- * Stability: Unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_is_primitive (void *object);
 
 /**
@@ -888,11 +806,8 @@ cogl_is_primitive (void *object);
  *
  * The function should return TRUE to continue iteration or FALSE to
  * stop.
- *
- * Since: 1.10
- * Stability: Unstable
  */
-typedef CoglBool (* CoglPrimitiveAttributeCallback) (CoglPrimitive *primitive,
+typedef gboolean (* CoglPrimitiveAttributeCallback) (CoglPrimitive *primitive,
                                                      CoglAttribute *attribute,
                                                      void *user_data);
 
@@ -905,11 +820,8 @@ typedef CoglBool (* CoglPrimitiveAttributeCallback) (CoglPrimitive *primitive,
  *             callback
  *
  * Iterates all the attributes of the given #CoglPrimitive.
- *
- * Since: 1.10
- * Stability: Unstable
  */
-void
+COGL_EXPORT void
 cogl_primitive_foreach_attribute (CoglPrimitive *primitive,
                                   CoglPrimitiveAttributeCallback callback,
                                   void *user_data);
@@ -926,19 +838,13 @@ cogl_primitive_foreach_attribute (CoglPrimitive *primitive,
  * This drawing api doesn't support high-level meta texture types such
  * as #CoglTexture2DSliced so it is the user's responsibility to
  * ensure that only low-level textures that can be directly sampled by
- * a GPU such as #CoglTexture2D, #CoglTextureRectangle or #CoglTexture3D
- * are associated with layers of the given @pipeline.
- *
- * Stability: unstable
- * Since: 1.16
+ * a GPU such as #CoglTexture2D are associated with layers of the given
+ * @pipeline.
  */
-void
+COGL_EXPORT void
 cogl_primitive_draw (CoglPrimitive *primitive,
                      CoglFramebuffer *framebuffer,
                      CoglPipeline *pipeline);
 
 
-COGL_END_DECLS
-
-#endif /* __COGL_PRIMITIVE_H__ */
-
+G_END_DECLS

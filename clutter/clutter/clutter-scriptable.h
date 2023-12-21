@@ -22,8 +22,7 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __CLUTTER_SCRIPTABLE_H__
-#define __CLUTTER_SCRIPTABLE_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
@@ -31,7 +30,8 @@
 
 #include <glib-object.h>
 #include <json-glib/json-glib.h>
-#include <clutter/clutter-script.h>
+
+#include "clutter/clutter-script.h"
 
 G_BEGIN_DECLS
 
@@ -44,15 +44,6 @@ typedef struct _ClutterScriptable               ClutterScriptable;
 typedef struct _ClutterScriptableIface          ClutterScriptableIface;
 
 /**
- * ClutterScriptable:
- *
- * #ClutterScriptable is an opaque structure whose members cannot be directly
- * accessed
- *
- * Since: 0.6
- */
-
-/**
  * ClutterScriptableIface:
  * @set_id: virtual function for setting the id of a scriptable object
  * @get_id: virtual function for getting the id of a scriptable object
@@ -63,8 +54,6 @@ typedef struct _ClutterScriptableIface          ClutterScriptableIface;
  * Interface for implementing "scriptable" objects. An object implementing
  * this interface can override the parsing and properties setting sequence
  * when loading a UI definition data with #ClutterScript
- *
- * Since: 0.6
  */
 struct _ClutterScriptableIface
 {
@@ -87,26 +76,24 @@ struct _ClutterScriptableIface
                                         const GValue      *value);
 };
 
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 GType                 clutter_scriptable_get_type            (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 void                  clutter_scriptable_set_id              (ClutterScriptable *scriptable,
                                                               const gchar       *id_);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 const gchar *         clutter_scriptable_get_id              (ClutterScriptable *scriptable);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 gboolean              clutter_scriptable_parse_custom_node   (ClutterScriptable *scriptable,
                                                               ClutterScript     *script,
                                                               GValue            *value,
                                                               const gchar       *name,
                                                               JsonNode          *node);
-CLUTTER_AVAILABLE_IN_ALL
+CLUTTER_EXPORT
 void                  clutter_scriptable_set_custom_property (ClutterScriptable *scriptable,
                                                               ClutterScript     *script,
                                                               const gchar       *name,
                                                               const GValue      *value);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_SCRIPTABLE_H__ */

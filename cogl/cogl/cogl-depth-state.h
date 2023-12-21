@@ -30,14 +30,13 @@
  *
  */
 
+#pragma once
+
 #if !defined(__COGL_H_INSIDE__) && !defined(COGL_COMPILATION)
 #error "Only <cogl/cogl.h> can be included directly."
 #endif
 
-#ifndef __COGL_DEPTH_STATE_H__
-#define __COGL_DEPTH_STATE_H__
-
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 /**
  * SECTION:cogl-depth-state
@@ -48,28 +47,16 @@ COGL_BEGIN_DECLS
 /**
  * CoglDepthState:
  *
- * Since: 2.0
  */
 typedef struct {
   /*< private >*/
   uint32_t COGL_PRIVATE (magic);
 
-  CoglBool COGL_PRIVATE (test_enabled);
+  gboolean COGL_PRIVATE (test_enabled);
   CoglDepthTestFunction COGL_PRIVATE (test_function);
-  CoglBool COGL_PRIVATE (write_enabled);
+  gboolean COGL_PRIVATE (write_enabled);
   float COGL_PRIVATE (range_near);
   float COGL_PRIVATE (range_far);
-
-  uint32_t COGL_PRIVATE (padding0);
-  uint32_t COGL_PRIVATE (padding1);
-  uint32_t COGL_PRIVATE (padding2);
-  uint32_t COGL_PRIVATE (padding3);
-  uint32_t COGL_PRIVATE (padding4);
-  uint32_t COGL_PRIVATE (padding5);
-  uint32_t COGL_PRIVATE (padding6);
-  uint32_t COGL_PRIVATE (padding7);
-  uint32_t COGL_PRIVATE (padding8);
-  uint32_t COGL_PRIVATE (padding9);
 } CoglDepthState;
 
 /**
@@ -80,11 +67,8 @@ typedef struct {
  *
  * You should never pass an un initialized #CoglDepthState structure
  * to cogl_pipeline_set_depth_state().
- *
- * Since: 2.0
- * Stability: Unstable
  */
-void
+COGL_EXPORT void
 cogl_depth_state_init (CoglDepthState *state);
 
 /**
@@ -108,13 +92,10 @@ cogl_depth_state_init (CoglDepthState *state);
  * NB: this won't directly affect the state of the GPU. You have
  * to then set the state on a #CoglPipeline using
  * cogl_pipeline_set_depth_state()
- *
- * Since: 2.0
- * Stability: Unstable
  */
-void
+COGL_EXPORT void
 cogl_depth_state_set_test_enabled (CoglDepthState *state,
-                                   CoglBool enable);
+                                   gboolean enable);
 
 /**
  * cogl_depth_state_get_test_enabled:
@@ -124,10 +105,8 @@ cogl_depth_state_set_test_enabled (CoglDepthState *state,
  * cogl_depth_state_set_test_enabled().
  *
  * Returns: The pipeline's current depth test enabled state.
- * Since: 2.0
- * Stability: Unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_depth_state_get_test_enabled (CoglDepthState *state);
 
 /**
@@ -146,13 +125,10 @@ cogl_depth_state_get_test_enabled (CoglDepthState *state);
  * NB: this won't directly affect the state of the GPU. You have
  * to then set the state on a #CoglPipeline using
  * cogl_pipeline_set_depth_state()
- *
- * Since: 2.0
- * Stability: Unstable
  */
-void
+COGL_EXPORT void
 cogl_depth_state_set_write_enabled (CoglDepthState *state,
-                                    CoglBool enable);
+                                    gboolean enable);
 
 /**
  * cogl_depth_state_get_write_enabled:
@@ -162,10 +138,8 @@ cogl_depth_state_set_write_enabled (CoglDepthState *state,
  * cogl_depth_state_set_write_enabled().
  *
  * Returns: The current depth writing enable state
- * Since: 2.0
- * Stability: Unstable
  */
-CoglBool
+COGL_EXPORT gboolean
 cogl_depth_state_get_write_enabled (CoglDepthState *state);
 
 /**
@@ -182,11 +156,8 @@ cogl_depth_state_get_write_enabled (CoglDepthState *state);
  * NB: this won't directly affect the state of the GPU. You have
  * to then set the state on a #CoglPipeline using
  * cogl_pipeline_set_depth_state()
- *
- * Since: 2.0
- * Stability: Unstable
  */
-void
+COGL_EXPORT void
 cogl_depth_state_set_test_function (CoglDepthState *state,
                                     CoglDepthTestFunction function);
 
@@ -198,10 +169,8 @@ cogl_depth_state_set_test_function (CoglDepthState *state,
  * cogl_depth_state_set_test_enabled().
  *
  * Returns: The current depth test enable state.
- * Since: 2.0
- * Stability: Unstable
  */
-CoglDepthTestFunction
+COGL_EXPORT CoglDepthTestFunction
 cogl_depth_state_get_test_function (CoglDepthState *state);
 
 /**
@@ -225,24 +194,14 @@ cogl_depth_state_get_test_function (CoglDepthState *state);
  * mapped too although the range must still lye within the range [0,
  * 1].
  *
- * If your driver does not support this feature (for example you are
- * using GLES 1 drivers) then if you don't use the default range
- * values you will get an error reported when calling
- * cogl_pipeline_set_depth_state (). You can check ahead of time for
- * the %COGL_FEATURE_ID_DEPTH_RANGE feature with
- * cogl_has_feature() to know if this function will succeed.
- *
  * By default normalized device coordinate depth values are mapped to
  * the full range of depth buffer values, [0, 1].
  *
  * NB: this won't directly affect the state of the GPU. You have
  * to then set the state on a #CoglPipeline using
  * cogl_pipeline_set_depth_state().
- *
- * Since: 2.0
- * Stability: Unstable
  */
-void
+COGL_EXPORT void
 cogl_depth_state_set_range (CoglDepthState *state,
                             float near_val,
                             float far_val);
@@ -256,15 +215,10 @@ cogl_depth_state_set_range (CoglDepthState *state,
  * Gets the current range to which normalized depth values are mapped
  * before writing to the depth buffer. This corresponds to the range
  * set with cogl_depth_state_set_range().
- *
- * Since: 2.0
- * Stability: Unstable
  */
-void
+COGL_EXPORT void
 cogl_depth_state_get_range (CoglDepthState *state,
                             float *near_val,
                             float *far_val);
 
-COGL_END_DECLS
-
-#endif /* __COGL_DEPTH_STATE_H__ */
+G_END_DECLS

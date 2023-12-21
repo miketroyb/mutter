@@ -14,19 +14,16 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_GPU_XRANDR_H
-#define META_GPU_XRANDR_H
+#pragma once
 
 #include <glib-object.h>
 #include <X11/extensions/Xrandr.h>
 
 #include "backends/meta-gpu.h"
-#include "backends/x11/meta-monitor-manager-xrandr.h"
+#include "backends/x11/meta-backend-x11.h"
 
 #define META_TYPE_GPU_XRANDR (meta_gpu_xrandr_get_type ())
 G_DECLARE_FINAL_TYPE (MetaGpuXrandr, meta_gpu_xrandr, META, GPU_XRANDR, MetaGpu)
@@ -37,6 +34,4 @@ void meta_gpu_xrandr_get_max_screen_size (MetaGpuXrandr *gpu_xrandr,
                                           int           *max_width,
                                           int           *max_height);
 
-MetaGpuXrandr * meta_gpu_xrandr_new (MetaMonitorManagerXrandr *monitor_manager_xrandr);
-
-#endif /* META_GPU_XRANDR_H */
+MetaGpuXrandr * meta_gpu_xrandr_new (MetaBackendX11 *backend_x11);

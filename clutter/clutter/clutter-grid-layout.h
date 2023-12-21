@@ -26,14 +26,13 @@
  *   Matthias Clasen
  */
 
-#ifndef __CLUTTER_GRID_LAYOUT_H__
-#define __CLUTTER_GRID_LAYOUT_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-layout-manager.h>
+#include "clutter/clutter-layout-manager.h"
 
 G_BEGIN_DECLS
 
@@ -48,14 +47,6 @@ typedef struct _ClutterGridLayout                ClutterGridLayout;
 typedef struct _ClutterGridLayoutPrivate         ClutterGridLayoutPrivate;
 typedef struct _ClutterGridLayoutClass           ClutterGridLayoutClass;
 
-/**
- * ClutterGridLayout:
- *
- * The #ClutterGridLayout structure contains only private data
- * and should be accessed using the provided API
- *
- * Since: 1.12
- */
 struct _ClutterGridLayout
 {
   /*< private >*/
@@ -69,24 +60,20 @@ struct _ClutterGridLayout
  *
  * The #ClutterGridLayoutClass structure contains only private
  * data and should be accessed using the provided API
- *
- * Since: 1.12
  */
 struct _ClutterGridLayoutClass
 {
   /*< private >*/
   ClutterLayoutManagerClass parent_class;
-
-  gpointer _padding[8];
 };
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 GType clutter_grid_layout_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 ClutterLayoutManager *  clutter_grid_layout_new                 (void);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                clutter_grid_layout_attach                      (ClutterGridLayout *layout,
                                                                      ClutterActor      *child,
                                                                      gint               left,
@@ -94,7 +81,7 @@ void                clutter_grid_layout_attach                      (ClutterGrid
                                                                      gint               width,
                                                                      gint               height);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                clutter_grid_layout_attach_next_to              (ClutterGridLayout   *layout,
                                                                      ClutterActor        *child,
                                                                      ClutterActor        *sibling,
@@ -102,60 +89,58 @@ void                clutter_grid_layout_attach_next_to              (ClutterGrid
                                                                      gint                 width,
                                                                      gint                 height);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 ClutterActor *      clutter_grid_layout_get_child_at                (ClutterGridLayout *layout,
                                                                      gint               left,
                                                                      gint               top);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                clutter_grid_layout_insert_row                  (ClutterGridLayout *layout,
                                                                      gint               position);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                clutter_grid_layout_insert_column               (ClutterGridLayout *layout,
                                                                      gint               position);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                clutter_grid_layout_insert_next_to              (ClutterGridLayout   *layout,
                                                                      ClutterActor        *sibling,
                                                                      ClutterGridPosition  side);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                clutter_grid_layout_set_orientation             (ClutterGridLayout *layout,
                                                                      ClutterOrientation orientation);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 ClutterOrientation  clutter_grid_layout_get_orientation             (ClutterGridLayout *layout);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                clutter_grid_layout_set_column_spacing          (ClutterGridLayout *layout,
                                                                      guint              spacing);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 guint               clutter_grid_layout_get_column_spacing          (ClutterGridLayout *layout);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                clutter_grid_layout_set_row_spacing             (ClutterGridLayout *layout,
                                                                      guint              spacing);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 guint               clutter_grid_layout_get_row_spacing             (ClutterGridLayout *layout);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                clutter_grid_layout_set_column_homogeneous      (ClutterGridLayout *layout,
                                                                      gboolean           homogeneous);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 gboolean            clutter_grid_layout_get_column_homogeneous      (ClutterGridLayout *layout);
 
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 void                clutter_grid_layout_set_row_homogeneous         (ClutterGridLayout *layout,
                                                                      gboolean           homogeneous);
 
-CLUTTER_AVAILABLE_IN_1_12
+CLUTTER_EXPORT
 gboolean            clutter_grid_layout_get_row_homogeneous         (ClutterGridLayout *layout);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_GRID_LAYOUT_H__ */

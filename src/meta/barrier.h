@@ -1,59 +1,12 @@
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; c-basic-offset: 2; -*- */
 
-#ifndef __META_BARRIER_H__
-#define __META_BARRIER_H__
+#pragma once
 
 #include <glib-object.h>
 
 #include <meta/display.h>
 
 G_BEGIN_DECLS
-
-#define META_TYPE_BARRIER            (meta_barrier_get_type ())
-#define META_BARRIER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), META_TYPE_BARRIER, MetaBarrier))
-#define META_BARRIER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass),  META_TYPE_BARRIER, MetaBarrierClass))
-#define META_IS_BARRIER(obj)         (G_TYPE_CHECK_INSTANCE_TYPE ((obj), META_TYPE_BARRIER))
-#define META_IS_BARRIER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass),  META_TYPE_BARRIER))
-#define META_BARRIER_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS ((obj),  META_TYPE_BARRIER, MetaBarrierClass))
-
-typedef struct _MetaBarrier        MetaBarrier;
-typedef struct _MetaBarrierClass   MetaBarrierClass;
-typedef struct _MetaBarrierPrivate MetaBarrierPrivate;
-
-typedef struct _MetaBarrierEvent   MetaBarrierEvent;
-
-/**
- * MetaBarrier:
- *
- * The <structname>MetaBarrier</structname> structure contains
- * only private data and should be accessed using the provided API
- *
- **/
-struct _MetaBarrier
-{
-  GObject parent;
-
-  MetaBarrierPrivate *priv;
-};
-
-/**
- * MetaBarrierClass:
- *
- * The <structname>MetaBarrierClass</structname> structure contains only
- * private data.
- */
-struct _MetaBarrierClass
-{
-  /*< private >*/
-  GObjectClass parent_class;
-};
-
-GType meta_barrier_get_type (void) G_GNUC_CONST;
-
-gboolean meta_barrier_is_active (MetaBarrier *barrier);
-void meta_barrier_destroy (MetaBarrier *barrier);
-void meta_barrier_release (MetaBarrier      *barrier,
-                           MetaBarrierEvent *event);
 
 /**
  * MetaBarrierDirection:
@@ -64,12 +17,51 @@ void meta_barrier_release (MetaBarrier      *barrier,
  */
 
 /* Keep in sync with XFixes */
-typedef enum {
+typedef enum
+{
   META_BARRIER_DIRECTION_POSITIVE_X = 1 << 0,
   META_BARRIER_DIRECTION_POSITIVE_Y = 1 << 1,
   META_BARRIER_DIRECTION_NEGATIVE_X = 1 << 2,
   META_BARRIER_DIRECTION_NEGATIVE_Y = 1 << 3,
 } MetaBarrierDirection;
+
+typedef enum
+{
+  META_BARRIER_FLAG_NONE = 1 << 0,
+  META_BARRIER_FLAG_STICKY = 1 << 1,
+} MetaBarrierFlags;
+
+#define META_TYPE_BARRIER (meta_barrier_get_type ())
+META_EXPORT
+G_DECLARE_DERIVABLE_TYPE (MetaBarrier, meta_barrier,
+                          META, BARRIER, GObject)
+
+struct _MetaBarrierClass
+{
+  GObjectClass parent_class;
+};
+
+typedef struct _MetaBarrierEvent MetaBarrierEvent;
+
+META_EXPORT
+MetaBarrier * meta_barrier_new (MetaBackend           *backend,
+                                int                    x1,
+                                int                    y1,
+                                int                    x2,
+                                int                    y2,
+                                MetaBarrierDirection   directions,
+                                MetaBarrierFlags       flags,
+                                GError               **error);
+
+META_EXPORT
+gboolean meta_barrier_is_active (MetaBarrier *barrier);
+
+META_EXPORT
+void meta_barrier_destroy (MetaBarrier *barrier);
+
+META_EXPORT
+void meta_barrier_release (MetaBarrier      *barrier,
+                           MetaBarrierEvent *event);
 
 /**
  * MetaBarrierEvent:
@@ -108,8 +100,8 @@ struct _MetaBarrierEvent {
 };
 
 #define META_TYPE_BARRIER_EVENT (meta_barrier_event_get_type ())
+
+META_EXPORT
 GType meta_barrier_event_get_type (void) G_GNUC_CONST;
 
 G_END_DECLS
-
-#endif /* __META_BARRIER_H__ */

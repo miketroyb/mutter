@@ -19,10 +19,13 @@
  * Author: Carlos Garnacho <carlosg@gnome.org>
  */
 
-#ifndef META_INPUT_SETTINGS_NATIVE_H
-#define META_INPUT_SETTINGS_NATIVE_H
+#pragma once
 
-#include "meta-input-settings-private.h"
+#ifndef META_INPUT_THREAD_H_INSIDE
+#error "This header cannot be included directly. Use "backends/native/meta-input-thread.h""
+#endif /* META_INPUT_THREAD_H_INSIDE */
+
+#include "backends/meta-input-settings-private.h"
 
 #define META_TYPE_INPUT_SETTINGS_NATIVE             (meta_input_settings_native_get_type ())
 #define META_INPUT_SETTINGS_NATIVE(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), META_TYPE_INPUT_SETTINGS_NATIVE, MetaInputSettingsNative))
@@ -37,6 +40,7 @@ typedef struct _MetaInputSettingsNativeClass MetaInputSettingsNativeClass;
 struct _MetaInputSettingsNative
 {
   MetaInputSettings parent_instance;
+  MetaSeatImpl *seat_impl;
 };
 
 struct _MetaInputSettingsNativeClass
@@ -46,4 +50,4 @@ struct _MetaInputSettingsNativeClass
 
 GType meta_input_settings_native_get_type (void) G_GNUC_CONST;
 
-#endif /* META_INPUT_SETTINGS_NATIVE_H */
+MetaInputSettings * meta_input_settings_native_new_in_impl (MetaSeatImpl *seat_impl);

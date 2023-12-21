@@ -14,16 +14,13 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jonas Ådahl <jadahl@gmail.com>
  */
 
-#ifndef META_RENDERER_NATIVE_H
-#define META_RENDERER_NATIVE_H
+#pragma once
 
 #include <gbm.h>
 #include <glib-object.h>
@@ -31,9 +28,10 @@
 
 #include "backends/meta-renderer.h"
 #include "backends/native/meta-gpu-kms.h"
-#include "backends/native/meta-monitor-manager-kms.h"
+#include "backends/native/meta-monitor-manager-native.h"
 
 #define META_TYPE_RENDERER_NATIVE (meta_renderer_native_get_type ())
+META_EXPORT_TEST
 G_DECLARE_FINAL_TYPE (MetaRendererNative, meta_renderer_native,
                       META, RENDERER_NATIVE,
                       MetaRenderer)
@@ -41,34 +39,39 @@ G_DECLARE_FINAL_TYPE (MetaRendererNative, meta_renderer_native,
 typedef enum _MetaRendererNativeMode
 {
   META_RENDERER_NATIVE_MODE_GBM,
+  META_RENDERER_NATIVE_MODE_SURFACELESS,
 #ifdef HAVE_EGL_DEVICE
   META_RENDERER_NATIVE_MODE_EGL_DEVICE
 #endif
 } MetaRendererNativeMode;
 
-MetaRendererNative * meta_renderer_native_new (MetaMonitorManagerKms *monitor_manager_kms,
-                                               GError               **error);
+MetaRendererNative * meta_renderer_native_new (MetaBackendNative  *backend_native,
+                                               GError            **error);
 
 struct gbm_device * meta_gbm_device_from_gpu (MetaGpuKms *gpu_kms);
 
-gboolean meta_renderer_native_supports_mirroring (MetaRendererNative *renderer_native);
+MetaGpuKms * meta_renderer_native_get_primary_gpu (MetaRendererNative *renderer_native);
 
-void meta_renderer_native_queue_modes_reset (MetaRendererNative *renderer_native);
+MetaDeviceFile * meta_renderer_native_get_primary_device_file (MetaRendererNative *renderer_native);
 
-gboolean meta_renderer_native_set_legacy_view_size (MetaRendererNative *renderer_native,
-                                                    MetaRendererView   *view,
-                                                    int                 width,
-                                                    int                 height,
-                                                    GError            **error);
+void meta_renderer_native_prepare_frame (MetaRendererNative *renderer_native,
+                                         MetaRendererView   *view,
+                                         ClutterFrame       *frame);
 
-void meta_renderer_native_set_ignore_crtc (MetaRendererNative *renderer_native,
-                                           uint32_t            id,
-                                           gboolean            ignore);
+void meta_renderer_native_before_redraw (MetaRendererNative *renderer_native,
+                                         MetaRendererView   *view,
+                                         ClutterFrame       *frame);
 
-MetaRendererView * meta_renderer_native_create_legacy_view (MetaRendererNative *renderer_native);
+void meta_renderer_native_finish_frame (MetaRendererNative *renderer_native,
+                                        MetaRendererView   *view,
+                                        ClutterFrame       *frame);
 
-void meta_renderer_native_finish_frame (MetaRendererNative *renderer_native);
+void meta_renderer_native_unset_modes (MetaRendererNative *renderer_native);
 
-int64_t meta_renderer_native_get_frame_counter (MetaRendererNative *renderer_native);
+gboolean meta_renderer_native_send_modifiers (MetaRendererNative *renderer_native);
 
-#endif /* META_RENDERER_NATIVE_H */
+gboolean meta_renderer_native_use_modifiers (MetaRendererNative *renderer_native);
+
+gboolean meta_renderer_native_has_addfb2 (MetaRendererNative *renderer_native);
+
+MetaRendererNativeMode meta_renderer_native_get_mode (MetaRendererNative *renderer_native);

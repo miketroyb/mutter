@@ -51,12 +51,10 @@
  *   Robert Bragg <robert@linux.intel.com>
  */
 
-#ifdef HAVE_CONFIG_H
 #include "cogl-config.h"
-#endif
 
-#include "cogl-memory-stack-private.h"
-#include "cogl-magazine-private.h"
+#include "cogl/cogl-memory-stack-private.h"
+#include "cogl/cogl-magazine-private.h"
 #include <glib.h>
 
 #define ROUND_UP_8(X) ((X + (8 - 1)) & ~(8 - 1))

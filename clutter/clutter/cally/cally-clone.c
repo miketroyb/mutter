@@ -15,18 +15,15 @@
  * Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
 /**
- * SECTION:cally-clone
- * @Title: CallyClone
- * @short_description: Implementation of the ATK interfaces for a #ClutterClone
- * @see_also: #ClutterClone
+ * CallyClone:
+ * 
+ * Implementation of the ATK interfaces for a #ClutterClone
  *
- * #CallyClone implements the required ATK interfaces of #ClutterClone
+ * #CallyClone implements the required ATK interfaces of [class@Clutter.Clone]
  *
  * In particular it sets a proper role for the clone, as just a image,
  * as it is the sanest and simplest approach.
@@ -36,7 +33,7 @@
  *
  * In the old times, it was just ClutterCloneTexture. So, from a a11y POV
  * CallyCloneTexture was just another image, like ClutterTexture, and if
- * it was a clone was irrevelant. So on cally-0.8, CallyCloneTexture
+ * it was a clone was irrelevant. So on cally-0.8, CallyCloneTexture
  * expose a object with role ATK_ROLE_IMAGE. But now, ClutterClone is more
  * general. You can clone any object, including groups, and made things
  * like have one text entry, and a clone with different properties in the
@@ -69,10 +66,10 @@
  * a11y POV should still be managed as a image (with the proper properties,
  * position, size, etc.).
  */
-#include "clutter-build-config.h"
+#include "clutter/clutter-build-config.h"
 
-#include "cally-clone.h"
-#include "cally-actor-private.h"
+#include "cally/cally-clone.h"
+#include "cally/cally-actor-private.h"
 
 /* AtkObject */
 static void                  cally_clone_real_initialize (AtkObject *obj,
@@ -100,11 +97,9 @@ cally_clone_init (CallyClone *clone)
  * @actor: a #ClutterActor
  *
  * Creates a new #CallyClone for the given @actor. @actor must be a
- * #ClutterClone.
+ * [class@Clutter.Clone].
  *
  * Return value: the newly created #AtkObject
- *
- * Since: 1.4
  */
 AtkObject*
 cally_clone_new (ClutterActor *actor)

@@ -14,46 +14,71 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  * Written by:
  *     Jasper St. Pierre <jstpierre@mecheye.net>
  */
 
-#ifndef META_BACKEND_H
-#define META_BACKEND_H
+#pragma once
 
 #include <glib-object.h>
 
-#include <clutter/clutter.h>
+#include "clutter/clutter.h"
 #include "meta/meta-dnd.h"
+#include "meta/meta-idle-monitor.h"
+#include "meta/meta-monitor-manager.h"
+#include "meta/meta-remote-access-controller.h"
 
-typedef struct _MetaBackend        MetaBackend;
-typedef struct _MetaBackendClass   MetaBackendClass;
+typedef enum _MetaBackendCapabilities
+{
+  META_BACKEND_CAPABILITY_NONE = 0,
+  META_BACKEND_CAPABILITY_BARRIERS = 1 << 0,
+} MetaBackendCapabilities;
 
-GType meta_backend_get_type (void);
+#define META_TYPE_BACKEND (meta_backend_get_type ())
+META_EXPORT
+G_DECLARE_DERIVABLE_TYPE (MetaBackend, meta_backend, META, BACKEND, GObject)
 
-MetaBackend * meta_get_backend (void);
-
+META_EXPORT
 void meta_backend_set_keymap (MetaBackend *backend,
                               const char  *layouts,
                               const char  *variants,
                               const char  *options);
 
+META_EXPORT
 void meta_backend_lock_layout_group (MetaBackend *backend,
                                      guint        idx);
 
-void meta_backend_set_numlock (MetaBackend *backend,
-                               gboolean     numlock_state);
+META_EXPORT
+MetaContext * meta_backend_get_context (MetaBackend *backend);
 
+META_EXPORT
 ClutterActor *meta_backend_get_stage (MetaBackend *backend);
 
+META_EXPORT
 MetaDnd      *meta_backend_get_dnd   (MetaBackend *backend);
 
+META_EXPORT
 MetaSettings *meta_backend_get_settings (MetaBackend *backend);
 
-void meta_clutter_init (void);
+META_EXPORT
+MetaIdleMonitor * meta_backend_get_core_idle_monitor (MetaBackend *backend);
 
-#endif /* META_BACKEND_H */
+META_EXPORT
+MetaMonitorManager * meta_backend_get_monitor_manager (MetaBackend *backend);
+
+META_EXPORT
+MetaRemoteAccessController * meta_backend_get_remote_access_controller (MetaBackend *backend);
+
+META_EXPORT
+gboolean meta_backend_is_rendering_hardware_accelerated (MetaBackend *backend);
+
+META_EXPORT
+gboolean meta_backend_is_headless (MetaBackend *backend);
+
+META_EXPORT
+MetaBackendCapabilities meta_backend_get_capabilities (MetaBackend *backend);
+
+META_EXPORT
+void meta_clutter_init (void);

@@ -21,14 +21,13 @@
  * Author: Emmanuele Bassi <ebassi@linux.intel.com>
  */
 
-#ifndef __CLUTTER_STAGE_MANAGER_H__
-#define __CLUTTER_STAGE_MANAGER_H__
+#pragma once
 
 #if !defined(__CLUTTER_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <clutter/clutter.h> can be included directly."
 #endif
 
-#include <clutter/clutter-types.h>
+#include "clutter/clutter-types.h"
 
 G_BEGIN_DECLS
 
@@ -43,20 +42,10 @@ typedef struct _ClutterStageManager             ClutterStageManager;
 typedef struct _ClutterStageManagerClass        ClutterStageManagerClass;
 
 /**
- * ClutterStageManager:
- *
- * The #ClutterStageManager structure is private.
- *
- * Since: 1.0
- */
-
-/**
  * ClutterStageManagerClass:
  *
  * The #ClutterStageManagerClass structure contains only private data
  * and should be accessed using the provided API
- *
- * Since: 1.0
  */
 struct _ClutterStageManagerClass
 {
@@ -69,18 +58,16 @@ struct _ClutterStageManagerClass
                           ClutterStage        *stage);
 };
 
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 GType clutter_stage_manager_get_type (void) G_GNUC_CONST;
 
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 ClutterStageManager *clutter_stage_manager_get_default       (void);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 ClutterStage *       clutter_stage_manager_get_default_stage (ClutterStageManager *stage_manager);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 GSList *             clutter_stage_manager_list_stages       (ClutterStageManager *stage_manager);
-CLUTTER_AVAILABLE_IN_1_0
+CLUTTER_EXPORT
 const GSList *       clutter_stage_manager_peek_stages       (ClutterStageManager *stage_manager);
 
 G_END_DECLS
-
-#endif /* __CLUTTER_STAGE_MANAGER_H__ */

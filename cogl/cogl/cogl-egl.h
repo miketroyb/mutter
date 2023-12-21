@@ -28,37 +28,12 @@
  *
  */
 
-#ifndef __COGL_EGL_H__
-#define __COGL_EGL_H__
+#pragma once
 
-/* NB: this is a top-level header that can be included directly but we
- * want to be careful not to define __COGL_H_INSIDE__ when this is
- * included internally while building Cogl itself since
- * __COGL_H_INSIDE__ is used in headers to guard public vs private api
- * definitions
- */
-#ifndef COGL_COMPILATION
+#include "cogl/cogl-egl-defines.h"
+#include "cogl/cogl-types.h"
 
-/* Note: When building Cogl .gir we explicitly define
- * __COGL_EGL_H_INSIDE__ */
-#ifndef __COGL_EGL_H_INSIDE__
-#define __COGL_EGL_H_INSIDE__
-#endif
-
-/* Note: When building Cogl .gir we explicitly define
- * __COGL_H_INSIDE__ */
-#ifndef __COGL_H_INSIDE__
-#define __COGL_H_INSIDE__
-#define __COGL_MUST_UNDEF_COGL_H_INSIDE_COGL_EGL__
-#endif
-
-#endif /* COGL_COMPILATION */
-
-
-#include <cogl/cogl-egl-defines.h>
-#include <cogl/cogl-types.h>
-
-COGL_BEGIN_DECLS
+G_BEGIN_DECLS
 
 /**
  * cogl_egl_context_get_egl_display:
@@ -73,33 +48,11 @@ COGL_BEGIN_DECLS
  * cogl_renderer_get_winsys_id().
  *
  * Return value: The internally setup EGLDisplay handle.
- * Since: 1.8
- * Stability: unstable
  */
-EGLDisplay
+COGL_EXPORT EGLDisplay
 cogl_egl_context_get_egl_display (CoglContext *context);
 
-/**
- * cogl_egl_context_get_egl_context:
- * @context: A #CoglContext pointer
- *
- * If you have done a runtime check to determine that Cogl is using
- * EGL internally then this API can be used to retrieve the EGLContext
- * handle that was setup internally. The result is undefined if Cogl
- * is not using EGL.
- *
- * Note: The current window system backend can be checked using
- * cogl_renderer_get_winsys_id().
- *
- * Return value: The internally setup EGLDisplay handle.
- * Since: 1.18
- * Stability: unstable
- */
-EGLContext
-cogl_egl_context_get_egl_context (CoglContext *context);
-
-
-COGL_END_DECLS
+G_END_DECLS
 
 /* The gobject introspection scanner seems to parse public headers in
  * isolation which means we need to be extra careful about how we
@@ -114,5 +67,3 @@ COGL_END_DECLS
 #undef __COGL_EGL_H_INSIDE__
 #undef __COGL_MUST_UNDEF_COGL_H_INSIDE_COGL_EGL__
 #endif
-
-#endif /* __COGL_EGL_H__ */

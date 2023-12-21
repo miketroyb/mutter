@@ -1,4 +1,12 @@
 <schemalist>
+
+  <flags id="org.gnome.mutter.MetaExperimentalFeature">
+    <value nick="scale-monitor-framebuffer" value="1"/>
+    <value nick="kms-modifiers" value="2"/>
+    <value nick="rt-scheduler" value="4"/>
+    <value nick="autoclose-xwayland" value="8"/>
+  </flags>
+
   <schema id="org.gnome.mutter" path="/org/gnome/mutter/"
           gettext-domain="@GETTEXT_DOMAIN@">
 
@@ -54,15 +62,6 @@
       </description>
     </key>
 
-    <key name="no-tab-popup" type="b">
-      <default>false</default>
-      <summary>No tab popup</summary>
-      <description>
-        Determines whether the use of popup and highlight frame should
-        be disabled for window cycling.
-      </description>
-    </key>
-
     <key name="focus-change-on-pointer-rest" type="b">
       <default>false</default>
       <summary>Delay focus changes until the pointer stops moving</summary>
@@ -102,7 +101,8 @@
       </description>
     </key>
 
-    <key name="experimental-features" type="as">
+    <key name="experimental-features"
+        flags='org.gnome.mutter.MetaExperimentalFeature'>
       <default>[]</default>
       <summary>Enable experimental features</summary>
       <description>
@@ -120,10 +120,37 @@
                                         framebuffers instead of window content,
                                         to manage HiDPI monitors. Does not
                                         require a restart.
-        • “remote-desktop”            — enables remote desktop support. To support
-                                        remote desktop with screen sharing,
-                                        “screen-cast” must also be enabled.
-        • “screen-cast”               — enables screen cast support.
+
+        • “kms-modifiers”             — makes mutter always allocate scanout
+                                        buffers with explicit modifiers, if
+                                        supported by the driver. Requires a
+                                        restart.
+
+        • “rt-scheduler”              — makes mutter request a low priority
+                                        real-time scheduling. Requires a restart.
+
+        • “autoclose-xwayland”        — automatically terminates Xwayland if all
+                                        relevant X11 clients are gone.
+                                        Requires a restart.
+
+      </description>
+    </key>
+
+    <key name="locate-pointer-key" type="s">
+      <default>'Control_L'</default>
+      <summary>Modifier to use to locate the pointer</summary>
+      <description>
+        This key will initiate the “locate pointer” action.
+      </description>
+    </key>
+
+    <key name="check-alive-timeout" type="u">
+      <default>5000</default>
+      <summary>Timeout for check-alive ping</summary>
+      <description>
+        Number of milliseconds a client has to respond to a ping request in
+        order to not be detected as frozen. Using 0 will disable the alive check
+        completely.
       </description>
     </key>
 
@@ -134,20 +161,12 @@
 
     <key name="toggle-tiled-left" type="as">
       <default><![CDATA[['<Super>Left']]]></default>
+      <summary>View split on left</summary>
     </key>
 
     <key name="toggle-tiled-right" type="as">
       <default><![CDATA[['<Super>Right']]]></default>
-    </key>
-
-    <key name="tab-popup-select" type="as">
-      <default>[]</default>
-      <summary>Select window from tab popup</summary>
-    </key>
-
-    <key name="tab-popup-cancel" type="as">
-      <default>[]</default>
-      <summary>Cancel tab popup</summary>
+      <summary>View split on right</summary>
     </key>
 
     <key name="switch-monitor" type="as">
@@ -158,6 +177,11 @@
     <key name="rotate-monitor" type="as">
       <default><![CDATA[['XF86RotateWindows']]]></default>
       <summary>Rotates the built-in monitor configuration</summary>
+    </key>
+
+    <key name="cancel-input-capture" type="as">
+      <default><![CDATA[['<Super><Shift>Escape']]]></default>
+      <summary>Cancel any active input capture session</summary>
     </key>
 
   </schema>

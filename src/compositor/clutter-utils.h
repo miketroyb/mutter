@@ -18,22 +18,23 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __META_CLUTTER_UTILS_H__
-#define __META_CLUTTER_UTILS_H__
+#pragma once
 
-#include <clutter/clutter.h>
-gboolean meta_actor_vertices_are_untransformed (ClutterVertex *verts,
-                                                float          widthf,
-                                                float          heightf,
-                                                int           *x_origin,
-                                                int           *y_origin);
-gboolean meta_actor_is_untransformed (ClutterActor *actor,
-                                      int          *x_origin,
-                                      int          *y_origin);
+#include "clutter/clutter.h"
 
-gboolean meta_actor_painting_untransformed (int         paint_width,
-                                            int         paint_height,
-                                            int        *x_origin,
-                                            int        *y_origin);
+typedef struct {
+  int x_origin, y_origin;
+  float x_scale, y_scale;
+} MetaTransforms;
 
-#endif /* __META_CLUTTER_UTILS_H__ */
+gboolean meta_actor_vertices_are_untransformed (graphene_point3d_t *verts,
+                                                float               widthf,
+                                                float               heightf,
+                                                MetaTransforms     *out_transforms);
+
+gboolean meta_actor_painting_untransformed (CoglFramebuffer *fb,
+                                            int              paint_width,
+                                            int              paint_height,
+                                            int              sample_widthf,
+                                            int              sample_heightf,
+                                            MetaTransforms  *out_transforms);

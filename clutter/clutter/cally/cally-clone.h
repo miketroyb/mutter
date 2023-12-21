@@ -18,15 +18,14 @@
  * License along with this library. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __CALLY_CLONE_H__
-#define __CALLY_CLONE_H__
+#pragma once
 
 #if !defined(__CALLY_H_INSIDE__) && !defined(CLUTTER_COMPILATION)
 #error "Only <cally/cally.h> can be included directly."
 #endif
 
-#include <clutter/clutter.h>
-#include <cally/cally-actor.h>
+#include "clutter/clutter.h"
+#include "cally/cally-actor.h"
 
 G_BEGIN_DECLS
 
@@ -41,14 +40,6 @@ typedef struct _CallyClone        CallyClone;
 typedef struct _CallyCloneClass   CallyCloneClass;
 typedef struct _CallyClonePrivate CallyClonePrivate;
 
-/**
- * CallyClone:
- *
- * The <structname>CallyClone</structname> structure contains only private
- * data and should be accessed using the provided API
- *
- * Since: 1.4
- */
 struct _CallyClone
 {
   /*< private >*/
@@ -62,23 +53,16 @@ struct _CallyClone
  *
  * The <structname>CallyCloneClass</structname> structure contains only
  * private data
- *
- * Since: 1.4
  */
 struct _CallyCloneClass
 {
   /*< private >*/
   CallyActorClass parent_class;
-
-  /* padding for future expansion */
-  gpointer _padding_dummy[8];
 };
 
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 GType      cally_clone_get_type (void) G_GNUC_CONST;
-CLUTTER_AVAILABLE_IN_1_4
+CLUTTER_EXPORT
 AtkObject *cally_clone_new      (ClutterActor *actor);
 
 G_END_DECLS
-
-#endif /* __CALLY_CLONE_H__ */

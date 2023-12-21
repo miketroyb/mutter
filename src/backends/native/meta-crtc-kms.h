@@ -2,6 +2,7 @@
 
 /*
  * Copyright (C) 2017 Red Hat
+ * Copyright (C) 2018 DisplayLink (UK) Ltd.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -14,34 +15,57 @@
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
- * 02111-1307, USA.
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef META_CRTC_KMS_H
-#define META_CRTC_KMS_H
+#pragma once
 
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
+#include "backends/meta-backend-types.h"
 #include "backends/meta-crtc.h"
-#include "backends/meta-gpu.h"
+#include "backends/native/meta-crtc-native.h"
+#include "backends/native/meta-drm-buffer.h"
 #include "backends/native/meta-gpu-kms.h"
+#include "backends/native/meta-kms-crtc.h"
+#include "backends/native/meta-kms-update.h"
 
-gboolean meta_crtc_kms_is_transform_handled (MetaCrtc             *crtc,
-                                             MetaMonitorTransform  transform);
+#define META_TYPE_CRTC_KMS (meta_crtc_kms_get_type ())
+META_EXPORT_TEST
+G_DECLARE_FINAL_TYPE (MetaCrtcKms, meta_crtc_kms,
+                      META, CRTC_KMS,
+                      MetaCrtcNative)
 
-void meta_crtc_kms_apply_transform (MetaCrtc *crtc);
+void meta_crtc_kms_apply_transform (MetaCrtcKms            *crtc_kms,
+                                    MetaKmsPlaneAssignment *kms_plane_assignment);
 
-void meta_crtc_kms_set_underscan (MetaCrtc *crtc,
-                                  gboolean  is_underscanning);
+MetaKmsPlaneAssignment * meta_crtc_kms_assign_primary_plane (MetaCrtcKms   *crtc_kms,
+                                                             MetaDrmBuffer *buffer,
+                                                             MetaKmsUpdate *kms_update);
 
-GArray * meta_crtc_kms_get_modifiers (MetaCrtc *crtc,
-                                      uint32_t  format);
+void meta_crtc_kms_set_mode (MetaCrtcKms   *crtc_kms,
+                             MetaKmsUpdate *kms_update);
 
-MetaCrtc * meta_create_kms_crtc (MetaGpuKms   *gpu_kms,
-                                 drmModeCrtc  *drm_crtc,
-                                 unsigned int  crtc_index);
+void meta_crtc_kms_set_is_underscanning (MetaCrtcKms *crtc_kms,
+                                         gboolean     is_underscanning);
 
-#endif /* META_CRTC_KMS_H */
+META_EXPORT_TEST
+MetaKmsCrtc * meta_crtc_kms_get_kms_crtc (MetaCrtcKms *crtc_kms);
+
+GArray * meta_crtc_kms_get_modifiers (MetaCrtcKms *crtc_kms,
+                                      uint32_t     format);
+
+GArray *
+meta_crtc_kms_copy_drm_format_list (MetaCrtcKms *crtc_kms);
+
+gboolean
+meta_crtc_kms_supports_format (MetaCrtcKms *crtc_kms,
+                               uint32_t     drm_format);
+
+const MetaGammaLut * meta_crtc_kms_peek_gamma_lut (MetaCrtcKms *crtc_kms);
+
+MetaCrtcKms * meta_crtc_kms_from_kms_crtc (MetaKmsCrtc *kms_crtc);
+
+MetaCrtcKms * meta_crtc_kms_new (MetaGpuKms  *gpu_kms,
+                                 MetaKmsCrtc *kms_crtc);

@@ -28,12 +28,11 @@
  *
  */
 
-#ifndef __COGL_MAGAZINE_PRIVATE_H__
-#define __COGL_MAGAZINE_PRIVATE_H__
+#pragma once
 
 #include <glib.h>
 
-#include "cogl-memory-stack-private.h"
+#include "cogl/cogl-memory-stack-private.h"
 
 typedef struct _CoglMagazineChunk CoglMagazineChunk;
 
@@ -77,5 +76,3 @@ _cogl_magazine_chunk_free (CoglMagazine *magazine, void *data)
 
 void
 _cogl_magazine_free (CoglMagazine *magazine);
-
-#endif /* __COGL_MAGAZINE_PRIVATE_H__ */
